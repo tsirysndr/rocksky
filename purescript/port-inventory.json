@@ -1,0 +1,2042 @@
+[
+  {
+    "source": "access-tokens/app.ts",
+    "module": "Rocksky.AccessTokens.App",
+    "target": "api/src/Rocksky/AccessTokens/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "apikeys/app.ts",
+    "module": "Rocksky.Apikeys.App",
+    "target": "api/src/Rocksky/Apikeys/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "auth/client.ts",
+    "module": "Rocksky.Auth.Client",
+    "target": "api/src/Rocksky/Auth/Client.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "auth/oauth-client-auth.ts",
+    "module": "Rocksky.Auth.OauthClientAuth",
+    "target": "api/src/Rocksky/Auth/OauthClientAuth.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "auth/oauth-client.ts",
+    "module": "Rocksky.Auth.OauthClient",
+    "target": "api/src/Rocksky/Auth/OauthClient.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "auth/storage.ts",
+    "module": "Rocksky.Auth.Storage",
+    "target": "api/src/Rocksky/Auth/Storage.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "bsky/app.ts",
+    "module": "Rocksky.Bsky.App",
+    "target": "api/src/Rocksky/Bsky/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "context.ts",
+    "module": "Rocksky.Context",
+    "target": "api/src/Rocksky/Context.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "db.ts",
+    "module": "Rocksky.Db",
+    "target": "api/src/Rocksky/Db.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "drizzle.ts",
+    "module": "Rocksky.Drizzle",
+    "target": "api/src/Rocksky/Drizzle.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "dropbox/app.ts",
+    "module": "Rocksky.Dropbox.App",
+    "target": "api/src/Rocksky/Dropbox/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "googledrive/app.ts",
+    "module": "Rocksky.Googledrive.App",
+    "target": "api/src/Rocksky/Googledrive/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "import/app.ts",
+    "module": "Rocksky.Import.App",
+    "target": "api/src/Rocksky/Import/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "index.ts",
+    "module": "Rocksky.Index",
+    "target": "api/src/Rocksky/Index.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/agent.ts",
+    "module": "Rocksky.Lib.Agent",
+    "target": "api/src/Rocksky/Lib/Agent.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/authVerifier.ts",
+    "module": "Rocksky.Lib.AuthVerifier",
+    "target": "api/src/Rocksky/Lib/AuthVerifier.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/bskyProfile.ts",
+    "module": "Rocksky.Lib.BskyProfile",
+    "target": "api/src/Rocksky/Lib/BskyProfile.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/credits.ts",
+    "module": "Rocksky.Lib.Credits",
+    "target": "api/src/Rocksky/Lib/Credits.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/crypto.ts",
+    "module": "Rocksky.Lib.Crypto",
+    "target": "api/src/Rocksky/Lib/Crypto.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/dbQuery.ts",
+    "module": "Rocksky.Lib.DbQuery",
+    "target": "api/src/Rocksky/Lib/DbQuery.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/dbRetry.ts",
+    "module": "Rocksky.Lib.DbRetry",
+    "target": "api/src/Rocksky/Lib/DbRetry.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/didUnstorageCache.ts",
+    "module": "Rocksky.Lib.DidUnstorageCache",
+    "target": "api/src/Rocksky/Lib/DidUnstorageCache.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/discogs.ts",
+    "module": "Rocksky.Lib.Discogs",
+    "target": "api/src/Rocksky/Lib/Discogs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/discogsEnrichment.ts",
+    "module": "Rocksky.Lib.DiscogsEnrichment",
+    "target": "api/src/Rocksky/Lib/DiscogsEnrichment.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/discogsRelation.ts",
+    "module": "Rocksky.Lib.DiscogsRelation",
+    "target": "api/src/Rocksky/Lib/DiscogsRelation.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/discogsView.ts",
+    "module": "Rocksky.Lib.DiscogsView",
+    "target": "api/src/Rocksky/Lib/DiscogsView.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/downloadImage.ts",
+    "module": "Rocksky.Lib.DownloadImage",
+    "target": "api/src/Rocksky/Lib/DownloadImage.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/durableRecord.ts",
+    "module": "Rocksky.Lib.DurableRecord",
+    "target": "api/src/Rocksky/Lib/DurableRecord.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/durableSubmission.ts",
+    "module": "Rocksky.Lib.DurableSubmission",
+    "target": "api/src/Rocksky/Lib/DurableSubmission.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/enrichmentBudget.ts",
+    "module": "Rocksky.Lib.EnrichmentBudget",
+    "target": "api/src/Rocksky/Lib/EnrichmentBudget.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/env.ts",
+    "module": "Rocksky.Lib.Env",
+    "target": "api/src/Rocksky/Lib/Env.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/eventView.ts",
+    "module": "Rocksky.Lib.EventView",
+    "target": "api/src/Rocksky/Lib/EventView.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/extractPdsFromDid.ts",
+    "module": "Rocksky.Lib.ExtractPdsFromDid",
+    "target": "api/src/Rocksky/Lib/ExtractPdsFromDid.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/feedCache.ts",
+    "module": "Rocksky.Lib.FeedCache",
+    "target": "api/src/Rocksky/Lib/FeedCache.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/filteredPage.ts",
+    "module": "Rocksky.Lib.FilteredPage",
+    "target": "api/src/Rocksky/Lib/FilteredPage.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/idResolver.ts",
+    "module": "Rocksky.Lib.IdResolver",
+    "target": "api/src/Rocksky/Lib/IdResolver.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/index.ts",
+    "module": "Rocksky.Lib.Common",
+    "target": "api/src/Rocksky/Lib/Common.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/matching.ts",
+    "module": "Rocksky.Lib.Matching",
+    "target": "api/src/Rocksky/Lib/Matching.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/navidrome.ts",
+    "module": "Rocksky.Lib.Navidrome",
+    "target": "api/src/Rocksky/Lib/Navidrome.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/pdsProxy.ts",
+    "module": "Rocksky.Lib.PdsProxy",
+    "target": "api/src/Rocksky/Lib/PdsProxy.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/pgConnectionRecovery.ts",
+    "module": "Rocksky.Lib.PgConnectionRecovery",
+    "target": "api/src/Rocksky/Lib/PgConnectionRecovery.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/plc.ts",
+    "module": "Rocksky.Lib.Plc",
+    "target": "api/src/Rocksky/Lib/Plc.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/queryCache.ts",
+    "module": "Rocksky.Lib.QueryCache",
+    "target": "api/src/Rocksky/Lib/QueryCache.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/recordOwnership.ts",
+    "module": "Rocksky.Lib.RecordOwnership",
+    "target": "api/src/Rocksky/Lib/RecordOwnership.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/recordPosition.ts",
+    "module": "Rocksky.Lib.RecordPosition",
+    "target": "api/src/Rocksky/Lib/RecordPosition.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/rsql.ts",
+    "module": "Rocksky.Lib.Rsql",
+    "target": "api/src/Rocksky/Lib/Rsql.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/scrobbleDedup.ts",
+    "module": "Rocksky.Lib.ScrobbleDedup",
+    "target": "api/src/Rocksky/Lib/ScrobbleDedup.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/scrobbleGuard.ts",
+    "module": "Rocksky.Lib.ScrobbleGuard",
+    "target": "api/src/Rocksky/Lib/ScrobbleGuard.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/spotifyGet.ts",
+    "module": "Rocksky.Lib.SpotifyGet",
+    "target": "api/src/Rocksky/Lib/SpotifyGet.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/statsCache.ts",
+    "module": "Rocksky.Lib.StatsCache",
+    "target": "api/src/Rocksky/Lib/StatsCache.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/storage-crypto.ts",
+    "module": "Rocksky.Lib.StorageCrypto",
+    "target": "api/src/Rocksky/Lib/StorageCrypto.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/trackLikes.ts",
+    "module": "Rocksky.Lib.TrackLikes",
+    "target": "api/src/Rocksky/Lib/TrackLikes.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/verifyToken.ts",
+    "module": "Rocksky.Lib.VerifyToken",
+    "target": "api/src/Rocksky/Lib/VerifyToken.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lib/xrpcTelemetry.ts",
+    "module": "Rocksky.Lib.XrpcTelemetry",
+    "target": "api/src/Rocksky/Lib/XrpcTelemetry.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "library/playlist-mirror.ts",
+    "module": "Rocksky.Library.PlaylistMirror",
+    "target": "api/src/Rocksky/Library/PlaylistMirror.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "lovedtracks/lovedtracks.service.ts",
+    "module": "Rocksky.Lovedtracks.Service",
+    "target": "api/src/Rocksky/Lovedtracks/Service.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "metrics.ts",
+    "module": "Rocksky.Metrics",
+    "target": "api/src/Rocksky/Metrics.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "notifications/notifications.service.ts",
+    "module": "Rocksky.Notifications.Service",
+    "target": "api/src/Rocksky/Notifications/Service.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "notifications/sse.ts",
+    "module": "Rocksky.Notifications.Sse",
+    "target": "api/src/Rocksky/Notifications/Sse.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "nowplaying/nowplaying.service.ts",
+    "module": "Rocksky.Nowplaying.Service",
+    "target": "api/src/Rocksky/Nowplaying/Service.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "opengraph/app.ts",
+    "module": "Rocksky.Opengraph.App",
+    "target": "api/src/Rocksky/Opengraph/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "otel.ts",
+    "module": "Rocksky.Otel",
+    "target": "api/src/Rocksky/Otel.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "playlists/playlists.service.ts",
+    "module": "Rocksky.Playlists.Service",
+    "target": "api/src/Rocksky/Playlists/Service.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "profiling.ts",
+    "module": "Rocksky.Profiling",
+    "target": "api/src/Rocksky/Profiling.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "ratelimiter.ts",
+    "module": "Rocksky.Ratelimiter",
+    "target": "api/src/Rocksky/Ratelimiter.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/access-tokens.ts",
+    "module": "Rocksky.Schema.AccessTokens",
+    "target": "api/src/Rocksky/Schema/AccessTokens.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/album-tracks.ts",
+    "module": "Rocksky.Schema.AlbumTracks",
+    "target": "api/src/Rocksky/Schema/AlbumTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/albums.ts",
+    "module": "Rocksky.Schema.Albums",
+    "target": "api/src/Rocksky/Schema/Albums.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/api-keys.ts",
+    "module": "Rocksky.Schema.ApiKeys",
+    "target": "api/src/Rocksky/Schema/ApiKeys.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/artist-albums.ts",
+    "module": "Rocksky.Schema.ArtistAlbums",
+    "target": "api/src/Rocksky/Schema/ArtistAlbums.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/artist-tracks.ts",
+    "module": "Rocksky.Schema.ArtistTracks",
+    "target": "api/src/Rocksky/Schema/ArtistTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/artists.ts",
+    "module": "Rocksky.Schema.Artists",
+    "target": "api/src/Rocksky/Schema/Artists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-credits.ts",
+    "module": "Rocksky.Schema.DiscogsCredits",
+    "target": "api/src/Rocksky/Schema/DiscogsCredits.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-identifiers.ts",
+    "module": "Rocksky.Schema.DiscogsIdentifiers",
+    "target": "api/src/Rocksky/Schema/DiscogsIdentifiers.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-masters.ts",
+    "module": "Rocksky.Schema.DiscogsMasters",
+    "target": "api/src/Rocksky/Schema/DiscogsMasters.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-release-artists.ts",
+    "module": "Rocksky.Schema.DiscogsReleaseArtists",
+    "target": "api/src/Rocksky/Schema/DiscogsReleaseArtists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-release-labels.ts",
+    "module": "Rocksky.Schema.DiscogsReleaseLabels",
+    "target": "api/src/Rocksky/Schema/DiscogsReleaseLabels.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-releases.ts",
+    "module": "Rocksky.Schema.DiscogsReleases",
+    "target": "api/src/Rocksky/Schema/DiscogsReleases.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-searches.ts",
+    "module": "Rocksky.Schema.DiscogsSearches",
+    "target": "api/src/Rocksky/Schema/DiscogsSearches.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/discogs-tracks.ts",
+    "module": "Rocksky.Schema.DiscogsTracks",
+    "target": "api/src/Rocksky/Schema/DiscogsTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/dropbox-accounts.ts",
+    "module": "Rocksky.Schema.DropboxAccounts",
+    "target": "api/src/Rocksky/Schema/DropboxAccounts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/dropbox-directories.ts",
+    "module": "Rocksky.Schema.DropboxDirectories",
+    "target": "api/src/Rocksky/Schema/DropboxDirectories.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/dropbox-paths.ts",
+    "module": "Rocksky.Schema.DropboxPaths",
+    "target": "api/src/Rocksky/Schema/DropboxPaths.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/dropbox-tokens.ts",
+    "module": "Rocksky.Schema.DropboxTokens",
+    "target": "api/src/Rocksky/Schema/DropboxTokens.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/dropbox.ts",
+    "module": "Rocksky.Schema.Dropbox",
+    "target": "api/src/Rocksky/Schema/Dropbox.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/event-artists.ts",
+    "module": "Rocksky.Schema.EventArtists",
+    "target": "api/src/Rocksky/Schema/EventArtists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/event-rsvps.ts",
+    "module": "Rocksky.Schema.EventRsvps",
+    "target": "api/src/Rocksky/Schema/EventRsvps.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/events.ts",
+    "module": "Rocksky.Schema.Events",
+    "target": "api/src/Rocksky/Schema/Events.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/feeds.ts",
+    "module": "Rocksky.Schema.Feeds",
+    "target": "api/src/Rocksky/Schema/Feeds.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/follows.ts",
+    "module": "Rocksky.Schema.Follows",
+    "target": "api/src/Rocksky/Schema/Follows.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/google-drive-accounts.ts",
+    "module": "Rocksky.Schema.GoogleDriveAccounts",
+    "target": "api/src/Rocksky/Schema/GoogleDriveAccounts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/google-drive-directories.ts",
+    "module": "Rocksky.Schema.GoogleDriveDirectories",
+    "target": "api/src/Rocksky/Schema/GoogleDriveDirectories.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/google-drive-paths.ts",
+    "module": "Rocksky.Schema.GoogleDrivePaths",
+    "target": "api/src/Rocksky/Schema/GoogleDrivePaths.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/google-drive-tokens.ts",
+    "module": "Rocksky.Schema.GoogleDriveTokens",
+    "target": "api/src/Rocksky/Schema/GoogleDriveTokens.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/googledrive.ts",
+    "module": "Rocksky.Schema.GoogleDrive",
+    "target": "api/src/Rocksky/Schema/GoogleDrive.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/import-jobs.ts",
+    "module": "Rocksky.Schema.ImportJobs",
+    "target": "api/src/Rocksky/Schema/ImportJobs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/index.ts",
+    "module": "Rocksky.Schema",
+    "target": "api/src/Rocksky/Schema.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/loved-tracks.ts",
+    "module": "Rocksky.Schema.LovedTracks",
+    "target": "api/src/Rocksky/Schema/LovedTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/mirror-sources.ts",
+    "module": "Rocksky.Schema.MirrorSources",
+    "target": "api/src/Rocksky/Schema/MirrorSources.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/navidrome-playlist-tracks.ts",
+    "module": "Rocksky.Schema.NavidromePlaylistTracks",
+    "target": "api/src/Rocksky/Schema/NavidromePlaylistTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/navidrome-playlists.ts",
+    "module": "Rocksky.Schema.NavidromePlaylists",
+    "target": "api/src/Rocksky/Schema/NavidromePlaylists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/notifications.ts",
+    "module": "Rocksky.Schema.Notifications",
+    "target": "api/src/Rocksky/Schema/Notifications.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/playlist-tracks.ts",
+    "module": "Rocksky.Schema.PlaylistTracks",
+    "target": "api/src/Rocksky/Schema/PlaylistTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/playlists.ts",
+    "module": "Rocksky.Schema.Playlists",
+    "target": "api/src/Rocksky/Schema/Playlists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/profile-shouts.ts",
+    "module": "Rocksky.Schema.ProfileShouts",
+    "target": "api/src/Rocksky/Schema/ProfileShouts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/queue-tracks.ts",
+    "module": "Rocksky.Schema.QueueTracks",
+    "target": "api/src/Rocksky/Schema/QueueTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/scrobbles.ts",
+    "module": "Rocksky.Schema.Scrobbles",
+    "target": "api/src/Rocksky/Schema/Scrobbles.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/shout-likes.ts",
+    "module": "Rocksky.Schema.ShoutLikes",
+    "target": "api/src/Rocksky/Schema/ShoutLikes.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/shout-reports.ts",
+    "module": "Rocksky.Schema.ShoutReports",
+    "target": "api/src/Rocksky/Schema/ShoutReports.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/shouts.ts",
+    "module": "Rocksky.Schema.Shouts",
+    "target": "api/src/Rocksky/Schema/Shouts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/spotify-accounts.ts",
+    "module": "Rocksky.Schema.SpotifyAccounts",
+    "target": "api/src/Rocksky/Schema/SpotifyAccounts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/spotify-apps.ts",
+    "module": "Rocksky.Schema.SpotifyApps",
+    "target": "api/src/Rocksky/Schema/SpotifyApps.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/spotify-tokens.ts",
+    "module": "Rocksky.Schema.SpotifyTokens",
+    "target": "api/src/Rocksky/Schema/SpotifyTokens.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/tracks.ts",
+    "module": "Rocksky.Schema.Tracks",
+    "target": "api/src/Rocksky/Schema/Tracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/upload-queue-state.ts",
+    "module": "Rocksky.Schema.UploadQueueState",
+    "target": "api/src/Rocksky/Schema/UploadQueueState.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/user-albums.ts",
+    "module": "Rocksky.Schema.UserAlbums",
+    "target": "api/src/Rocksky/Schema/UserAlbums.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/user-artists.ts",
+    "module": "Rocksky.Schema.UserArtists",
+    "target": "api/src/Rocksky/Schema/UserArtists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/user-playlists.ts",
+    "module": "Rocksky.Schema.UserPlaylists",
+    "target": "api/src/Rocksky/Schema/UserPlaylists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/user-storage-providers.ts",
+    "module": "Rocksky.Schema.UserStorageProviders",
+    "target": "api/src/Rocksky/Schema/UserStorageProviders.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/user-tracks.ts",
+    "module": "Rocksky.Schema.UserTracks",
+    "target": "api/src/Rocksky/Schema/UserTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/user-uploads.ts",
+    "module": "Rocksky.Schema.UserUploads",
+    "target": "api/src/Rocksky/Schema/UserUploads.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/users.ts",
+    "module": "Rocksky.Schema.Users",
+    "target": "api/src/Rocksky/Schema/Users.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "schema/webscrobblers.ts",
+    "module": "Rocksky.Schema.Webscrobblers",
+    "target": "api/src/Rocksky/Schema/Webscrobblers.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/avatar.ts",
+    "module": "Rocksky.Scripts.Avatar",
+    "target": "api/src/Rocksky/Scripts/Avatar.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/backfill-analysis.ts",
+    "module": "Rocksky.Scripts.BackfillAnalysis",
+    "target": "api/src/Rocksky/Scripts/BackfillAnalysis.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/backfill-discogs.ts",
+    "module": "Rocksky.Scripts.BackfillDiscogs",
+    "target": "api/src/Rocksky/Scripts/BackfillDiscogs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/backfill-isrc-mbid.ts",
+    "module": "Rocksky.Scripts.BackfillIsrcMbid",
+    "target": "api/src/Rocksky/Scripts/BackfillIsrcMbid.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/backfill-likes.ts",
+    "module": "Rocksky.Scripts.BackfillLikes",
+    "target": "api/src/Rocksky/Scripts/BackfillLikes.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/backfill-replaygain.ts",
+    "module": "Rocksky.Scripts.BackfillReplaygain",
+    "target": "api/src/Rocksky/Scripts/BackfillReplaygain.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/backfill-riff.ts",
+    "module": "Rocksky.Scripts.BackfillRiff",
+    "target": "api/src/Rocksky/Scripts/BackfillRiff.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/backfill-track-uri.ts",
+    "module": "Rocksky.Scripts.BackfillTrackUri",
+    "target": "api/src/Rocksky/Scripts/BackfillTrackUri.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/collections.ts",
+    "module": "Rocksky.Scripts.Collections",
+    "target": "api/src/Rocksky/Scripts/Collections.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/dedup-records.ts",
+    "module": "Rocksky.Scripts.DedupRecords",
+    "target": "api/src/Rocksky/Scripts/DedupRecords.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/dedup.ts",
+    "module": "Rocksky.Scripts.Dedup",
+    "target": "api/src/Rocksky/Scripts/Dedup.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/event.ts",
+    "module": "Rocksky.Scripts.Event",
+    "target": "api/src/Rocksky/Scripts/Event.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/exp.ts",
+    "module": "Rocksky.Scripts.Exp",
+    "target": "api/src/Rocksky/Scripts/Exp.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/feed.ts",
+    "module": "Rocksky.Scripts.Feed",
+    "target": "api/src/Rocksky/Scripts/Feed.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/genres.ts",
+    "module": "Rocksky.Scripts.Genres",
+    "target": "api/src/Rocksky/Scripts/Genres.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/likes.ts",
+    "module": "Rocksky.Scripts.Likes",
+    "target": "api/src/Rocksky/Scripts/Likes.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/seed-feed.ts",
+    "module": "Rocksky.Scripts.SeedFeed",
+    "target": "api/src/Rocksky/Scripts/SeedFeed.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/spotify.ts",
+    "module": "Rocksky.Scripts.Spotify",
+    "target": "api/src/Rocksky/Scripts/Spotify.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/sync-library-playlist.ts",
+    "module": "Rocksky.Scripts.SyncLibraryPlaylist",
+    "target": "api/src/Rocksky/Scripts/SyncLibraryPlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/sync-library.ts",
+    "module": "Rocksky.Scripts.SyncLibrary",
+    "target": "api/src/Rocksky/Scripts/SyncLibrary.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/sync.ts",
+    "module": "Rocksky.Scripts.Sync",
+    "target": "api/src/Rocksky/Scripts/Sync.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "scripts/typesense-import.ts",
+    "module": "Rocksky.Scripts.TypesenseImport",
+    "target": "api/src/Rocksky/Scripts/TypesenseImport.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "server.ts",
+    "module": "Rocksky.Server",
+    "target": "api/src/Rocksky/Server.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "shouts/shouts.service.ts",
+    "module": "Rocksky.Shouts.Service",
+    "target": "api/src/Rocksky/Shouts/Service.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "spotify/app.ts",
+    "module": "Rocksky.Spotify.App",
+    "target": "api/src/Rocksky/Spotify/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "sqliteKv.ts",
+    "module": "Rocksky.SqliteKv",
+    "target": "api/src/Rocksky/SqliteKv.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "storage/app.ts",
+    "module": "Rocksky.Storage.App",
+    "target": "api/src/Rocksky/Storage/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "submissions/app.ts",
+    "module": "Rocksky.Submissions.App",
+    "target": "api/src/Rocksky/Submissions/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "subscribers/index.ts",
+    "module": "Rocksky.Subscribers.Index",
+    "target": "api/src/Rocksky/Subscribers/Index.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "subscribers/playback.ts",
+    "module": "Rocksky.Subscribers.Playback",
+    "target": "api/src/Rocksky/Subscribers/Playback.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "subscribers/playlist.ts",
+    "module": "Rocksky.Subscribers.Playlist",
+    "target": "api/src/Rocksky/Subscribers/Playlist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "subscribers/scrobble.ts",
+    "module": "Rocksky.Subscribers.Scrobble",
+    "target": "api/src/Rocksky/Subscribers/Scrobble.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "subscribers/status.ts",
+    "module": "Rocksky.Subscribers.Status",
+    "target": "api/src/Rocksky/Subscribers/Status.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "subscribers/track.ts",
+    "module": "Rocksky.Subscribers.Track",
+    "target": "api/src/Rocksky/Subscribers/Track.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "subscribers/user.ts",
+    "module": "Rocksky.Subscribers.User",
+    "target": "api/src/Rocksky/Subscribers/User.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "tealfm/index.ts",
+    "module": "Rocksky.Tealfm.Index",
+    "target": "api/src/Rocksky/Tealfm/Index.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "tealfm/publication.ts",
+    "module": "Rocksky.Tealfm.Publication",
+    "target": "api/src/Rocksky/Tealfm/Publication.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "tealfm/pushEnabled.ts",
+    "module": "Rocksky.Tealfm.PushEnabled",
+    "target": "api/src/Rocksky/Tealfm/PushEnabled.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "tracks/tracks.service.ts",
+    "module": "Rocksky.Tracks.Service",
+    "target": "api/src/Rocksky/Tracks/Service.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "types/access-token.ts",
+    "module": "Rocksky.Types.AccessToken",
+    "target": "api/src/Rocksky/Types/AccessToken.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "types/apikey.ts",
+    "module": "Rocksky.Types.ApiKey",
+    "target": "api/src/Rocksky/Types/ApiKey.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "types/email.ts",
+    "module": "Rocksky.Types.Email",
+    "target": "api/src/Rocksky/Types/Email.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "types/shout.ts",
+    "module": "Rocksky.Types.Shout",
+    "target": "api/src/Rocksky/Types/Shout.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "types/track.ts",
+    "module": "Rocksky.Types.Track",
+    "target": "api/src/Rocksky/Types/Track.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "typesense/client.ts",
+    "module": "Rocksky.Context",
+    "target": "api/src/Rocksky/Context.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "typesense/library.ts",
+    "module": "Rocksky.Typesense.Library",
+    "target": "api/src/Rocksky/Typesense/Library.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "typesense/retry.ts",
+    "module": "Rocksky.Typesense.Retry",
+    "target": "api/src/Rocksky/Typesense/Retry.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "typesense/schema.ts",
+    "module": "Rocksky.Typesense.Schema",
+    "target": "api/src/Rocksky/Typesense/Schema.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "typesense/search.ts",
+    "module": "Rocksky.Typesense.Search",
+    "target": "api/src/Rocksky/Typesense/Search.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "uploads/analysis.ts",
+    "module": "Rocksky.Uploads.Analysis",
+    "target": "api/src/Rocksky/Uploads/Analysis.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "uploads/app.ts",
+    "module": "Rocksky.Uploads.App",
+    "target": "api/src/Rocksky/Uploads/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "uploads/delete.service.ts",
+    "module": "Rocksky.Uploads.DeleteService",
+    "target": "api/src/Rocksky/Uploads/DeleteService.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "uploads/replaygain.ts",
+    "module": "Rocksky.Uploads.Replaygain",
+    "target": "api/src/Rocksky/Uploads/Replaygain.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "users/app.ts",
+    "module": "Rocksky.Users.App",
+    "target": "api/src/Rocksky/Users/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "users/utils.ts",
+    "module": "Rocksky.Users.Utils",
+    "target": "api/src/Rocksky/Users/Utils.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "webscrobbler/app.ts",
+    "module": "Rocksky.Webscrobbler.App",
+    "target": "api/src/Rocksky/Webscrobbler/App.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorAlbums.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorAlbums",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorAlbums.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorArtists.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorArtists",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorArtists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorCompatibility.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorCompatibility",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorCompatibility.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorLovedSongs.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorLovedSongs",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorLovedSongs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorNeighbours.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorNeighbours",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorNeighbours.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorPlaylists.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorPlaylists",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorPlaylists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorScrobbles.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorScrobbles",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorScrobbles.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getActorSongs.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetActorSongs",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetActorSongs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/getProfile.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.GetProfile",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/GetProfile.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/actor/neighboursQuery.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Actor.NeighboursQuery",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Actor/NeighboursQuery.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/album/getAlbum.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Album.GetAlbum",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Album/GetAlbum.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/album/getAlbumTracks.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Album.GetAlbumTracks",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Album/GetAlbumTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/album/getAlbums.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Album.GetAlbums",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Album/GetAlbums.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/apikey/createApikey.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Apikey.CreateApikey",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Apikey/CreateApikey.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/apikey/getApikeys.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Apikey.GetApikeys",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Apikey/GetApikeys.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/apikey/removeApikey.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Apikey.RemoveApikey",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Apikey/RemoveApikey.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/apikey/updateApikey.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Apikey.UpdateApikey",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Apikey/UpdateApikey.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/artist/getArtist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Artist.GetArtist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Artist/GetArtist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/artist/getArtistAlbums.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Artist.GetArtistAlbums",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Artist/GetArtistAlbums.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/artist/getArtistEvents.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Artist.GetArtistEvents",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Artist/GetArtistEvents.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/artist/getArtistListeners.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Artist.GetArtistListeners",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Artist/GetArtistListeners.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/artist/getArtistRecentListeners.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Artist.GetArtistRecentListeners",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Artist/GetArtistRecentListeners.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/artist/getArtistTracks.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Artist.GetArtistTracks",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Artist/GetArtistTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/artist/getArtists.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Artist.GetArtists",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Artist/GetArtists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/charts/getDecades.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Charts.GetDecades",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Charts/GetDecades.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/charts/getScrobblesChart.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Charts.GetScrobblesChart",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Charts/GetScrobblesChart.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/charts/getTopArtists.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Charts.GetTopArtists",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Charts/GetTopArtists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/charts/getTopScrobblers.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Charts.GetTopScrobblers",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Charts/GetTopScrobblers.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/charts/getTopTracks.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Charts.GetTopTracks",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Charts/GetTopTracks.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/dropbox/downloadFile.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.DownloadFile",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/DownloadFile.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/dropbox/getFiles.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.GetFiles",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/GetFiles.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/dropbox/getMetadata.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.GetMetadata",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/GetMetadata.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/dropbox/getTemporaryLink.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.GetTemporaryLink",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/GetTemporaryLink.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/equalizer/deletePreset.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Equalizer.DeletePreset",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Equalizer/DeletePreset.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/equalizer/listPresets.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Equalizer.ListPresets",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Equalizer/ListPresets.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/equalizer/putPreset.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Equalizer.PutPreset",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Equalizer/PutPreset.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/equalizer/slug.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Equalizer.Slug",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Equalizer/Slug.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/event/getEvent.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Event.GetEvent",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Event/GetEvent.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/event/getEventRsvps.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Event.GetEventRsvps",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Event/GetEventRsvps.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/event/getEvents.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Event.GetEvents",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Event/GetEvents.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/event/putRsvp.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Event.PutRsvp",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Event/PutRsvp.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/getAlbumRecommendations.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.GetAlbumRecommendations",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/GetAlbumRecommendations.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/getArtistRecommendations.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.GetArtistRecommendations",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/GetArtistRecommendations.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/getFeed.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.GetFeed",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/GetFeed.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/getFeedGenerator.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.GetFeedGenerator",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/GetFeedGenerator.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/getFeedGenerators.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.GetFeedGenerators",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/GetFeedGenerators.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/getRecommendations.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.GetRecommendations",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/GetRecommendations.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/getStories.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.GetStories",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/GetStories.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/feed/search.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Feed.Search",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/Search.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/googledrive/downloadFile.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Googledrive.DownloadFile",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Googledrive/DownloadFile.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/googledrive/getFile.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Googledrive.GetFile",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Googledrive/GetFile.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/googledrive/getFiles.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Googledrive.GetFiles",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Googledrive/GetFiles.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/graph/followAccount.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Graph.FollowAccount",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Graph/FollowAccount.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/graph/getFollowers.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Graph.GetFollowers",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Graph/GetFollowers.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/graph/getFollows.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Graph.GetFollows",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Graph/GetFollows.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/graph/getKnownFollowers.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Graph.GetKnownFollowers",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Graph/GetKnownFollowers.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/graph/unfollowAccount.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Graph.UnfollowAccount",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Graph/UnfollowAccount.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/createPlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.CreatePlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/CreatePlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/deleteAlbum.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.DeleteAlbum",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/DeleteAlbum.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/deletePlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.DeletePlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/DeletePlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/deleteSong.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.DeleteSong",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/DeleteSong.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getAlbum.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetAlbum",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetAlbum.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getAlbumInfo.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetAlbumInfo",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetAlbumInfo.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getAlbumList.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetAlbumList",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetAlbumList.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getArtist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetArtist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetArtist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getArtistInfo.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetArtistInfo",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetArtistInfo.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getArtists.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetArtists",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetArtists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getCoverArtUrl.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetCoverArtUrl",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetCoverArtUrl.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getDownloadUrl.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetDownloadUrl",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetDownloadUrl.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getGenres.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetGenres",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetGenres.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getIndexes.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetIndexes",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetIndexes.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getInternetRadioStations.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetInternetRadioStations",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetInternetRadioStations.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getLicense.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetLicense",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetLicense.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getLyrics.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetLyrics",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetLyrics.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getMusicDirectory.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetMusicDirectory",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetMusicDirectory.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getMusicFolders.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetMusicFolders",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetMusicFolders.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getNowPlaying.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetNowPlaying",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetNowPlaying.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getPlayQueue.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetPlayQueue",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetPlayQueue.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getPlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetPlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetPlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getPlaylists.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetPlaylists",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetPlaylists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getRandomSongs.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetRandomSongs",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetRandomSongs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getScanStatus.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetScanStatus",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetScanStatus.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getSimilarSongs.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetSimilarSongs",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetSimilarSongs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getSong.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetSong",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetSong.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getSongsByGenre.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetSongsByGenre",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetSongsByGenre.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getStarred.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetStarred",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetStarred.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getStreamUrl.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetStreamUrl",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetStreamUrl.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getTopSongs.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetTopSongs",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetTopSongs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/getUser.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.GetUser",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/GetUser.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/index.ts",
+    "module": "Rocksky.Xrpc.Groups.Library",
+    "target": "api/src/Rocksky/Xrpc/Groups/Library.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/ping.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.Ping",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/Ping.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/savePlayQueue.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.SavePlayQueue",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/SavePlayQueue.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/scrobble.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.Scrobble",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/Scrobble.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/search.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.Search",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/Search.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/star.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.Star",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/Star.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/startScan.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.StartScan",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/StartScan.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/unstar.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.Unstar",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/Unstar.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/updateNowPlaying.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.UpdateNowPlaying",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/UpdateNowPlaying.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/library/updatePlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Library.UpdatePlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Library/UpdatePlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/like/dislikeShout.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Like.DislikeShout",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Like/DislikeShout.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/like/dislikeSong.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Like.DislikeSong",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Like/DislikeSong.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/like/likeShout.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Like.LikeShout",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Like/LikeShout.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/like/likeSong.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Like.LikeSong",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Like/LikeSong.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/mirror/getMirrorSources.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Mirror.GetMirrorSources",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Mirror/GetMirrorSources.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/mirror/putMirrorSource.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Mirror.PutMirrorSource",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Mirror/PutMirrorSource.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/notification/getUnreadCount.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Notification.GetUnreadCount",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Notification/GetUnreadCount.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/notification/listNotifications.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Notification.ListNotifications",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Notification/ListNotifications.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/notification/updateSeen.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Notification.UpdateSeen",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Notification/UpdateSeen.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/addDirectoryToQueue.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.AddDirectoryToQueue",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/AddDirectoryToQueue.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/addItemsToQueue.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.AddItemsToQueue",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/AddItemsToQueue.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/getCurrentlyPlaying.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.GetCurrentlyPlaying",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/GetCurrentlyPlaying.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/getPlaybackQueue.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.GetPlaybackQueue",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/GetPlaybackQueue.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/next.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.Next",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/Next.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/pause.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.Pause",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/Pause.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/play.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.Play",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/Play.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/playDirectory.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.PlayDirectory",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/PlayDirectory.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/playFile.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.PlayFile",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/PlayFile.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/previous.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.Previous",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/Previous.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/player/seek.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Player.Seek",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Player/Seek.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/addSongs.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.AddSongs",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/AddSongs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/createPlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.CreatePlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/CreatePlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/getPlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.GetPlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/GetPlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/getPlaylists.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.GetPlaylists",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/GetPlaylists.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/insertDirectory.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.InsertDirectory",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/InsertDirectory.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/insertFiles.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.InsertFiles",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/InsertFiles.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/removePlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.RemovePlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/RemovePlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/removeTrack.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.RemoveTrack",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/RemoveTrack.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/startPlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.StartPlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/StartPlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/playlist/updatePlaylist.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Playlist.UpdatePlaylist",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Playlist/UpdatePlaylist.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/rockbox/getAudioSettings.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Rockbox.GetAudioSettings",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Rockbox/GetAudioSettings.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/rockbox/putAudioSettings.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Rockbox.PutAudioSettings",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Rockbox/PutAudioSettings.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/scrobble/createScrobble.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Scrobble.CreateScrobble",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Scrobble/CreateScrobble.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/scrobble/getScrobble.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Scrobble.GetScrobble",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Scrobble/GetScrobble.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/scrobble/getScrobbles.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Scrobble.GetScrobbles",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Scrobble/GetScrobbles.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/createShout.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.CreateShout",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/CreateShout.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/getAlbumShouts.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.GetAlbumShouts",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/GetAlbumShouts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/getArtistShouts.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.GetArtistShouts",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/GetArtistShouts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/getProfileShouts.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.GetProfileShouts",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/GetProfileShouts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/getShoutReplies.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.GetShoutReplies",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/GetShoutReplies.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/getTrackShouts.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.GetTrackShouts",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/GetTrackShouts.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/removeShout.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.RemoveShout",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/RemoveShout.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/replyShout.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.ReplyShout",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/ReplyShout.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/shout/reportShout.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Shout.ReportShout",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Shout/ReportShout.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/song/createSong.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Song.CreateSong",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Song/CreateSong.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/song/getSong.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Song.GetSong",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Song/GetSong.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/song/getSongRecentListeners.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Song.GetSongRecentListeners",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Song/GetSongRecentListeners.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/song/getSongs.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Song.GetSongs",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Song/GetSongs.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/song/matchSong.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Song.MatchSong",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Song/MatchSong.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/song/matchSongUris.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Song.MatchSongUris",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Song/MatchSongUris.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/song/types.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Song.Types",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Song/Types.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/spotify/getCurrentlyPlaying.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Spotify.GetCurrentlyPlaying",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Spotify/GetCurrentlyPlaying.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/spotify/next.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Spotify.Next",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Spotify/Next.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/spotify/pause.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Spotify.Pause",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Spotify/Pause.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/spotify/play.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Spotify.Play",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Spotify/Play.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/spotify/previous.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Spotify.Previous",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Spotify/Previous.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/spotify/seek.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Spotify.Seek",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Spotify/Seek.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/stats/getGlobalStats.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Stats.GetGlobalStats",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Stats/GetGlobalStats.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/stats/getStats.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Stats.GetStats",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Stats/GetStats.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/stats/getWrapped.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Stats.GetWrapped",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Stats/GetWrapped.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/app/rocksky/stats/wrappedQuery.ts",
+    "module": "Rocksky.Xrpc.App.Rocksky.Stats.WrappedQuery",
+    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Stats/WrappedQuery.purs",
+    "status": "mapped"
+  },
+  {
+    "source": "xrpc/index.ts",
+    "module": "Rocksky.Xrpc.Index",
+    "target": "api/src/Rocksky/Xrpc/Index.purs",
+    "status": "mapped"
+  }
+]
