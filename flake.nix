@@ -11,6 +11,9 @@
 
     rust-overlay.url = "github:oxalica/rust-overlay";
     rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
+
+    purescript-overlay.url = "github:thomashoneyman/purescript-overlay";
+    purescript-overlay.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
@@ -19,12 +22,16 @@
     flake-utils,
     rocksky-cli,
     rust-overlay,
+    purescript-overlay,
   }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ rust-overlay.overlays.default ];
+          overlays = [
+            rust-overlay.overlays.default
+            purescript-overlay.overlays.default
+          ];
           # dragonflydb is BSL-1.1, which nixpkgs classifies as unfree.
           config.allowUnfreePredicate = pkg:
             builtins.elem (nixpkgs.lib.getName pkg) [ "dragonflydb" ];
@@ -503,6 +510,13 @@
               })
               pkgs.bun
               pkgs.nodejs
+              pkgs.gleam
+              # PureScript compiler, package manager, formatter and editor support.
+              pkgs.purs
+              # Match purescript/bun.lock; nixpkgs Spago 0.21 cannot read spago.yaml.
+              pkgs.spago-bin.spago-0_93_45
+              pkgs.purs-tidy
+              pkgs.purescript-language-server
               pkgs.go_1_25
               pkgs.duckdb
               pkgs.postgresql
