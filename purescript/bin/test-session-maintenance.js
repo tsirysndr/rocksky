@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const env=await readFile(new URL('../api/src/Rocksky/Lib/Env.purs',import.meta.url),'utf8');process.env.NODE_ENV='test';for(const [,key] of env.matchAll(/"([A-Z0-9_]+)": str required/g))process.env[key]='session-test';
+const {fromAff,toAffE}=await import('../output/Control.Promise/index.js');const run=a=>fromAff(a)();const M=await import('../output/Rocksky.Auth.SessionMaintenance/index.js');const D=await import('../output/Rocksky.Db/index.js');const K=await import('../output/Kysely/index.js');
+const db=D.createDb(':memory:')();await run(D.migrateToLatest(db));
+for(const [key,expiry] of [['past','2020-01-01T00:00:00Z'],['soon','2026-01-02T00:00:00Z'],['later','2030-01-01T00:00:00Z'],['none',null],['sentinel','NULL']])await run(D.upsertAuthSession(db)(key)(JSON.stringify({tokenSet:{expires_at:expiry}}))('old'));
+await run(M.updateExpiresAt(db));const rows=await run(D.listAuthSessions(db));assert.equal(rows.find(r=>r.key==='none').expiresAt,null);assert.equal(rows.find(r=>r.key==='soon').expiresAt,'2026-01-02T00:00:00Z');
+const calls=[];await run(M.refreshWith(db)('2026-01-01T00:00:00Z')(did=>toAffE(()=>{calls.push(did);return Promise.resolve()}))(toAffE(()=>{calls.push('pause');return Promise.resolve()})));assert.deepEqual(calls,['soon','pause','later','pause']);
+await run(D.upsertAuthSession(db)('missing')(JSON.stringify({tokenSet:{}}))('keep'));await assert.rejects(run(M.updateExpiresAt(db)),/expires_at is undefined/);const remaining=await run(D.listAuthSessions(db));assert.equal(remaining.find(r=>r.key==='missing').expiresAt,'keep');await run(K.destroy(db));
+console.log('Session maintenance: real SQLite migrations, expiry backfill, null/sentinel exclusion, all-future ordered refresh, pacing and missing-expiry failure passed');
