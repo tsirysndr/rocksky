@@ -3,6 +3,7 @@ Meilisearch v1.14/
 node_modules/
 .turbo/
 .env
+.env.prod
 *.ddb
 *.ddb.wal
 .vscode/
