@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.shout.replyShout",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Reply to a shout",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "shoutId",
+            "message"
+          ],
+          "properties": {
+            "shoutId": {
+              "type": "string",
+              "description": "The unique identifier of the shout to reply to"
+            },
+            "message": {
+              "type": "string",
+              "description": "The content of the reply",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.shout.defs#shoutView"
+        }
+      }
+    }
+  }
+}

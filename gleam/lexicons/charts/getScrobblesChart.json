@@ -1,0 +1,54 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.charts.getScrobblesChart",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the scrobbles chart",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          },
+          "artisturi": {
+            "type": "string",
+            "description": "The URI of the artist to filter by",
+            "format": "at-uri"
+          },
+          "albumuri": {
+            "type": "string",
+            "description": "The URI of the album to filter by",
+            "format": "at-uri"
+          },
+          "songuri": {
+            "type": "string",
+            "description": "The URI of the track to filter by",
+            "format": "at-uri"
+          },
+          "genre": {
+            "type": "string",
+            "description": "The genre to filter by"
+          },
+          "from": {
+            "type": "string",
+            "description": "Start date (ISO 8601). Defaults to 6 months ago."
+          },
+          "to": {
+            "type": "string",
+            "description": "End date (ISO 8601). Defaults to today."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.charts.defs#chartsView"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getNowPlaying",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get what the user is currently playing.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "nowPlaying": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic nowPlaying payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
+        }
+      }
+    }
+  }
+}

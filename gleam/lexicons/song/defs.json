@@ -1,0 +1,537 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.song.defs",
+  "defs": {
+    "songViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the song."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the song."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the song."
+        },
+        "albumArtist": {
+          "type": "string",
+          "description": "The artist of the album the song belongs to."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The URL of the album art image.",
+          "format": "uri"
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the song.",
+          "format": "at-uri"
+        },
+        "album": {
+          "type": "string",
+          "description": "The album of the song."
+        },
+        "duration": {
+          "type": "integer",
+          "description": "The duration of the song in milliseconds."
+        },
+        "trackNumber": {
+          "type": "integer",
+          "description": "The track number of the song in the album."
+        },
+        "discNumber": {
+          "type": "integer",
+          "description": "The disc number of the song in the album."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "The number of times the song has been played.",
+          "minimum": 0
+        },
+        "likesCount": {
+          "type": "integer",
+          "description": "The number of users who have loved this song.",
+          "minimum": 0
+        },
+        "liked": {
+          "type": "boolean",
+          "description": "Whether the authenticated user has loved this song. False when unauthenticated."
+        },
+        "uniqueListeners": {
+          "type": "integer",
+          "description": "The number of unique listeners who have played the song.",
+          "minimum": 0
+        },
+        "albumUri": {
+          "type": "string",
+          "description": "The URI of the album the song belongs to.",
+          "format": "at-uri"
+        },
+        "artistUri": {
+          "type": "string",
+          "description": "The URI of the artist of the song.",
+          "format": "at-uri"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the song."
+        },
+        "mbid": {
+          "type": "string",
+          "description": "The MusicBrainz ID of the song."
+        },
+        "isrc": {
+          "type": "string",
+          "description": "The International Standard Recording Code (ISRC) of the song."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the song was created.",
+          "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "mbId": {
+          "type": "string"
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "lyrics": {
+          "type": "string"
+        },
+        "composer": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "copyrightMessage": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "acoustidFingerprint": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
+        }
+      },
+      "nullable": [
+        "acoustidFingerprint",
+        "albumArt",
+        "albumUri",
+        "appleMusicLink",
+        "artistUri",
+        "composer",
+        "copyrightMessage",
+        "discNumber",
+        "genre",
+        "isrc",
+        "key",
+        "label",
+        "lyrics",
+        "mbId",
+        "spotifyLink",
+        "tidalLink",
+        "trackNumber",
+        "uri",
+        "xataVersion",
+        "youtubeLink"
+      ]
+    },
+    "songViewDetailed": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the song."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the song."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the song."
+        },
+        "albumArtist": {
+          "type": "string",
+          "description": "The artist of the album the song belongs to."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The URL of the album art image.",
+          "format": "uri"
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the song.",
+          "format": "at-uri"
+        },
+        "album": {
+          "type": "string",
+          "description": "The album of the song."
+        },
+        "duration": {
+          "type": "integer",
+          "description": "The duration of the song in milliseconds."
+        },
+        "trackNumber": {
+          "type": "integer",
+          "description": "The track number of the song in the album."
+        },
+        "discNumber": {
+          "type": "integer",
+          "description": "The disc number of the song in the album."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "The number of times the song has been played.",
+          "minimum": 0
+        },
+        "likesCount": {
+          "type": "integer",
+          "description": "The number of users who have loved this song.",
+          "minimum": 0
+        },
+        "liked": {
+          "type": "boolean",
+          "description": "Whether the authenticated user has loved this song. False when unauthenticated."
+        },
+        "uniqueListeners": {
+          "type": "integer",
+          "description": "The number of unique listeners who have played the song.",
+          "minimum": 0
+        },
+        "albumUri": {
+          "type": "string",
+          "description": "The URI of the album the song belongs to.",
+          "format": "at-uri"
+        },
+        "artistUri": {
+          "type": "string",
+          "description": "The URI of the artist of the song.",
+          "format": "at-uri"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the song."
+        },
+        "mbid": {
+          "type": "string",
+          "description": "The MusicBrainz ID of the song."
+        },
+        "isrc": {
+          "type": "string",
+          "description": "The International Standard Recording Code (ISRC) of the song."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the song was created.",
+          "format": "datetime"
+        },
+        "artists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.artist.defs#artistViewBasic"
+          }
+        },
+        "firstScrobble": {
+          "type": "ref",
+          "description": "The first scrobble of this song on Rocksky.",
+          "ref": "app.rocksky.song.defs#firstScrobbleView"
+        },
+        "matches": {
+          "type": "array",
+          "description": "Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#songMatchView"
+          }
+        },
+        "mbId": {
+          "type": "string",
+          "description": "The MusicBrainz recording ID of the track, when available."
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "releaseDate": {
+          "type": "string"
+        },
+        "year": {
+          "type": "integer"
+        },
+        "artistPicture": {
+          "type": "string"
+        },
+        "genres": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mbArtists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#responseMbArtistsItemView"
+          }
+        },
+        "youtubeLink": {
+          "type": "string"
+        },
+        "spotifyLink": {
+          "type": "string"
+        },
+        "appleMusicLink": {
+          "type": "string"
+        },
+        "tidalLink": {
+          "type": "string"
+        },
+        "lyrics": {
+          "type": "string"
+        },
+        "composer": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "copyrightMessage": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "acoustidFingerprint": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
+        }
+      },
+      "nullable": [
+        "acoustidFingerprint",
+        "albumArt",
+        "albumUri",
+        "appleMusicLink",
+        "artistPicture",
+        "artistUri",
+        "composer",
+        "copyrightMessage",
+        "discNumber",
+        "genre",
+        "genres",
+        "isrc",
+        "key",
+        "label",
+        "lyrics",
+        "mbArtists",
+        "mbId",
+        "releaseDate",
+        "spotifyLink",
+        "tidalLink",
+        "trackNumber",
+        "uri",
+        "xataVersion",
+        "year",
+        "youtubeLink"
+      ]
+    },
+    "songMatchView": {
+      "type": "object",
+      "description": "A ranked candidate match for a song from an external metadata provider.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "The provider's numeric identifier for the matched track."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the matched track."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the matched track."
+        },
+        "album": {
+          "type": "string",
+          "description": "The album of the matched track."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The URL of the matched track's album art image.",
+          "format": "uri"
+        },
+        "isrc": {
+          "type": "string",
+          "description": "The International Standard Recording Code (ISRC) of the matched track."
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "The duration of the matched track in milliseconds.",
+          "minimum": 0
+        },
+        "trackNumber": {
+          "type": "integer",
+          "description": "The track number of the matched track in its album."
+        },
+        "discNumber": {
+          "type": "integer",
+          "description": "The disc number of the matched track in its album."
+        },
+        "link": {
+          "type": "string",
+          "description": "A URL to the matched track on the provider.",
+          "format": "uri"
+        },
+        "preview": {
+          "type": "string",
+          "description": "A URL to a short audio preview of the matched track.",
+          "format": "uri"
+        },
+        "rank": {
+          "type": "integer",
+          "description": "The provider's popularity rank for the matched track."
+        },
+        "explicit": {
+          "type": "boolean",
+          "description": "Whether the matched track has explicit lyrics."
+        },
+        "score": {
+          "type": "integer",
+          "description": "Match confidence score in the range 0-100 (higher is better).",
+          "maximum": 100,
+          "minimum": 0
+        },
+        "source": {
+          "type": "string",
+          "description": "The metadata provider for this candidate."
+        },
+        "providerId": {
+          "type": "string",
+          "description": "The provider identifier, including non-numeric identifiers."
+        },
+        "mbId": {
+          "type": "string",
+          "description": "The MusicBrainz recording identifier of this candidate."
+        },
+        "mbReleaseId": {
+          "type": "string",
+          "description": "The MusicBrainz release identifier of this candidate."
+        },
+        "mbArtists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#responseMbArtistsItemView"
+          }
+        }
+      }
+    },
+    "recentListenerView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the listener."
+        },
+        "did": {
+          "type": "string",
+          "description": "The DID of the listener."
+        },
+        "handle": {
+          "type": "string",
+          "description": "The handle of the listener."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the listener."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the listener's avatar image.",
+          "format": "uri"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the listener's most recent scrobble of this song.",
+          "format": "datetime"
+        },
+        "scrobbleUri": {
+          "type": "string",
+          "description": "The URI of the listener's most recent scrobble of this song.",
+          "format": "at-uri"
+        }
+      }
+    },
+    "firstScrobbleView": {
+      "type": "object",
+      "properties": {
+        "handle": {
+          "type": "string",
+          "description": "The handle of the user who first scrobbled this song."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The avatar URL of the user who first scrobbled this song.",
+          "format": "uri"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the first scrobble.",
+          "format": "datetime"
+        }
+      }
+    },
+    "responseMbArtistsItemView": {
+      "type": "object",
+      "properties": {
+        "mbid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

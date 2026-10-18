@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.equalizer.listPresets",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List equalizer presets. If `did` is provided the request is public; otherwise an auth token is required and the caller's own presets are returned.",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "DID or handle of the user whose presets to fetch. Required for unauthenticated requests.",
+            "format": "at-identifier"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "presets"
+          ],
+          "properties": {
+            "presets": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.equalizer.defs#presetView"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.insertDirectory",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Insert a directory into a playlist",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri",
+          "directory"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the playlist to start",
+            "format": "at-uri"
+          },
+          "directory": {
+            "type": "string",
+            "description": "The directory (id) to insert into the playlist"
+          },
+          "position": {
+            "type": "integer",
+            "description": "The position in the playlist to insert the directory at, if not specified, the directory will be appended"
+          }
+        }
+      }
+    }
+  }
+}

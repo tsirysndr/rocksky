@@ -1,0 +1,33 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.player.playDirectory",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Play all tracks in a directory",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "directoryId"
+        ],
+        "properties": {
+          "playerId": {
+            "type": "string"
+          },
+          "directoryId": {
+            "type": "string"
+          },
+          "shuffle": {
+            "type": "boolean"
+          },
+          "recurse": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

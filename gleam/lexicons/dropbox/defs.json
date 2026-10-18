@@ -1,0 +1,124 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.dropbox.defs",
+  "defs": {
+    "fileView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the file."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the file."
+        },
+        "pathLower": {
+          "type": "string",
+          "description": "The lowercased path of the file."
+        },
+        "pathDisplay": {
+          "type": "string",
+          "description": "The display path of the file."
+        },
+        "clientModified": {
+          "type": "string",
+          "description": "The last modified date and time of the file on the client.",
+          "format": "datetime"
+        },
+        "serverModified": {
+          "type": "string",
+          "description": "The last modified date and time of the file on the server.",
+          "format": "datetime"
+        },
+        "fileId": {
+          "type": "string"
+        },
+        "directoryId": {
+          "type": "string"
+        },
+        "trackId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "fileListView": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "description": "A list of files in the Dropbox.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.dropbox.defs#fileView"
+          }
+        },
+        "directory": {
+          "type": "ref",
+          "ref": "app.rocksky.dropbox.defs#responseDirectoryView"
+        },
+        "parentDirectory": {
+          "type": "ref",
+          "ref": "app.rocksky.dropbox.defs#responseParentDirectoryView"
+        },
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.dropbox.defs#responseDirectoriesItemView"
+          }
+        }
+      }
+    },
+    "temporaryLinkView": {
+      "type": "object",
+      "properties": {
+        "link": {
+          "type": "string",
+          "description": "The temporary link to access the file.",
+          "format": "uri"
+        }
+      }
+    },
+    "responseDirectoryView": {
+      "type": "object",
+      "properties": {}
+    },
+    "responseParentDirectoryView": {
+      "type": "object",
+      "properties": {}
+    },
+    "responseDirectoriesItemView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "fileId": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

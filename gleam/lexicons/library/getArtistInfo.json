@@ -1,0 +1,49 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getArtistInfo",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get artist biography, images and similar artists.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The artist id"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "artistInfo2": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic artistInfo2 payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
+        }
+      }
+    }
+  }
+}

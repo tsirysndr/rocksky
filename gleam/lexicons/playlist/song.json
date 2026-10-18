@@ -1,0 +1,75 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.song",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A song entry in a playlist. Holds a strong reference to the playlist it belongs to, a strong reference to the song record itself, and a denormalized copy of the song metadata so the entry can be rendered without dereferencing the song.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "playlist",
+          "song",
+          "title",
+          "artist",
+          "album",
+          "albumArtist",
+          "duration",
+          "addedAt"
+        ],
+        "properties": {
+          "playlist": {
+            "type": "ref",
+            "description": "Strong reference (AT-URI + CID) to the parent app.rocksky.playlist record.",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "song": {
+            "type": "ref",
+            "description": "Strong reference (AT-URI + CID) to the app.rocksky.song record this entry points at.",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the song.",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "artist": {
+            "type": "string",
+            "description": "The artist of the song.",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "album": {
+            "type": "string",
+            "description": "The album the song belongs to.",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "albumArtist": {
+            "type": "string",
+            "description": "The album artist of the song.",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "duration": {
+            "type": "integer",
+            "description": "The duration of the song in milliseconds.",
+            "minimum": 1
+          },
+          "albumArtUrl": {
+            "type": "string",
+            "description": "The URL of the album art of the song.",
+            "format": "uri"
+          },
+          "addedAt": {
+            "type": "string",
+            "description": "The date and time the song was added to the playlist.",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

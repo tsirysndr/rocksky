@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.ping",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Test connectivity with the server.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

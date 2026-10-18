@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.artist.getArtistAlbums",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get artist's albums",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the artist to retrieve albums from",
+            "format": "at-uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "albums": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.album.defs#albumViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

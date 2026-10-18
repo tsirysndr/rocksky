@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getGenres",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get all genres in the library.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "genres": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic genres payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+-- A profile's stat row is four counts over one user's scrobbles: total,
+-- distinct artists, distinct albums, distinct tracks. getStats ran them as four
+-- separate queries, so a charts page rendering a hundred profile cards issued
+-- four hundred multi-second aggregates against a twenty-slot pool. What the
+-- logs showed was the pool giving up —
+--
+--   failed to acquire pg client: timeout exceeded when trying to connect
+--
+-- — and the replica killing whatever did get through:
+--
+--   ERROR: canceling statement due to conflict with recovery
+--
+-- The handler now issues one query instead of four, but no index covers all
+-- three id columns, so that single pass falls back to a heap scan and spills:
+--
+--   Aggregate  (actual time=165.406..165.407)
+--     ->  Sort  Sort Method: external merge  Disk: 5184kB
+--           ->  Index Scan using idx_scrobbles_user on scrobbles
+--                 Buffers: shared hit=3480 read=11583
+--
+-- 11,583 blocks off disk warm, and the replica reads it cold. Covering
+-- (user_id, artist_id, album_id, track_id) answers all four counts from the
+-- index alone — no heap access.
+--
+-- `unique_scrobble_track_idx` (user_id, track_id, artist_id, timestamp) is the
+-- closest existing index and cannot serve it: album_id is absent, which is what
+-- forces the heap fetch in the first place.
+--
+-- CONCURRENTLY because every scrobble writes this table; it cannot run inside a
+-- transaction, hence the statement standing alone.
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "scrobbles_user_stats_idx"
+  ON "scrobbles" USING btree ("user_id", "artist_id", "album_id", "track_id");

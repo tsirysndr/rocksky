@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.updateNowPlaying",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Update the now-playing song for the user.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The song id."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

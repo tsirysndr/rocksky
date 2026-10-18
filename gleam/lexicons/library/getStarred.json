@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getStarred",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get starred songs, albums and artists.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "starred2": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic starred2 payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.song.matchSong",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album. Completed lookups return HTTP 200 in the existing songViewDetailed format. When multiple recordings remain, the highest-ranked accepted candidate supplies the song fields; external alternatives remain in matches. When no candidate is accepted, returns an empty matches array without song fields. Supply a known isrc or mbId to anchor a recording.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "title",
+          "artist"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The title of the song to retrieve"
+          },
+          "artist": {
+            "type": "string",
+            "description": "The artist of the song to retrieve"
+          },
+          "album": {
+            "type": "string",
+            "description": "Optional album title — only candidates matching this album after normalization are accepted, including when an explicit identifier is supplied"
+          },
+          "mbId": {
+            "type": "string",
+            "description": "Optional MusicBrainz recording ID to anchor the match"
+          },
+          "isrc": {
+            "type": "string",
+            "description": "Optional International Standard Recording Code (ISRC) to anchor the match"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.song.defs#songViewDetailed"
+        }
+      }
+    }
+  }
+}

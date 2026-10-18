@@ -1,0 +1,61 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.song.getSongs",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get songs",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of songs to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          },
+          "genre": {
+            "type": "string",
+            "description": "The genre to filter artists by"
+          },
+          "mbid": {
+            "type": "string",
+            "description": "Filter songs by MusicBrainz ID"
+          },
+          "isrc": {
+            "type": "string",
+            "description": "Filter songs by International Standard Recording Code (ISRC)"
+          },
+          "spotifyId": {
+            "type": "string",
+            "description": "Filter songs by Spotify track ID (resolved internally to the Spotify track URL)"
+          },
+          "filter": {
+            "type": "string",
+            "description": "RSQL filter expression, e.g. `artist==\"Daft Punk\";duration=gt=200000`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: title, artist, album, albumArtist, genre, composer, label, duration, trackNumber, discNumber, mbId, isrc, sha256, uri, albumUri, artistUri, createdAt",
+            "maxLength": 2048
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "tracks": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.song.defs#songViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

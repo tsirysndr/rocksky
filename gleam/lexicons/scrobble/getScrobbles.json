@@ -1,0 +1,54 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.scrobble.getScrobbles",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get scrobbles all scrobbles",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          },
+          "following": {
+            "type": "boolean",
+            "description": "If true, only return scrobbles from actors the viewer is following."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of scrobbles to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          },
+          "filter": {
+            "type": "string",
+            "description": "RSQL filter expression, e.g. `track.artist==\"Daft Punk\";date=ge=2025-01-01`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: uri, date, timestamp, title, artist, album, track.title, track.artist, track.album, track.albumArtist, track.genre, track.duration, track.isrc, track.mbId, user.did, user.handle, user.displayName, artist.name, artist.genres",
+            "maxLength": 2048
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "scrobbles": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

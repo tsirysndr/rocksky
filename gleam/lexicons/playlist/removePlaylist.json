@@ -1,0 +1,23 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.removePlaylist",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Remove a playlist",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the playlist to remove",
+            "format": "at-uri"
+          }
+        }
+      }
+    }
+  }
+}

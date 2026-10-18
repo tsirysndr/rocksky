@@ -1,0 +1,26 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.googledrive.getFiles",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a list of files from Google Drive",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "at": {
+            "type": "string",
+            "description": "Path to the Google Drive folder or root directory"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.googledrive.defs#fileListView"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.actor.getActorPlaylists",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get playlists for an actor",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "did"
+        ],
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of playlists to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          },
+          "filter": {
+            "type": "string",
+            "description": "RSQL filter expression, e.g. `name==\"Road trip*\";track.artist==\"Daft Punk\"`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, title, description, uri, spotifyLink, tidalLink, appleMusicLink, createdAt, updatedAt. The `track.title`, `track.artist`, `track.album` and `track.albumArtist` selectors match the playlist's contents, returning playlists that contain a matching track; several `track.*` terms joined with `;` must all be satisfied by the same track.",
+            "maxLength": 2048
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "playlists": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.playlist.defs#playlistViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

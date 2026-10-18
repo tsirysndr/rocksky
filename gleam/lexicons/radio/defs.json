@@ -1,0 +1,68 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.radio.defs",
+  "defs": {
+    "radioViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the radio."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the radio."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the radio."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the radio was created.",
+          "format": "datetime"
+        }
+      }
+    },
+    "radioViewDetailed": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the radio."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the radio."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the radio."
+        },
+        "website": {
+          "type": "string",
+          "description": "The website of the radio.",
+          "format": "uri"
+        },
+        "url": {
+          "type": "string",
+          "description": "The streaming URL of the radio.",
+          "format": "uri"
+        },
+        "genre": {
+          "type": "string",
+          "description": "The genre of the radio."
+        },
+        "logo": {
+          "type": "string",
+          "description": "The logo of the radio station."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the radio was created.",
+          "format": "datetime"
+        }
+      }
+    }
+  }
+}

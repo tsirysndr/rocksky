@@ -1,0 +1,42 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getCoverArtUrl",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a cover-art URL for an album, artist or song.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The cover-art id (album, artist or song)."
+          },
+          "size": {
+            "type": "integer",
+            "description": "Requested square size in pixels."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The resolved media or cover-art URL.",
+              "format": "uri"
+            }
+          }
+        }
+      }
+    }
+  }
+}

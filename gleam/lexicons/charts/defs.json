@@ -1,0 +1,87 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.charts.defs",
+  "defs": {
+    "chartsView": {
+      "type": "object",
+      "properties": {
+        "scrobbles": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.charts.defs#scrobbleViewBasic"
+          }
+        }
+      }
+    },
+    "scrobbleViewBasic": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "The date of the scrobble.",
+          "format": "datetime"
+        },
+        "count": {
+          "type": "integer",
+          "description": "The number of scrobbles on this date."
+        }
+      }
+    },
+    "decadeViewBasic": {
+      "type": "object",
+      "properties": {
+        "decade": {
+          "type": "integer",
+          "description": "The first year of the decade, e.g. 1990."
+        },
+        "scrobbles": {
+          "type": "integer",
+          "description": "The number of scrobbles of music released in this decade."
+        },
+        "uniqueAlbums": {
+          "type": "integer",
+          "description": "The number of distinct albums scrobbled from this decade."
+        }
+      }
+    },
+    "scrobblerViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the actor."
+        },
+        "did": {
+          "type": "string",
+          "description": "The DID of the actor."
+        },
+        "handle": {
+          "type": "string",
+          "description": "The handle of the actor."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the actor."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the actor's avatar image.",
+          "format": "uri"
+        },
+        "scrobbles": {
+          "type": "integer",
+          "description": "The number of scrobbles in the requested window."
+        },
+        "uniqueArtists": {
+          "type": "integer",
+          "description": "The number of distinct artists scrobbled in the window."
+        },
+        "uniqueTracks": {
+          "type": "integer",
+          "description": "The number of distinct tracks scrobbled in the window."
+        }
+      }
+    }
+  }
+}

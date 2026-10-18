@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.dropbox.getTemporaryLink",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Retrieve a temporary link to access a file in Dropbox",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path to the file in Dropbox"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.dropbox.defs#temporaryLinkView"
+        }
+      }
+    }
+  }
+}

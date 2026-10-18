@@ -1,0 +1,49 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getMusicDirectory",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Browse a music directory (artist, album or root).",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The directory id"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "directory": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic directory payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
+        }
+      }
+    }
+  }
+}

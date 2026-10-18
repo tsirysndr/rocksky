@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.mirror.getMirrorSources",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the authenticated user's scrobble mirror sources (Last.fm, ListenBrainz, Teal.fm).",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "sources"
+          ],
+          "properties": {
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.mirror.defs#mirrorSourceView"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

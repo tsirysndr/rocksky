@@ -1,0 +1,26 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.dropbox.getFiles",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Retrieve a list of files from Dropbox",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "at": {
+            "type": "string",
+            "description": "Path to the Dropbox folder or root directory"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.dropbox.defs#fileListView"
+        }
+      }
+    }
+  }
+}

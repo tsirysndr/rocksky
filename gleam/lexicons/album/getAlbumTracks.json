@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.album.getAlbumTracks",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get tracks for an album",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the album to retrieve tracks from",
+            "format": "at-uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "tracks": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.song.defs#songViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.spotify.previous",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Play the previous track in the queue"
+    }
+  }
+}

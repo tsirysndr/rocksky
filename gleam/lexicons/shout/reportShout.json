@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.shout.reportShout",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Report a shout for moderation",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "shoutId"
+          ],
+          "properties": {
+            "shoutId": {
+              "type": "string",
+              "description": "The unique identifier of the shout to report"
+            },
+            "reason": {
+              "type": "string",
+              "description": "The reason for reporting the shout",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.shout.defs#shoutView"
+        }
+      }
+    }
+  }
+}

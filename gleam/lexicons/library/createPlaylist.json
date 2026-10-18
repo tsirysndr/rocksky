@@ -1,0 +1,56 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.createPlaylist",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create a new playlist.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The playlist name."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "playlist": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic playlist payload from Navidrome. Its provider-defined fields are preserved."
+            },
+            "atprotoError": {
+              "type": "string",
+              "description": "Non-fatal AT Protocol playlist mirror error, when available."
+            }
+          }
+        }
+      }
+    }
+  }
+}

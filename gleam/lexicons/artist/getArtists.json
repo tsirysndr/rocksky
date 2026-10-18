@@ -1,0 +1,53 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.artist.getArtists",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get artists",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of artists to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          },
+          "names": {
+            "type": "string",
+            "description": "The names of the artists to return"
+          },
+          "genre": {
+            "type": "string",
+            "description": "The genre to filter artists by"
+          },
+          "filter": {
+            "type": "string",
+            "description": "RSQL filter expression, e.g. `name==Daft*;genres=in=(house,electro)`. Supports ==, !=, <, <=, >, >=, =in=, =out=, and `;`/`and`, `,`/`or` combinators, `*` wildcards in string values. Filterable fields: name, genres, bornIn, born, died, sha256, uri, createdAt",
+            "maxLength": 2048
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "artists": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.artist.defs#artistViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

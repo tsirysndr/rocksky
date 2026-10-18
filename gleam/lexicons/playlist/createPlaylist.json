@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.createPlaylist",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create a new playlist",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the playlist"
+          },
+          "description": {
+            "type": "string",
+            "description": "A brief description of the playlist"
+          },
+          "pictureUrl": {
+            "type": "string",
+            "description": "The URL of the cover image for the playlist",
+            "format": "uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "uri",
+            "cid"
+          ],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "description": "The AT-URI of the created app.rocksky.playlist record.",
+              "format": "at-uri"
+            },
+            "cid": {
+              "type": "string",
+              "description": "The CID of the created app.rocksky.playlist record."
+            }
+          }
+        }
+      }
+    }
+  }
+}

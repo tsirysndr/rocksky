@@ -1,0 +1,314 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.actor.defs",
+  "defs": {
+    "profileViewDetailed": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the actor."
+        },
+        "did": {
+          "type": "string",
+          "description": "The DID of the actor."
+        },
+        "handle": {
+          "type": "string",
+          "description": "The handle of the actor."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the actor."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the actor's avatar image.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the actor was created.",
+          "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the actor was last updated.",
+          "format": "datetime"
+        },
+        "spotifyUser": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#responseSpotifyUserView"
+        },
+        "spotifyConnected": {
+          "type": "boolean"
+        },
+        "googledrive": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#responseGoogledriveView"
+        },
+        "dropbox": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#responseDropboxView"
+        }
+      }
+    },
+    "profileViewBasic": {
+      "type": "object",
+      "nullable": [
+        "avatar",
+        "displayName"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the actor."
+        },
+        "did": {
+          "type": "string",
+          "description": "The DID of the actor."
+        },
+        "handle": {
+          "type": "string",
+          "description": "The handle of the actor."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the actor."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the actor's avatar image.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the actor was created.",
+          "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the actor was last updated.",
+          "format": "datetime"
+        }
+      }
+    },
+    "neighbourViewBasic": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "did": {
+          "type": "string"
+        },
+        "handle": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the actor's avatar image."
+        },
+        "sharedArtistsCount": {
+          "type": "integer",
+          "description": "The number of artists shared with the actor."
+        },
+        "topSharedArtistNames": {
+          "type": "array",
+          "description": "The top shared artist names with the actor.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "topSharedArtistsDetails": {
+          "type": "array",
+          "description": "The top shared artist details with the actor.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.artist.defs#artistViewBasic"
+          }
+        }
+      }
+    },
+    "compatibilityViewBasic": {
+      "type": "object",
+      "properties": {
+        "compatibilityLevel": {
+          "type": "integer"
+        },
+        "sharedArtists": {
+          "type": "integer"
+        },
+        "topSharedArtistNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "topSharedDetailedArtists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.actor.defs#artistViewBasic"
+          }
+        },
+        "user1ArtistCount": {
+          "type": "integer"
+        },
+        "user2ArtistCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "artistViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string",
+          "format": "uri"
+        },
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "user1Rank": {
+          "type": "integer"
+        },
+        "user2Rank": {
+          "type": "integer"
+        }
+      }
+    },
+    "trackView": {
+      "type": "object",
+      "required": [
+        "name",
+        "artist"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the track.",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "artist": {
+          "type": "string",
+          "description": "The primary artist name.",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "album": {
+          "type": "string",
+          "description": "The album name.",
+          "maxLength": 256
+        },
+        "albumCoverUrl": {
+          "type": "string",
+          "description": "URL of the album cover image.",
+          "format": "uri"
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "Track duration in milliseconds.",
+          "minimum": 0
+        },
+        "source": {
+          "type": "string",
+          "description": "Music service source, e.g. 'spotify' or 'listenbrainz'.",
+          "maxLength": 64
+        },
+        "recordingMbId": {
+          "type": "string",
+          "description": "MusicBrainz recording ID, if available."
+        },
+        "trackNumber": {
+          "type": "integer",
+          "description": "The track's position within its album, if known (>= 1).",
+          "minimum": 1
+        }
+      }
+    },
+    "responseSpotifyUserView": {
+      "type": "object",
+      "nullable": [
+        "xataVersion",
+        "userId",
+        "spotifyAppId"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "integer"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "isBetaUser": {
+          "type": "boolean"
+        },
+        "spotifyAppId": {
+          "type": "string"
+        }
+      }
+    },
+    "responseGoogledriveView": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "responseDropboxView": {
+      "type": "object",
+      "nullable": [
+        "userId",
+        "xataVersion"
+      ],
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "isBetaUser": {
+          "type": "boolean"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "xataVersion": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.event.putRsvp",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Set the authenticated user's RSVP on an event. Reuses their existing RSVP record.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "uri",
+            "status"
+          ],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "The calendar or music event URI."
+            },
+            "status": {
+              "type": "string",
+              "knownValues": [
+                "community.lexicon.calendar.rsvp#going",
+                "community.lexicon.calendar.rsvp#interested",
+                "community.lexicon.calendar.rsvp#notgoing"
+              ]
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "uri",
+            "status"
+          ],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "The RSVP record URI."
+            },
+            "status": {
+              "type": "string",
+              "knownValues": [
+                "community.lexicon.calendar.rsvp#going",
+                "community.lexicon.calendar.rsvp#interested",
+                "community.lexicon.calendar.rsvp#notgoing"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

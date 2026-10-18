@@ -1,0 +1,25 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.player.getPlaybackQueue",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Retrieve the current playback queue",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "playerId": {
+            "type": "string"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.player.defs#playbackQueueViewDetailed"
+        }
+      }
+    }
+  }
+}

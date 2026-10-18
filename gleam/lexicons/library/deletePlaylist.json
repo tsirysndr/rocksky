@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.deletePlaylist",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Delete a playlist.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The playlist id to delete."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "atprotoError": {
+              "type": "string",
+              "description": "Non-fatal AT Protocol playlist mirror error, when available."
+            }
+          }
+        }
+      }
+    }
+  }
+}

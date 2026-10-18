@@ -1,0 +1,5311 @@
+[
+ {
+  "file": "access-tokens",
+  "table": "access_tokens",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "jti",
+    "name": "jti",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "tokenEncrypted",
+    "name": "token_encrypted",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "lastFour",
+    "name": "last_four",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "lastUsedAt",
+    "name": "last_used_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "album-tracks",
+  "table": "album_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "albumId",
+    "name": "album_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "albums",
+  "table": "albums",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "title",
+    "name": "title",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artist",
+    "name": "artist",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "releaseDate",
+    "name": "release_date",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "year",
+    "name": "year",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumArt",
+    "name": "album_art",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistUri",
+    "name": "artist_uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "appleMusicLink",
+    "name": "apple_music_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "spotifyLink",
+    "name": "spotify_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "tidalLink",
+    "name": "tidal_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "youtubeLink",
+    "name": "youtube_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "sha256",
+    "name": "sha256",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "discogsReleaseId",
+    "name": "discogs_release_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "api-keys",
+  "table": "api_keys",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "apiKey",
+    "name": "api_key",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "sharedSecret",
+    "name": "shared_secret",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "description",
+    "name": "description",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "enabled",
+    "name": "enabled",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "artist-albums",
+  "table": "artist_albums",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumId",
+    "name": "album_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "artist-tracks",
+  "table": "artist_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "artists",
+  "table": "artists",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "biography",
+    "name": "biography",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "born",
+    "name": "born",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "bornIn",
+    "name": "born_in",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "died",
+    "name": "died",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "picture",
+    "name": "picture",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "sha256",
+    "name": "sha256",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "appleMusicLink",
+    "name": "apple_music_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "spotifyLink",
+    "name": "spotify_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "tidalLink",
+    "name": "tidal_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "youtubeLink",
+    "name": "youtube_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "genres",
+    "name": "genres",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-credits",
+  "table": "discogs_credits",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "releaseId",
+    "name": "release_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "role",
+    "name": "role",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "tracks",
+    "name": "tracks",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "position",
+    "name": "position",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-identifiers",
+  "table": "discogs_identifiers",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "releaseId",
+    "name": "release_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "type",
+    "name": "type",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "value",
+    "name": "value",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "description",
+    "name": "description",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "position",
+    "name": "position",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-masters",
+  "table": "discogs_masters",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "discogsId",
+    "name": "discogs_id",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "title",
+    "name": "title",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artist",
+    "name": "artist",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "year",
+    "name": "year",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "mainReleaseId",
+    "name": "main_release_id",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "discogsUrl",
+    "name": "discogs_url",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "genres",
+    "name": "genres",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "styles",
+    "name": "styles",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-release-artists",
+  "table": "discogs_release_artists",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "releaseId",
+    "name": "release_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "anv",
+    "name": "anv",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "joinPhrase",
+    "name": "join_phrase",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "role",
+    "name": "role",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "position",
+    "name": "position",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-release-labels",
+  "table": "discogs_release_labels",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "releaseId",
+    "name": "release_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "labelId",
+    "name": "label_id",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "catalogNumber",
+    "name": "catalog_number",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "kind",
+    "name": "kind",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "entityType",
+    "name": "entity_type",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "position",
+    "name": "position",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-releases",
+  "table": "discogs_releases",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "discogsId",
+    "name": "discogs_id",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "masterId",
+    "name": "master_id",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "title",
+    "name": "title",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artist",
+    "name": "artist",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumArt",
+    "name": "album_art",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "year",
+    "name": "year",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "originalYear",
+    "name": "original_year",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "releaseDate",
+    "name": "release_date",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "country",
+    "name": "country",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "label",
+    "name": "label",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "catalogNumber",
+    "name": "catalog_number",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "barcode",
+    "name": "barcode",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "formats",
+    "name": "formats",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "genres",
+    "name": "genres",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "styles",
+    "name": "styles",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "discogsUrl",
+    "name": "discogs_url",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "score",
+    "name": "score",
+    "dataType": "number",
+    "columnType": "PgReal",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "creditsFetchedAt",
+    "name": "credits_fetched_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-searches",
+  "table": "discogs_searches",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "sha256",
+    "name": "sha256",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artist",
+    "name": "artist",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "album",
+    "name": "album",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "releaseId",
+    "name": "release_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "score",
+    "name": "score",
+    "dataType": "number",
+    "columnType": "PgReal",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "searchedAt",
+    "name": "searched_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "discogs-tracks",
+  "table": "discogs_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "releaseId",
+    "name": "release_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "position",
+    "name": "position",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "type",
+    "name": "type",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "title",
+    "name": "title",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "duration",
+    "name": "duration",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "durationMs",
+    "name": "duration_ms",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "discNumber",
+    "name": "disc_number",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackNumber",
+    "name": "track_number",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "idx",
+    "name": "idx",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "dropbox-accounts",
+  "table": "dropbox_accounts",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "email",
+    "name": "email",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "isBetaUser",
+    "name": "is_beta_user",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "dropbox-directories",
+  "table": "dropbox_directories",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "path",
+    "name": "path",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "parentId",
+    "name": "parent_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "dropboxId",
+    "name": "dropbox_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "fileId",
+    "name": "file_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "dropbox-paths",
+  "table": "dropbox_paths",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "path",
+    "name": "path",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "dropboxId",
+    "name": "dropbox_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "directoryId",
+    "name": "directory_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "fileId",
+    "name": "file_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "dropbox-tokens",
+  "table": "dropbox_tokens",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "refreshToken",
+    "name": "refresh_token",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "dropbox",
+  "table": "dropbox",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "dropboxTokenId",
+    "name": "dropbox_token_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "event-artists",
+  "table": "event_artists",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "eventId",
+    "name": "event_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "role",
+    "name": "role",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "stage",
+    "name": "stage",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "mbid",
+    "name": "mbid",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "startsAt",
+    "name": "starts_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "position",
+    "name": "position",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "event-rsvps",
+  "table": "event_rsvps",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "eventId",
+    "name": "event_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "cid",
+    "name": "cid",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "status",
+    "name": "status",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "events",
+  "table": "events",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "cid",
+    "name": "cid",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "musicUri",
+    "name": "music_uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "musicCid",
+    "name": "music_cid",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "description",
+    "name": "description",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "startsAt",
+    "name": "starts_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "endsAt",
+    "name": "ends_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "mode",
+    "name": "mode",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "status",
+    "name": "status",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "locations",
+    "name": "locations",
+    "dataType": "json",
+    "columnType": "PgJsonb",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uris",
+    "name": "uris",
+    "dataType": "json",
+    "columnType": "PgJsonb",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "media",
+    "name": "media",
+    "dataType": "json",
+    "columnType": "PgJsonb",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "kind",
+    "name": "kind",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "genre",
+    "name": "genre",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "tags",
+    "name": "tags",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "externalIds",
+    "name": "external_ids",
+    "dataType": "json",
+    "columnType": "PgJsonb",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "ticketsUrl",
+    "name": "tickets_url",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "imageUrl",
+    "name": "image_url",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdBy",
+    "name": "created_by",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "sha256",
+    "name": "sha256",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "duplicateOf",
+    "name": "duplicate_of",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "created_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataCreatedAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "feeds",
+  "table": "feeds",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "displayName",
+    "name": "display_name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "description",
+    "name": "description",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "did",
+    "name": "did",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "avatar",
+    "name": "avatar",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "follows",
+  "table": "follows",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "follower_did",
+    "name": "follower_did",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "subject_did",
+    "name": "subject_did",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "google-drive-accounts",
+  "table": "google_drive_accounts",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "email",
+    "name": "email",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "isBetaUser",
+    "name": "is_beta_user",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "google-drive-directories",
+  "table": "google_drive_directories",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "path",
+    "name": "path",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "parentId",
+    "name": "parent_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "googleDriveId",
+    "name": "google_drive_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "fileId",
+    "name": "file_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "google-drive-paths",
+  "table": "google_drive_paths",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "googleDriveId",
+    "name": "google_drive_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "directoryId",
+    "name": "directory_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "fileId",
+    "name": "file_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "google-drive-tokens",
+  "table": "google_drive_tokens",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "refreshToken",
+    "name": "refresh_token",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "googledrive",
+  "table": "google_drive",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "googleDriveTokenId",
+    "name": "google_drive_token_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "import-jobs",
+  "table": "import_jobs",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "type",
+    "name": "type",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "status",
+    "name": "status",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "total",
+    "name": "total",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "processed",
+    "name": "processed",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "failed",
+    "name": "failed",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "errors",
+    "name": "errors",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "loved-tracks",
+  "table": "loved_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "mirror-sources",
+  "table": "mirror_sources",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "provider",
+    "name": "provider",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "enabled",
+    "name": "enabled",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "pushEnabled",
+    "name": "push_enabled",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "externalUsername",
+    "name": "external_username",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "encryptedApiKey",
+    "name": "encrypted_api_key",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "lastPolledAt",
+    "name": "last_polled_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "lastScrobbleSeenAt",
+    "name": "last_scrobble_seen_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "navidrome-playlist-tracks",
+  "table": "navidrome_playlist_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "playlistId",
+    "name": "playlist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "navidrome-playlists",
+  "table": "navidrome_playlists",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "description",
+    "name": "description",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "notifications",
+  "table": "notifications",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "actorId",
+    "name": "actor_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "type",
+    "name": "type",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "shoutId",
+    "name": "shout_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "subjectUri",
+    "name": "subject_uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "read",
+    "name": "read",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "readAt",
+    "name": "read_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "playlist-tracks",
+  "table": "playlist_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "playlistId",
+    "name": "playlist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "cid",
+    "name": "cid",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "addedBy",
+    "name": "added_by",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "addedAt",
+    "name": "added_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "playlists",
+  "table": "playlists",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "picture",
+    "name": "picture",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "description",
+    "name": "description",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "cid",
+    "name": "cid",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "collaborators",
+    "name": "collaborators",
+    "dataType": "array",
+    "columnType": "PgArray",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": true,
+    "baseColumn": "string"
+   },
+   {
+    "prop": "spotifyLink",
+    "name": "spotify_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "tidalLink",
+    "name": "tidal_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "appleMusicLink",
+    "name": "apple_music_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdBy",
+    "name": "created_by",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "profile-shouts",
+  "table": "profile_shouts",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "shoutId",
+    "name": "shout_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "queue-tracks",
+  "table": "queue_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "position",
+    "name": "position",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "fileUri",
+    "name": "file_uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "version",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "scrobbles",
+  "table": "scrobbles",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumId",
+    "name": "album_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "timestamp",
+    "name": "timestamp",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "shout-likes",
+  "table": "shout_likes",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "shoutId",
+    "name": "shout_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "shout-reports",
+  "table": "shout_reports",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "shoutId",
+    "name": "shout_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "shouts",
+  "table": "shouts",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "content",
+    "name": "content",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumId",
+    "name": "album_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "scrobbleId",
+    "name": "scrobble_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "authorId",
+    "name": "author_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "parentId",
+    "name": "parent_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "gifUrl",
+    "name": "gif_url",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "gifPreviewUrl",
+    "name": "gif_preview_url",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "gifAlt",
+    "name": "gif_alt",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "gifWidth",
+    "name": "gif_width",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "gifHeight",
+    "name": "gif_height",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "facets",
+    "name": "facets",
+    "dataType": "json",
+    "columnType": "PgJsonb",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "spotify-accounts",
+  "table": "spotify_accounts",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "email",
+    "name": "email",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "isBetaUser",
+    "name": "is_beta_user",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "spotifyAppId",
+    "name": "spotify_app_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "spotify-apps",
+  "table": "spotify_apps",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "spotifyAppId",
+    "name": "spotify_app_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "spotifySecret",
+    "name": "spotify_secret",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "spotify-tokens",
+  "table": "spotify_tokens",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "accessToken",
+    "name": "access_token",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "refreshToken",
+    "name": "refresh_token",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "spotifyAppId",
+    "name": "spotify_app_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "tracks",
+  "table": "tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "title",
+    "name": "title",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artist",
+    "name": "artist",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumArtist",
+    "name": "album_artist",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumArt",
+    "name": "album_art",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "album",
+    "name": "album",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackNumber",
+    "name": "track_number",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "duration",
+    "name": "duration",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "mbId",
+    "name": "mb_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "isrc",
+    "name": "isrc",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "youtubeLink",
+    "name": "youtube_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "spotifyLink",
+    "name": "spotify_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "appleMusicLink",
+    "name": "apple_music_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "tidalLink",
+    "name": "tidal_link",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "sha256",
+    "name": "sha256",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "discNumber",
+    "name": "disc_number",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "lyrics",
+    "name": "lyrics",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "composer",
+    "name": "composer",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "genre",
+    "name": "genre",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "label",
+    "name": "label",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "copyrightMessage",
+    "name": "copyright_message",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "key",
+    "name": "key",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "bpm",
+    "name": "bpm",
+    "dataType": "number",
+    "columnType": "PgReal",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "acoustidFingerprint",
+    "name": "acoustid_fingerprint",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumUri",
+    "name": "album_uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistUri",
+    "name": "artist_uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "upload-queue-state",
+  "table": "upload_queue_state",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uploadIds",
+    "name": "upload_ids",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "currentIndex",
+    "name": "current_index",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "user-albums",
+  "table": "user_albums",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "albumId",
+    "name": "album_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "scrobbles",
+    "name": "scrobbles",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "user-artists",
+  "table": "user_artists",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "artistId",
+    "name": "artist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "scrobbles",
+    "name": "scrobbles",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "user-playlists",
+  "table": "user_playlists",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "playlistId",
+    "name": "playlist_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "user-storage-providers",
+  "table": "user_storage_providers",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "label",
+    "name": "label",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "endpoint",
+    "name": "endpoint",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "region",
+    "name": "region",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "bucket",
+    "name": "bucket",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "accessKey",
+    "name": "access_key",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "secretKey",
+    "name": "secret_key",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "publicUrl",
+    "name": "public_url",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "verifiedAt",
+    "name": "verified_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "user-tracks",
+  "table": "user_tracks",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uri",
+    "name": "uri",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "scrobbles",
+    "name": "scrobbles",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "user-uploads",
+  "table": "user_uploads",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "trackId",
+    "name": "track_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "r2Key",
+    "name": "r2_key",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "mimeType",
+    "name": "mime_type",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "fileSize",
+    "name": "file_size",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "originalFilename",
+    "name": "original_filename",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "sampleRate",
+    "name": "sample_rate",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "storageProviderId",
+    "name": "storage_provider_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uploadedAt",
+    "name": "uploaded_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "users",
+  "table": "users",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "did",
+    "name": "did",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "displayName",
+    "name": "display_name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "handle",
+    "name": "handle",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "avatar",
+    "name": "avatar",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "isBot",
+    "name": "is_bot",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "botFlaggedAt",
+    "name": "bot_flagged_at",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "botReason",
+    "name": "bot_reason",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "xataVersion",
+    "name": "xata_version",
+    "dataType": "number",
+    "columnType": "PgInteger",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   }
+  ]
+ },
+ {
+  "file": "webscrobblers",
+  "table": "webscrobblers",
+  "columns": [
+   {
+    "prop": "id",
+    "name": "xata_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "name",
+    "name": "name",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "uuid",
+    "name": "uuid",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "description",
+    "name": "description",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": false,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "enabled",
+    "name": "enabled",
+    "dataType": "boolean",
+    "columnType": "PgBoolean",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "userId",
+    "name": "user_id",
+    "dataType": "string",
+    "columnType": "PgText",
+    "notNull": true,
+    "hasDefault": false,
+    "isArray": false
+   },
+   {
+    "prop": "createdAt",
+    "name": "xata_createdat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   },
+   {
+    "prop": "updatedAt",
+    "name": "xata_updatedat",
+    "dataType": "date",
+    "columnType": "PgTimestamp",
+    "notNull": true,
+    "hasDefault": true,
+    "isArray": false
+   }
+  ]
+ }
+]

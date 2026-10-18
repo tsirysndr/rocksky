@@ -1,0 +1,155 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.event.music",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Marks a community.lexicon.calendar.event as a music event (concert, festival, club night...) and links it to the artists performing. The calendar event carries the name, dates and venue; this record carries what is specific to music. Rocksky only indexes calendar events that have one of these attached.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "subject",
+          "artists",
+          "createdAt"
+        ],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "description": "Strong reference (AT-URI + CID) to the community.lexicon.calendar.event record this annotates.",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "kind": {
+            "type": "string",
+            "description": "What sort of music event this is.",
+            "maxLength": 64,
+            "knownValues": [
+              "concert",
+              "festival",
+              "club-night",
+              "dj-set",
+              "livestream",
+              "release-party",
+              "listening-party"
+            ]
+          },
+          "artists": {
+            "type": "array",
+            "description": "The lineup, in billing order.",
+            "items": {
+              "type": "ref",
+              "ref": "app.rocksky.event.music#artist"
+            }
+          },
+          "genre": {
+            "type": "string",
+            "description": "The main genre of the event.",
+            "maxLength": 128
+          },
+          "tags": {
+            "type": "array",
+            "description": "Free-form tags (sub-genres, scene, tour name...).",
+            "items": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "externalIds": {
+            "type": "ref",
+            "description": "Identifiers of the same event on ticketing and event-listing services.",
+            "ref": "app.rocksky.event.music#externalIds"
+          },
+          "ticketsUrl": {
+            "type": "string",
+            "description": "Where tickets can be bought.",
+            "format": "uri"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Poster or banner image of the event.",
+            "format": "uri"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Client-declared timestamp when this record was created.",
+            "format": "datetime"
+          }
+        }
+      }
+    },
+    "artist": {
+      "type": "object",
+      "description": "An artist on the lineup.",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The artist name as billed.",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "uri": {
+          "type": "string",
+          "description": "AT-URI of the app.rocksky.artist record, when the artist is known to Rocksky.",
+          "format": "at-uri"
+        },
+        "mbid": {
+          "type": "string",
+          "description": "MusicBrainz artist id."
+        },
+        "role": {
+          "type": "string",
+          "description": "The artist's billing on this event.",
+          "maxLength": 64,
+          "knownValues": [
+            "headliner",
+            "support",
+            "opener",
+            "dj",
+            "special-guest",
+            "performer"
+          ]
+        },
+        "stage": {
+          "type": "string",
+          "description": "The stage the artist plays on, for multi-stage events such as festivals.",
+          "maxLength": 256
+        },
+        "startsAt": {
+          "type": "string",
+          "description": "When this artist's set starts.",
+          "format": "datetime"
+        }
+      }
+    },
+    "externalIds": {
+      "type": "object",
+      "description": "Identifiers of the event on other services.",
+      "properties": {
+        "ticketmaster": {
+          "type": "string"
+        },
+        "songkick": {
+          "type": "string"
+        },
+        "bandsintown": {
+          "type": "string"
+        },
+        "residentAdvisor": {
+          "type": "string"
+        },
+        "setlistfm": {
+          "type": "string"
+        },
+        "dice": {
+          "type": "string"
+        },
+        "eventbrite": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

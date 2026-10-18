@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getPlaylists",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get all playlists owned by the user.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "serverVersion": {
+              "type": "string"
+            },
+            "openSubsonic": {
+              "type": "boolean"
+            },
+            "playlists": {
+              "type": "unknown",
+              "description": "Unmodified OpenSubsonic playlists payload from Navidrome. Its provider-defined fields are preserved."
+            }
+          }
+        }
+      }
+    }
+  }
+}

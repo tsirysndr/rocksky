@@ -1,0 +1,94 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.googledrive.defs",
+  "defs": {
+    "fileView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the file."
+        },
+        "name": {
+          "type": "string"
+        },
+        "fileId": {
+          "type": "string"
+        },
+        "directoryId": {
+          "type": "string"
+        },
+        "trackId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "fileListView": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.googledrive.defs#fileView"
+          }
+        },
+        "directory": {
+          "type": "ref",
+          "ref": "app.rocksky.googledrive.defs#responseDirectoryView"
+        },
+        "parentDirectory": {
+          "type": "ref",
+          "ref": "app.rocksky.googledrive.defs#responseParentDirectoryView"
+        },
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.googledrive.defs#responseDirectoriesItemView"
+          }
+        }
+      }
+    },
+    "responseDirectoryView": {
+      "type": "object",
+      "properties": {}
+    },
+    "responseParentDirectoryView": {
+      "type": "object",
+      "properties": {}
+    },
+    "responseDirectoriesItemView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "fileId": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

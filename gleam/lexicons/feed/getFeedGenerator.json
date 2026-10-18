@@ -1,0 +1,35 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.feed.getFeedGenerator",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get information about a feed generator",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "feed"
+        ],
+        "properties": {
+          "feed": {
+            "type": "string",
+            "description": "AT-URI of the feed generator record.",
+            "format": "at-uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "view": {
+              "type": "ref",
+              "ref": "app.rocksky.feed.defs#feedGeneratorView"
+            }
+          }
+        }
+      }
+    }
+  }
+}

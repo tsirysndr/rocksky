@@ -1,0 +1,50 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.charts.getTopScrobblers",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the listeners who scrobbled the most, all-time or over a date range",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of scrobblers to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          },
+          "startDate": {
+            "type": "string",
+            "description": "The start date to count scrobbles from (ISO 8601 format)",
+            "format": "datetime"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "The end date to count scrobbles to (ISO 8601 format)",
+            "format": "datetime"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "scrobblers": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.charts.defs#scrobblerViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
