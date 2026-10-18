@@ -12,6 +12,7 @@
             [console.lexgen    :as lexgen]
             [console.db        :as db]
             [console.gleam     :as gleam]
+            [console.systemd   :as systemd]
             [console.sync      :as sync]
             [console.daemons   :as daemons]
             [console.remote    :as remote]
@@ -29,7 +30,7 @@
 (let [n (try (env/load!) (catch Exception _ nil))]
   (println)
   (println "Rocksky Console — REPL loaded. Try (help) or (ls).")
-  (println "Aliases in scope: c, sh, env, lexgen, db, gleam, sync, daemons, remote, remote-ws, deezer, devops, docker, cron")
+  (println "Aliases in scope: c, sh, env, lexgen, db, systemd, gleam, sync, daemons, remote, remote-ws, deezer, devops, docker, cron")
   (when n
     (println (str "Loaded " n " env vars from .env — `(env/show)` to inspect.")))
   (println))

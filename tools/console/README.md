@@ -55,6 +55,7 @@ tools/console/
     ├── lexgen.clj          # lexicon codegen wrappers
     ├── db.clj              # migrate, gen-migration, pkl, pgpull
     ├── gleam.clj           # every Gleam API package script
+    ├── systemd.clj         # Rocksky systemd units, local or over SSH
     ├── sync.clj            # apps/api data-op scripts (12 commands)
     ├── daemons.clj         # all Rust services
     ├── devops.clj          # backup-ddb, local-proxy, mb
@@ -101,6 +102,89 @@ argument forwarding without running builds, migrations, or services:
 
 ```sh
 bb -cp src:test test/console/gleam_test.clj
+```
+
+## Rocksky systemd services
+
+`console.systemd` manages installed `rocksky-*` services and timers, including
+`rocksky.service`. The REPL automatically provides the `systemd` alias. **The
+default target is production over SSH**, using `console.remote/prod-host`, just
+like the existing `remote-ws` and `deezer` commands.
+
+```clojure
+(systemd/list)                         ; loaded units, including inactive ones
+(systemd/list-files)                   ; installed files and enablement state
+(systemd/status)                       ; all loaded Rocksky units
+(systemd/status :gleam :gleam-xrpc)     ; short names expand to rocksky-*.service
+(systemd/start :gleam)
+(systemd/stop :gleam)
+(systemd/restart :gleam :gleam-xrpc)
+(systemd/enable :gleam)                ; boot enablement only; does not start
+(systemd/disable :gleam)               ; boot disablement only; does not stop
+(systemd/enable-now :gleam)             ; enable and start
+(systemd/disable-now :gleam)            ; disable and stop
+(systemd/is-active :gleam)
+(systemd/is-enabled :gleam)
+(systemd/journalctl :gleam :since "1 hour ago" :priority "warning" :lines 200)
+(systemd/journalctl :gleam :boot -1 :output "json")
+(systemd/journalctl :gleam :follow)
+(systemd/logs :gleam 200)
+(systemd/logs :gleam 200 :follow :boot)
+(systemd/cat :gleam)                   ; installed unit plus drop-ins
+(systemd/show :gleam)                  ; systemd properties
+(systemd/reload :gleam)                ; only for units supporting ExecReload
+(systemd/reset-failed :gleam)
+(systemd/daemon-reload)                ; reload all unit definitions, no restart
+(systemd/status "rocksky-scrobble-abuse-sweep.timer")
+```
+
+Select a local Linux systemd instance or another SSH host with dynamic bindings:
+
+```clojure
+(binding [systemd/*host* nil]
+  (systemd/status :gleam))
+(binding [systemd/*host* "ops@staging.example" systemd/*sudo* true]
+  (systemd/restart :gleam))
+```
+
+The default does not use sudo (production SSH uses root). `*sudo* true` adds
+`sudo -n`, which requires an account with suitable non-interactive permissions.
+Commands stream output and return the underlying process exit code; for example,
+`is-active` and `status` may return nonzero for an inactive service.
+
+Equivalent Babashka tasks, from `tools/console/`:
+
+```sh
+bb systemd:list
+bb systemd:status gleam gleam-xrpc
+bb systemd:enable-now gleam
+bb systemd:logs gleam 200 follow
+bb systemd:journalctl gleam --since "1 hour ago" --priority warning --follow
+bb systemd:journalctl --local gleam --boot -1 --output json
+bb systemd:status --local gleam
+bb systemd:restart --host ops@staging.example --sudo gleam
+```
+
+`systemd/journalctl` accepts `:lines` (a non-negative count or `"all"`),
+`:since`, `:until`, `:priority`, `:output`, and `:boot` followed by a value;
+`:follow` and `:reverse` are switches. CLI equivalents use `--` instead of `:`.
+Boot `0` selects the current boot; `-1` selects the previous boot. Queries
+default to 100 lines and use the same SSH/local target settings as other
+`systemd` commands. `systemd/logs` remains available as the shorter tail helper.
+
+
+Target flags (`--local`, `--host HOST`, `--sudo`) precede service names. Short names,
+full `rocksky-*.service` names, and explicit `rocksky-*.timer` names are accepted.
+Changes require concrete names; wildcard input and shell fragments are rejected.
+Listing queries installed units rather than just the checked-in unit files.
+`daemon-reload` is manager-wide. No command installs unit files or builds the
+application itself, although a service's `ExecStartPre` may build it on startup.
+
+Verify command construction with mocked subprocess calls (no SSH connection or
+systemd action is performed):
+
+```sh
+bb -cp src:test test/console/systemd_test.clj
 ```
 
 ## Prerequisites

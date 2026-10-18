@@ -99,6 +99,27 @@
            [:webscrobbler    "rockskyd webscrobbler"]
            [:tracklist       "rockskyd tracklist"]]}
 
+   {:group "systemd" :ns 'console.systemd
+    :cmds [[:list "List loaded Rocksky services/timers, including inactive units (prod SSH by default)"]
+           [:list-files "List installed Rocksky unit files and enablement state (prod SSH by default)"]
+           [:status "Show status; optional unit names (prod SSH by default)"]
+           [:start "Start named units (prod SSH by default)"]
+           [:stop "Stop named units (prod SSH by default)"]
+           [:restart "Restart named units (prod SSH by default)"]
+           [:reload "Reload named units (requires ExecReload) (prod SSH by default)"]
+           [:enable "Enable at boot without starting (prod SSH by default)"]
+           [:disable "Disable at boot without stopping (prod SSH by default)"]
+           [:enable-now "Enable and start named units (prod SSH by default)"]
+           [:disable-now "Disable and stop named units (prod SSH by default)"]
+           [:is-active "Query active state (prod SSH by default)"]
+           [:is-enabled "Query enablement state (prod SSH by default)"]
+           [:show "Show unit properties (prod SSH by default)"]
+           [:cat "Show unit files and drop-ins (prod SSH by default)"]
+           [:reset-failed "Reset failure/start limits for named units (prod SSH by default)"]
+           [:daemon-reload "Reload systemd definitions globally; no service restart (prod SSH by default)"]
+           [:journalctl "Query unit journal with --since, --until, --boot, --priority, --output, --lines, --follow, --reverse"]
+           [:logs "Read unit journal. Args: unit [lines] [follow] [boot] (prod SSH by default)"]]}
+
    {:group "remote-ws" :ns 'console.remote-ws
     :cmds [[:dev             "Run locally: mix phx.server"]
            [:status          "systemctl status on prod"]
