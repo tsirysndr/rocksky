@@ -134,6 +134,13 @@
       "when": 1787504311135,
       "tag": "0020_playlist_atproto_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792312941399,
+      "tag": "0049_users_bot_moderation",
+      "breakpoints": true
     }
   ]
 }
