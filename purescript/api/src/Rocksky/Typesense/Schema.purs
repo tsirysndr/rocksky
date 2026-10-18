@@ -78,7 +78,7 @@ searchSchemas =
   , schema playlistsCollection [ optional (field "name" "string"), optional (field "description" "string") ]
   ]
   where
-  schema name fields = { name, schema: toForeign { name, enable_nested_fields: true, fields: [ field "id" "string" ] <> fields <> [ field ".*" "auto" ] } }
+  schema name fields = { name, schema: toForeign { name, enable_nested_fields: true, fields: [ field "id" "string" ] <> fields <> [ optional (field ".*" "auto") ] } }
 
 createIfMissing :: Context -> String -> Foreign -> Aff Unit
 createIfMissing ctx name schema = do

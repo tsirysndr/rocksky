@@ -72,7 +72,7 @@ fn search_schema(name: String, fields: List(json.Json)) {
         json.array(
           [
             field("id", "string", False, False, True),
-            ..list.append(fields, [field(".*", "auto", False, False, True)])
+            ..list.append(fields, [field(".*", "auto", True, False, True)])
           ],
           fn(x) { x },
         ),

@@ -50,7 +50,7 @@ const fresh = {typesense: {collections(name) {
   return name ? {
     async retrieve() { if (!existing.has(name)) throw Object.assign(new Error("missing"), {httpStatus:404}); return {}; },
     documents() { return {async import() { imports++; if (!existing.has(name)) throw Object.assign(new Error("missing"), {httpStatus:404}); return []; }}; }
-  } : {async create(schema) {created.push(schema.name); existing.add(schema.name); return schema;}};
+  } : {async create(schema) {assert.equal(schema.fields.find(f => f.name === ".*").optional, true); created.push(schema.name); existing.add(schema.name); return schema;}};
 }}};
 await fromAff(indexUsers(fresh)([{id:"user",handle:"user.test"}]))();
 assert.equal(imports,2);

@@ -24,7 +24,7 @@ test('Typesense retries only transient failures and collection creation preserve
  let result=await retry.with_options(async()=>++calls<3?new GError(new Js({code:'ETIMEDOUT'})):new Ok(42),3,0);assert.ok(result instanceof Ok);assert.equal(calls,3);
  calls=0;result=await retry.with_options(async()=>{calls++;return new GError(new Js({httpStatus:400}));},3,0);assert.ok(result instanceof GError);assert.equal(calls,1);
  const created=[],deleted=[];
- const client={collections:name=>name?{retrieve:async()=>{throw {httpStatus:404};},delete:async()=>{deleted.push(name);throw {httpStatus:404};}}:{create:async s=>{created.push(s);return s;}}};
+ const client={collections:name=>name?{retrieve:async()=>{throw {httpStatus:404};},delete:async()=>{deleted.push(name);throw {httpStatus:404};}}:{create:async s=>{if(s.fields.some(f=>f.name==='.*')) assert.equal(s.fields.find(f=>f.name==='.*').optional,true);created.push(s);return s;}}};
  assert.ok(await schema.ensure_collection(client) instanceof Ok);assert.equal(created[0].default_sorting_field,'uploaded_at');assert.equal(created[0].fields.find(x=>x.name==='user_id').facet,true);
  assert.ok(await schema.ensure_search_collections(client) instanceof Ok);assert.equal(created.length,6);
  assert.ok(await schema.recreate_search_collections(client) instanceof Ok);assert.deepEqual(deleted,['albums','artists','tracks','users','playlists']);
@@ -40,10 +40,10 @@ test('Library search scopes user, paginates and preserves nullable metadata',asy
  assert.ok(await library.remove_library_track(client,'u') instanceof Ok);
 });
 test('Missing search collections are created before retrying a user import',async()=>{
- const {None}=await import('../build/dev/javascript/gleam_stdlib/gleam/option.mjs');
+ const {None,Some}=await import('../build/dev/javascript/gleam_stdlib/gleam/option.mjs');
  const {User}=await import('../build/dev/javascript/rocksky_api/rocksky_api/schema/users.mjs');
  const {from_unix_seconds}=await import('../build/dev/javascript/gleam_time/gleam/time/timestamp.mjs');
- const none=new None(),time=from_unix_seconds(0),user=new User('u','did:u','User','u.test','',false,none,none,time,time,none);
+ const none=new None(),time=from_unix_seconds(0),user=new User('u','did:u',new Some('User'),'u.test','',false,none,none,time,time,none);
  const existing=new Set(),created=[];let imports=0;
  const client={collections:name=>name?{
   retrieve:async()=>{if(!existing.has(name))throw {httpStatus:404};return {};},
@@ -60,4 +60,19 @@ test('Collection setup preserves authentication failures and tolerates concurren
  const seen=new Set();
  const racing={collections:name=>name?{retrieve:async()=>{if(!seen.has(name)){seen.add(name);throw {httpStatus:404};}return {};}}:{create:async()=>{throw {httpStatus:409};}}};
  assert.ok(await schema.ensure_search_collections(racing) instanceof Ok);
+});
+
+test('Nullable user display names survive row decoding and Typesense indexing',async()=>{
+ const {run}=await import('../build/dev/javascript/gleam_stdlib/gleam/dynamic/decode.mjs');
+ const users=await import('../build/dev/javascript/rocksky_api/rocksky_api/schema/users.mjs');
+ for(const name of [null,'Alice']) {
+  const decoded=run({xata_id:'u',did:'did:u',display_name:name,handle:'u.test',avatar:'',is_bot:false,
+   bot_flagged_at:null,bot_reason:null,xata_createdat:new Date(0),xata_updatedat:new Date(0),xata_version:null},users.decoder());
+  assert.ok(decoded instanceof Ok,JSON.stringify(decoded));
+  assert.equal(users.to_json(decoded[0]).displayName,name);
+  let documents;
+  const client={collections:()=>({documents:()=>({import:async rows=>{documents=rows;return [{success:true}];}})})};
+  assert.ok(await search.index_users(client,toList([decoded[0]])) instanceof Ok);
+  assert.equal(documents[0].displayName,name);
+ }
 });
