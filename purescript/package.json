@@ -167,5 +167,8 @@
     "better-sqlite3",
     "sharp",
     "purescript"
-  ]
+  ],
+  "patchedDependencies": {
+    "@bsky/jetstream@1.0.0": "../patches/@bsky%2Fjetstream@1.0.0.patch"
+  }
 }

@@ -287,6 +287,9 @@ bun run backfill:jetstream-v2 --dry-run --limit 100
 
 Remove `--dry-run` to enqueue records; remove `--limit` for a full backfill.
 These scripts save resumable archive checkpoints separately from live cursors.
+Optionally pass `--cursor N` (`:cursor N` in the REPL) to start after a v2
+sequence. This aliases `--after-seq`; omit it to resume a saved checkpoint.
+A cursor that conflicts with the saved checkpoint is rejected.
 After indexing, either package can repair missing artist pictures from Rocksky:
 
 ```sh

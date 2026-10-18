@@ -48,11 +48,11 @@
   (let [calls (atom [])]
     (with-redefs [sh/bun (fn [& args] (swap! calls conj args) 0)]
       (ps/backfill-jetstream :dry-run :limit 100)
-      (ps/backfill-jetstream :after-seq 3000000000 :batch-size 500)
+      (ps/backfill-jetstream :cursor 3000000000 :batch-size 500)
       (ps/backfill-jetstream "--dry-run" "--limit" "100")
       (ps/backfill-jetstream))
     (is (= [["purescript" "backfill:jetstream" "--dry-run" "--limit" "100"]
-            ["purescript" "backfill:jetstream" "--after-seq" "3000000000" "--batch-size" "500"]
+            ["purescript" "backfill:jetstream" "--cursor" "3000000000" "--batch-size" "500"]
             ["purescript" "backfill:jetstream" "--dry-run" "--limit" "100"]
             ["purescript" "backfill:jetstream"]]
            @calls))))

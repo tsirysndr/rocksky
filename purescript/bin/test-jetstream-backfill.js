@@ -7,7 +7,7 @@ import pg from 'pg';
 import { encode } from '@atproto/lex-cbor';
 import { jsonToLex } from '@atproto/lex';
 import { job } from '../output/Rocksky.Jetstream.Backfill/index.js';
-import { normalize, next, capture, open, close } from '../output/Rocksky.Jetstream.Backfill/foreign.js';
+import { options, normalize, next, capture, open, close } from '../output/Rocksky.Jetstream.Backfill/foreign.js';
 const hash = value => createHash('sha256').update(value).digest('hex');
 const did = 'did:plc:abcdefghijklmnopqrstuvwx';
 const cid = 'bafyreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku';
@@ -52,6 +52,24 @@ test('bounded pulls stop at EOF and reject out-of-order or malformed events', as
   await assert.rejects(next(aborted)(2)());
 });
 
+test('optional cursor aliases the exclusive starting sequence', () => {
+  const original = process.argv;
+  const parse = args => {
+    process.argv = ['node', 'bin/run.js', 'Rocksky.Scripts.BackfillJetstream', '--dry-run', ...args];
+    return options();
+  };
+  try {
+    assert.equal(parse([]).afterSeq, null);
+    for (const n of ['0', '3000000000']) {
+      assert.equal(parse(['--cursor', n]).afterSeq, Number(n));
+      assert.equal(parse(['--after-seq', n]).afterSeq, Number(n));
+    }
+    for (const args of [['--cursor', '-1'], ['--cursor', 'NaN'], ['--cursor', '1.5'],
+      ['--cursor', '1792324800123456'], ['--cursor', '3', '--before-seq', '3'],
+      ['--cursor', '3', '--after-seq', '3']]) assert.throws(() => parse(args));
+  } finally { process.argv = original; }
+});
+
 test('CLI help needs no application secrets and rejects timestamp cursors', () => {
   const run = args => spawnSync(process.execPath, ['bin/run.js', 'Rocksky.Scripts.BackfillJetstream', ...args], {encoding:'utf8'});
   const help = run(['--help']); assert.equal(help.status, 0, help.stderr);
@@ -75,11 +93,11 @@ test('SDK snapshot requests the namespace filter and stops at the archive tip wi
       return Response.json({sealedTipSeq:100, plannedThroughSeq:100, segments:[],
         stats:{segmentsExamined:1,segmentsMatched:0,blocksMatched:0,entries:0}});
     };
-    session = await open({...opts, dryRun:true})();
+    session = await open({...opts, dryRun:true, afterSeq:42})();
     assert.equal(session.pool, null);
     assert.deepEqual(await next(session)(250)(), []);
     assert.equal(requests.length, 1);
-    assert.equal(requests[0].afterSeq, 0);
+    assert.equal(requests[0].afterSeq, 42);
   } finally {
     if (session) await close(session)();
     globalThis.fetch = originalFetch;
@@ -123,3 +141,32 @@ test('Postgres batches are atomic, deduplicated, resumable, and isolated from th
       await client.end();
     }
   });
+
+test('mixed archive blocks filter sync payloads before strict wire validation', async () => {
+  // Exercise the patched SDK internals from this package's installed copy.
+  const base = new URL('.', import.meta.resolve('@bsky/jetstream'));
+  const { makeSelector } = await import(new URL('engine/selector.js', base));
+  const { rawEventFromSegment } = await import(new URL('decode-event.js', base));
+  const row = { seq: 24355929627, did: 'did:plc:abcdefghijklmnopqrstuvwx',
+    witnessedAt: 1792324800000000, indexedAt: 0, kind: 6,
+    collection: '', rkey: '', rev: '', payload: encode({}) };
+  const decode = value => rawEventFromSegment(value, {
+    validateWire: true, sha256: bytes => createHash('sha256').update(bytes).digest(),
+  });
+  assert.throws(() => decode(row), /sync payload/);
+  const selector = makeSelector({ kinds: ['commit'], collections: ['app.rocksky.*'],
+    window: { afterSeq: 0 } });
+  const commit = { ...row, seq: row.seq + 1, kind: 1, collection: 'app.rocksky.artist',
+    rkey: '3my55gcmfos2r', rev: '3my55gcmfos2r' };
+  const events = [row, commit].filter(r => selector.keep(r)).map(decode);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].seq, commit.seq);
+  assert.equal(events[0].kind, 'commit');
+  assert.throws(() => decode({ ...commit, rev: 'invalid' }), /commit row/);
+  assert.equal(selector.keep({ ...commit, collection: 'app.bsky.feed.post' }), false);
+  assert.equal(makeSelector({ collections: [] }).keep(row), true);
+  assert.equal(makeSelector({ collections: [], kinds: ['sync'] }).keep(row), true);
+  // Ensure the public snapshot implementation passes kinds to the row selector.
+  const source = await (await import('node:fs/promises')).readFile(new URL('jetstream.js', base), 'utf8');
+  assert.match(source, /makeSelector\(\{\s*kinds: opts.kinds/);
+});

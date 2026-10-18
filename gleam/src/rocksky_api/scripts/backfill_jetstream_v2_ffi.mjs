@@ -20,7 +20,7 @@ const number = (value, name) => {
 
 export function parseOptions(args, env = process.env) {
   const { values: v } = parseArgs({ args, options: {
-    service: { type: 'string' }, 'after-seq': { type: 'string' }, 'before-seq': { type: 'string' },
+    service: { type: 'string' }, cursor: { type: 'string' }, 'after-seq': { type: 'string' }, 'before-seq': { type: 'string' },
     'batch-size': { type: 'string' }, limit: { type: 'string' },
     'dry-run': { type: 'boolean' }, help: { type: 'boolean' },
   }});
@@ -33,7 +33,8 @@ export function parseOptions(args, env = process.env) {
   if (opts.batch_size < 1 || opts.batch_size > 1000) throw new Error('batch-size must be between 1 and 1000');
   if (v.limit !== undefined && opts.limit === 0) throw new Error('limit must be positive');
   opts.service = url.origin;
-  opts.after = number(v['after-seq'], 'after-seq');
+  if (v.cursor !== undefined && v['after-seq'] !== undefined) throw new Error('Use either --cursor or --after-seq, not both');
+  opts.after = number(v.cursor ?? v['after-seq'], 'cursor/after-seq');
   opts.before = number(v['before-seq'], 'before-seq');
   if (opts.before !== undefined && opts.before <= (opts.after ?? 0)) throw new Error('before-seq must be greater than after-seq');
   opts.apiKey = env.JETSTREAM_API_KEY || undefined;
@@ -92,7 +93,7 @@ export async function open(opts) {
       const rows = await session.db.select().from(cursors).where(eq(cursors.source, session.source));
       if (rows.length) {
         after = number(rows[0].cursor_value, 'saved cursor');
-        if (opts.after !== undefined && opts.after !== after) throw new Error('--after-seq conflicts with saved checkpoint; omit it to resume');
+        if (opts.after !== undefined && opts.after !== after) throw new Error('--cursor/--after-seq conflicts with saved checkpoint; omit it to resume');
       }
     }
     if (opts.before !== undefined && opts.before <= after) throw new Error('before-seq is already covered by starting checkpoint');

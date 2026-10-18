@@ -26,6 +26,18 @@ test('options validate bounds and require explicit queue except for help/dry-run
   }
 });
 
+test('optional cursor aliases the exclusive starting sequence', () => {
+  const parse = args => parseOptions(['--dry-run', ...args], {});
+  assert.equal(parse([]).after, undefined);
+  for (const n of ['0', '3000000000']) {
+    assert.equal(parse(['--cursor', n]).after, Number(n));
+    assert.equal(parse(['--after-seq', n]).after, Number(n));
+  }
+  for (const args of [['--cursor', '-1'], ['--cursor', 'NaN'], ['--cursor', '1.5'],
+    ['--cursor', '9007199254740992'], ['--cursor', '3', '--before-seq', '3'],
+    ['--cursor', '3', '--after-seq', '3']]) assert.throws(() => parse(args));
+});
+
 test('wire payload, microseconds and live dedup identity match Rust inbox', () => {
   const normalized = normalize(event());
   const payload = JSON.parse(normalized.payload);
@@ -99,3 +111,32 @@ test('database capture deduplicates, isolates live cursor and rolls back failed 
       assert.equal(rows.find(row => row.source === 'jetstream:v2:live').cursor_value, '99');
     } finally { await client.end(); }
   });
+
+test('mixed archive blocks filter sync payloads before strict wire validation', async () => {
+  // Exercise the patched SDK internals from this package's installed copy.
+  const base = new URL('.', import.meta.resolve('@bsky/jetstream'));
+  const { makeSelector } = await import(new URL('engine/selector.js', base));
+  const { rawEventFromSegment } = await import(new URL('decode-event.js', base));
+  const row = { seq: 24355929627, did: 'did:plc:abcdefghijklmnopqrstuvwx',
+    witnessedAt: 1792324800000000, indexedAt: 0, kind: 6,
+    collection: '', rkey: '', rev: '', payload: encode({}) };
+  const decode = value => rawEventFromSegment(value, {
+    validateWire: true, sha256: bytes => createHash('sha256').update(bytes).digest(),
+  });
+  assert.throws(() => decode(row), /sync payload/);
+  const selector = makeSelector({ kinds: ['commit'], collections: ['app.rocksky.*'],
+    window: { afterSeq: 0 } });
+  const commit = { ...row, seq: row.seq + 1, kind: 1, collection: 'app.rocksky.artist',
+    rkey: '3my55gcmfos2r', rev: '3my55gcmfos2r' };
+  const events = [row, commit].filter(r => selector.keep(r)).map(decode);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].seq, commit.seq);
+  assert.equal(events[0].kind, 'commit');
+  assert.throws(() => decode({ ...commit, rev: 'invalid' }), /commit row/);
+  assert.equal(selector.keep({ ...commit, collection: 'app.bsky.feed.post' }), false);
+  assert.equal(makeSelector({ collections: [] }).keep(row), true);
+  assert.equal(makeSelector({ collections: [], kinds: ['sync'] }).keep(row), true);
+  // Ensure the public snapshot implementation passes kinds to the row selector.
+  const source = await (await import('node:fs/promises')).readFile(new URL('jetstream.js', base), 'utf8');
+  assert.match(source, /makeSelector\(\{\s*kinds: opts.kinds/);
+});

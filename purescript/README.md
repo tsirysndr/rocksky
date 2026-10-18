@@ -98,14 +98,14 @@ Options:
 - `--dry-run`: downloads and validates without opening the database or saving progress.
 - `--limit N`: stop after N commits this run; rerun without it to finish.
 - `--batch-size N`: 1–1000 commits per transaction (default 250).
-- `--after-seq N`: exclusive starting sequence for a new checkpoint (default 0);
+- `--cursor N` (alias: `--after-seq N`): exclusive starting sequence for a new checkpoint (default 0);
   rejected if it conflicts with an existing checkpoint. Dry runs use it directly.
 - `--before-seq N`: inclusive archive upper bound; otherwise stop at the sealed tip.
 - `--help`: show usage without connecting to any services.
 
 Sequences are v2 sequence numbers, **not** v1 microsecond timestamps.
 Use `(ps/backfill-jetstream)` in the Clojure REPL or `bb ps:backfill:jetstream`.
-For example, `(ps/backfill-jetstream :dry-run :limit 100)`.
+For example, `(ps/backfill-jetstream :dry-run :limit 100 :cursor 3000000000)`.
 Run `bun run test:jetstream-backfill` for regressions. Set
 `JETSTREAM_BACKFILL_TEST_URL` to a local PostgreSQL URL to include the isolated
 queue transaction tests (they create and remove their own temporary schema).
@@ -355,3 +355,8 @@ REPL: `(ps/repair-artist-pictures :dry-run :limit 100)` or
 Run `bun run test:artist-pictures` for shared regression tests. Set
 `ARTIST_PICTURE_TEST_URL` to local PostgreSQL to include the temporary-table
 update tests.
+
+The Jetstream SDK patch in `../patches/` filters archive row kinds before wire
+validation, so unrelated sync records in mixed blocks do not stop commit-only
+backfills. Commit validation remains enabled. Run `bun install` after pulling
+changes to the patch (from the repository root for Gleam).

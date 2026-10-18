@@ -129,7 +129,7 @@ fn run(opts: Options) -> Task(Nil) {
   case opts.help {
     True -> {
       io.println(
-        "Usage: bun run backfill:jetstream-v2 [--service URL] [--after-seq N] [--before-seq N] [--batch-size N] [--limit N] [--dry-run]\n\nReplays app.rocksky.* commits from a finite Jetstream v2 archive snapshot.\nSet JETSTREAM_API_KEY for hosted archives and SUBMISSIONS_DATABASE_URL for the initialized Rust durable queue.\nSequences are host-specific, after is exclusive, before is inclusive. Resume by rerunning without --after-seq.\nDry-run downloads/validates only; it does not open the database or save a checkpoint.",
+        "Usage: bun run backfill:jetstream-v2 [--service URL] [--cursor N | --after-seq N] [--before-seq N] [--batch-size N] [--limit N] [--dry-run]\n\nReplays app.rocksky.* commits from a finite Jetstream v2 archive snapshot.\nSet JETSTREAM_API_KEY for hosted archives and SUBMISSIONS_DATABASE_URL for the initialized Rust durable queue.\nSequences are host-specific, after is exclusive, before is inclusive. --cursor is an alias for --after-seq. Resume by rerunning without either.\nDry-run downloads/validates only; it does not open the database or save a checkpoint.",
       )
       task.ok(Nil)
     }

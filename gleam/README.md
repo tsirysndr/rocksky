@@ -314,7 +314,7 @@ bun run backfill:jetstream-v2 --service https://jetstream.us-west.bsky.network -
 
 The default service is `https://jetstream.us-west.bsky.network`; override it with
 `--service` or `JETSTREAM_BACKFILL_URL`. Bounds are v2 sequence numbers, not v1
-microsecond timestamps: `--after-seq` is exclusive and `--before-seq` inclusive.
+microsecond timestamps: `--cursor` (alias `--after-seq`) is exclusive and `--before-seq` inclusive.
 Sequences and checkpoints are specific to the service. A conflicting
 `--after-seq` is rejected when a saved checkpoint exists.
 
@@ -330,7 +330,7 @@ See the [Jetstream replay documentation](https://bsky.network/docs/jetstream-rep
 From the Clojure REPL or console directory:
 
 ```clojure
-(gleam/backfill-jetstream-v2 :dry-run :limit 100)
+(gleam/backfill-jetstream-v2 :dry-run :limit 100 :cursor 3000000000)
 (gleam/backfill-jetstream-v2)
 ```
 
@@ -366,3 +366,8 @@ REPL: `(ps/repair-artist-pictures :dry-run :limit 100)` or
 Run `bun run test:artist-pictures` for shared regression tests. Set
 `ARTIST_PICTURE_TEST_URL` to local PostgreSQL to include the temporary-table
 update tests.
+
+The Jetstream SDK patch in `../patches/` filters archive row kinds before wire
+validation, so unrelated sync records in mixed blocks do not stop commit-only
+backfills. Commit validation remains enabled. Run `bun install` after pulling
+changes to the patch (from the repository root for Gleam).

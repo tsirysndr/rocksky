@@ -14,7 +14,7 @@ const sequence = (value, name) => {
 export const options = () => {
   // bin/run.js keeps its PureScript module name in argv[2].
   const { values } = parseArgs({ args: process.argv.slice(3), options: {
-    service: { type: 'string' }, 'after-seq': { type: 'string' }, 'before-seq': { type: 'string' },
+    service: { type: 'string' }, cursor: { type: 'string' }, 'after-seq': { type: 'string' }, 'before-seq': { type: 'string' },
     'batch-size': { type: 'string' }, limit: { type: 'string' },
     'dry-run': { type: 'boolean' }, help: { type: 'boolean' },
   }});
@@ -26,7 +26,8 @@ export const options = () => {
   if (batchSize < 1 || batchSize > 1000) throw new Error('batch-size must be between 1 and 1000');
   const limit = sequence(values.limit, 'limit');
   if (limit === 0) throw new Error('limit must be positive');
-  const afterSeq = sequence(values['after-seq'], 'after-seq');
+  if (values.cursor !== undefined && values['after-seq'] !== undefined) throw new Error('Use either --cursor or --after-seq, not both');
+  const afterSeq = sequence(values.cursor ?? values['after-seq'], 'cursor/after-seq');
   const beforeSeq = sequence(values['before-seq'], 'before-seq');
   if (beforeSeq !== null && beforeSeq <= (afterSeq ?? 0)) throw new Error('before-seq must be greater than after-seq');
   const database = process.env.SUBMISSIONS_DATABASE_URL ?? '';
@@ -74,7 +75,7 @@ export const open = opts => async () => {
       const { rows } = await session.client.query('SELECT cursor_value FROM rocksky_durable_cursors WHERE source=$1', [session.source]);
       if (rows.length) {
         after = sequence(rows[0].cursor_value, 'saved cursor');
-        if (opts.afterSeq !== null && opts.afterSeq !== after) throw new Error('--after-seq conflicts with the saved checkpoint; omit it to resume');
+        if (opts.afterSeq !== null && opts.afterSeq !== after) throw new Error('--cursor/--after-seq conflicts with the saved checkpoint; omit it to resume');
       }
     }
     if (opts.beforeSeq !== null && opts.beforeSeq <= after) throw new Error('before-seq is already covered by the starting checkpoint');

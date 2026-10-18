@@ -83,6 +83,9 @@
     "sharp",
     "purescript",
   ],
+  "patchedDependencies": {
+    "@bsky/jetstream@1.0.0": "../patches/@bsky%2Fjetstream@1.0.0.patch",
+  },
   "packages": {
     "@atproto-labs/did-resolver": ["@atproto-labs/did-resolver@0.2.6", "", { "dependencies": { "@atproto-labs/fetch": "0.2.3", "@atproto-labs/pipe": "0.1.1", "@atproto-labs/simple-store": "0.3.0", "@atproto-labs/simple-store-memory": "0.1.4", "@atproto/did": "0.3.0", "zod": "^3.23.8" } }, "sha512-2K1bC04nI2fmgNcvof+yA28IhGlpWn2JKYlPa7To9JTKI45FINCGkQSGiL2nyXlyzDJJ34fZ1aq6/IRFIOIiqg=="],
 

@@ -1,0 +1,36 @@
+diff --git a/dist/engine/selector.js b/dist/engine/selector.js
+index 2b06a351415695b6e1295c2ad9a13ead75f42595..abfabf1ba7abff959553869f68b9d8ab2000e07d 100644
+--- a/dist/engine/selector.js
++++ b/dist/engine/selector.js
+@@ -1,9 +1,18 @@
+-import { isCommitKind } from '../segment/kind.js';
++import { SegKind, isCommitKind } from '../segment/kind.js';
+ import { collectionMatches } from './collections.js';
+ export function makeSelector(opts) {
+     const didSet = opts.dids?.length ? new Set(opts.dids) : null;
+     const window = opts.window;
++    const kinds = opts.kinds?.length ? new Set(opts.kinds) : null;
+     const keepRow = (collection, did, kind, seq) => {
++        // Mixed archive blocks must be filtered before payload decoding.
++        if (kinds) {
++            const name = isCommitKind(kind) ? 'commit'
++                : kind === SegKind.Identity ? 'identity'
++                : kind === SegKind.Account ? 'account'
++                : kind === SegKind.Sync ? 'sync' : undefined;
++            if (!kinds.has(name)) return false;
++        }
+         // The seq window applies to all kinds (read live: recovery mutates it).
+         if (window) {
+             if (seq <= window.afterSeq)
+diff --git a/dist/jetstream.js b/dist/jetstream.js
+index 344fb48dbe16dad18eb7f1d07bb1377a86acd7a0..e5fae3cb2c82654cae3c5f6f67592b53681d52f0 100644
+--- a/dist/jetstream.js
++++ b/dist/jetstream.js
+@@ -136,6 +136,7 @@ export class Jetstream {
+         let replans = 0;
+         const window = { afterSeq: resume, beforeSeq: opts.beforeSeq };
+         const selector = makeSelector({
++            kinds: opts.kinds,
+             dids: opts.dids,
+             collections: nsids,
+             window,

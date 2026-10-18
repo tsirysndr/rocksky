@@ -652,7 +652,7 @@ container; rerunning updates feeds by URI without duplicating them.
 
 ### PureScript Jetstream v2 backfill
 
-`(ps/backfill-jetstream :dry-run :limit 100)` previews the archive;
+`(ps/backfill-jetstream :dry-run :limit 100 :cursor 3000000000)` previews the archive;
 `(ps/backfill-jetstream)` queues all `app.rocksky.*` commits and resumes its saved
 checkpoint. The Babashka equivalent is `bb ps:backfill:jetstream`.
 Build PureScript first and configure `JETSTREAM_API_KEY` and the initialized
@@ -660,7 +660,7 @@ Postgres `SUBMISSIONS_DATABASE_URL` in `purescript/.env`. Run the Jetstream work
 to process queued records. `(ps/test-jetstream-backfill)` runs its regressions.
 
 Gleam Jetstream v2 archive replay is available as
-`(gleam/backfill-jetstream-v2 :dry-run :limit 100)` or
+`(gleam/backfill-jetstream-v2 :dry-run :limit 100 :cursor 3000000000)` or
 `bb gleam:backfill:jetstream-v2 --help`. See the
 [Gleam backfill instructions](../../gleam/README.md#jetstream-v2-archive-backfill)
 for queue initialization, credentials, and resume behavior.
