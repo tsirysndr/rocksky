@@ -35,7 +35,8 @@
     "backfill:replaygain": "gleam run -m rocksky_api/scripts/backfill_replaygain",
     "backfill:analysis": "gleam run -m rocksky_api/scripts/backfill_analysis",
     "backfill:discogs": "gleam run -m rocksky_api/scripts/backfill_discogs",
-    "backfill:fingerprint": "BACKFILL_ONLY=fingerprint gleam run -m rocksky_api/scripts/backfill_analysis"
+    "backfill:fingerprint": "BACKFILL_ONLY=fingerprint gleam run -m rocksky_api/scripts/backfill_analysis",
+    "dev:env": "node scripts/generate_dev_env.mjs"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",
