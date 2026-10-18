@@ -8,6 +8,7 @@ import gleam/string
 import rocksky_api/atproto/agent as atproto
 import rocksky_api/atproto/identity
 import rocksky_api/atproto/oauth
+import rocksky_api/auth/jwks
 import rocksky_api/auth/store
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
@@ -350,44 +351,7 @@ pub fn app(ctx: Context) {
         hono.json(c, json.object([#("token", json.string(token))]), 200)
     })
   })
-  |> hono.get("/jwks.json", fn(c) { promise.resolve(hono.json(c, jwks(), 200)) })
-}
-
-pub fn jwks() {
-  json.object([
-    #(
-      "keys",
-      json.array(
-        [
-          json.object([
-            #("kty", json.string("EC")),
-            #("use", json.string("sig")),
-            #("alg", json.string("ES256")),
-            #("kid", json.string("2dfa3fd9-57b3-4738-ac27-9e6dadec13b7")),
-            #("crv", json.string("P-256")),
-            #("x", json.string("V_00KDnoEPsNqbt0y2Ke8v27Mv9WP70JylDUD5rvIek")),
-            #("y", json.string("HAyjaQeA2DU6wjZO0ggTadUS6ij1rmiYTxzmWeBKfRc")),
-          ]),
-          json.object([
-            #("kty", json.string("EC")),
-            #("use", json.string("sig")),
-            #("alg", json.string("ES256")),
-            #("kid", json.string("5e816ff2-6bff-4177-b1c0-67ad3cd3e7cd")),
-            #("crv", json.string("P-256")),
-            #("x", json.string("YwEY5NsoYQVB_G7xPYMl9sUtxRbcPFNffnZcTS5nbPQ")),
-            #("y", json.string("5n5mybPvISyYAnRv1Ii1geqKfXv2GA8p9Xemwx2a8CM")),
-          ]),
-          json.object([
-            #("kty", json.string("EC")),
-            #("use", json.string("sig")),
-            #("kid", json.string("a1067a48-a54a-43a0-9758-4d55b51fdd8b")),
-            #("crv", json.string("P-256")),
-            #("x", json.string("yq17Nd2DGcjP1i9I0NN3RBmgSbLQUZOtG6ec5GaqzmU")),
-            #("y", json.string("ieIU9mcfaZwAW5b3WgJkIRgddymG_ckcZ0n1XjbEIvc")),
-          ]),
-        ],
-        fn(x) { x },
-      ),
-    ),
-  ])
+  |> hono.get("/jwks.json", fn(c) {
+    promise.resolve(hono.json(c, jwks.parse(ctx.env.jwks_json), 200))
+  })
 }

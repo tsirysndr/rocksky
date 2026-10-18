@@ -1,5 +1,11 @@
 # Rocksky AppView in Gleam
 
+For production OAuth, set `JWKS_JSON` to a JSON object containing a `keys` array
+of public JWKs matching `PRIVATE_KEY_1`, `PRIVATE_KEY_2`, and `PRIVATE_KEY_3`.
+The API serves this value at `/jwks.json`; private key material is rejected.
+Local HTTP development defaults to `{"keys":[]}`.
+
+
 This package ports `apps/api` to Gleam's JavaScript target, running on Node.js.
 REST, XRPC, subscriptions, workers, OAuth policy, recommendations, uploads and
 maintenance commands are implemented in Gleam. JavaScript FFI connects to Drizzle,

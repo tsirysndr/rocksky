@@ -10,6 +10,7 @@ export const env = cleanEnv(process.env, {
   }),
   HOST: host({ default: "localhost" }),
   PORT: port({ default: 8000 }),
+  JWKS_JSON: str({ devDefault: '{"keys":[]}' }),
   PUBLIC_URL: str({ default: "http://localhost:8000" }),
   DB_PATH: str({ devDefault: ":memory:" }),
   KV_DB_PATH: str({ devDefault: ":memory:" }),

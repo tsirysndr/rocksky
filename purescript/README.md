@@ -1,5 +1,11 @@
 # Rocksky AppView - PyreScript
 
+For production OAuth, set `JWKS_JSON` to a JSON object containing a `keys` array
+of public JWKs matching `PRIVATE_KEY_1`, `PRIVATE_KEY_2`, and `PRIVATE_KEY_3`.
+The API serves this value at `/jwks.json`; private key material is rejected.
+Local HTTP development defaults to `{"keys":[]}`.
+
+
 A port of `../apps/api` (TypeScript) to PureScript, targeting Node.js 22+.
 Bun is the package manager; spago builds the PureScript.
 

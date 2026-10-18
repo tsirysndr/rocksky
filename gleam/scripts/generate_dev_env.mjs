@@ -62,7 +62,7 @@ export function generate(config, file, {force = false} = {}) {
     if (/^(DROPBOX|GOOGLE_DRIVE|GOOGLE_CLIENT_|GOOGLE_REDIRECT_URI)/.test(key)) delete previous[key];
   }
   const values = {
-    SPOTIFY_CLIENT_ID: '', SPOTIFY_CLIENT_SECRET: '',
+    JWKS_JSON: '{"keys":[]}', SPOTIFY_CLIENT_ID: '', SPOTIFY_CLIENT_SECRET: '',
     ROCKSKY_BETA_TOKEN: '', S3_ACCESS_KEY_ID: '', S3_SECRET_ACCESS_KEY: '', S3_REGION: 'us-east-1',
     S3_BUCKET_NAME: 'rocksky-library', S3_COVERS_BUCKET_NAME: 'rocksky', ...previous, ...local,
   };

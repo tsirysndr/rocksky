@@ -15,6 +15,7 @@ pub type Env {
     host: String,
     port: Int,
     public_url: String,
+    jwks_json: String,
     db_path: String,
     kv_db_path: String,
     cookie_secret: String,
@@ -149,6 +150,7 @@ fn read() -> Result(Env, List(String)) {
     use node_env <- try_(str("NODE_ENV", d("development")))
     use host <- try_(str("HOST", d("localhost")))
     use port <- try_(num("PORT", 8000))
+    use jwks_json <- try_(dev_default("JWKS_JSON", "{\"keys\":[]}"))
     use public_url <- try_(str("PUBLIC_URL", d("http://localhost:8000")))
     use db_path <- try_(dev_default("DB_PATH", ":memory:"))
     use kv_db_path <- try_(dev_default("KV_DB_PATH", ":memory:"))
@@ -267,6 +269,7 @@ fn read() -> Result(Env, List(String)) {
       host:,
       port:,
       public_url:,
+      jwks_json:,
       db_path:,
       kv_db_path:,
       cookie_secret:,

@@ -14,6 +14,7 @@ type Env =
   { "NODE_ENV" :: String
   , "HOST" :: String
   , "PORT" :: Int
+  , "JWKS_JSON" :: String
   , "PUBLIC_URL" :: String
   , "DB_PATH" :: String
   , "KV_DB_PATH" :: String
@@ -88,6 +89,7 @@ env = unsafePerformEffect do
     { "NODE_ENV": strChoices [ "development", "production", "test" ] (withDefault "development")
     , "HOST": host (withDefault "localhost")
     , "PORT": port (withDefault 8000)
+    , "JWKS_JSON": str (devDefault "{\"keys\":[]}")
     , "PUBLIC_URL": str (withDefault "http://localhost:8000")
     , "DB_PATH": str (devDefault ":memory:")
     , "KV_DB_PATH": str (devDefault ":memory:")

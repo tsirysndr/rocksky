@@ -81,7 +81,7 @@ export function generateEnv(compose) {
 
     }],
     ['Localhost ATProto OAuth does not require private signing keys.', {
-      PRIVATE_KEY_1: '', PRIVATE_KEY_2: '', PRIVATE_KEY_3: '', PDS_HOST_OVERRIDES: '', DISABLED_TEALFM: '',
+      JWKS_JSON: '{"keys":[]}', PRIVATE_KEY_1: '', PRIVATE_KEY_2: '', PRIVATE_KEY_3: '', PDS_HOST_OVERRIDES: '', DISABLED_TEALFM: '',
     }],
     ['Optional local S3 server (not in Compose). Replace placeholders to enable uploads.', {
       S3_ENDPOINT: 'http://127.0.0.1:9000', S3_REGION: 'us-east-1',
