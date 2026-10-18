@@ -1,0 +1,14 @@
+*.beam
+*.ez
+/build
+erl_crash.dump
+node_modules
+.env
+
+*.sqlite
+*.ddb
+*.ddb.wal
+*.bak
+
+*.sqlite-shm
+*.sqlite-wal

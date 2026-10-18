@@ -41,6 +41,7 @@
   },
   "workspaces": [
     "crates/analysis-node",
+    "gleam",
     "apps/api",
     "apps/web",
     "apps/web-mobile",
