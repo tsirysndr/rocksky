@@ -1,8 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { getTableColumns, getTableName } from 'drizzle-orm';
 import schema from '../../apps/api/src/schema';
-import googleDriveTokens from '../../apps/api/src/schema/google-drive-tokens';
-const completeSchema = {...schema, googleDriveTokens};
+const completeSchema = {...schema};
 
 const root = new URL('../', import.meta.url);
 const out = new URL('src/rocksky_api/drizzle/schema/', root);
@@ -18,7 +17,7 @@ const codecs:Record<string,[string,string]> = {
 let generated = 0;
 for (const table of Object.values(completeSchema)) {
   const name = getTableName(table);
-  const module = name === 'google_drive' ? 'googledrive' : name;
+  const module = name;
   const columns = Object.entries(getTableColumns(table));
   const rowSource = readFileSync(new URL(`src/rocksky_api/schema/${module}.gleam`,root),'utf8');
   const rowType = /pub type (\w+)/.exec(rowSource)![1];

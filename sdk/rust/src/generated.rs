@@ -136,36 +136,6 @@ pub struct ActorProfileViewDetailed {
     pub spotify_user: Option<ActorResponseSpotifyUserView>,
     #[serde(rename = "spotifyConnected", default, skip_serializing_if = "Option::is_none")]
     pub spotify_connected: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub googledrive: Option<ActorResponseGoogledriveView>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub dropbox: Option<ActorResponseDropboxView>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ActorResponseDropboxView {
-    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    #[serde(rename = "isBetaUser", default, skip_serializing_if = "Option::is_none")]
-    pub is_beta_user: Option<bool>,
-    #[serde(rename = "userId", default, skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    #[serde(rename = "xataVersion", default, skip_serializing_if = "Option::is_none")]
-    pub xata_version: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ActorResponseGoogledriveView {
-    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -1153,98 +1123,6 @@ pub struct DislikeSongInput {
     /// The unique identifier of the song to dislike
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxDownloadFileParams {
-    /// The unique identifier of the file to download
-    #[serde(rename = "fileId")]
-    pub file_id: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxFileListView {
-    /// A list of files in the Dropbox.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub files: Vec<DropboxFileView>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub directory: Option<DropboxResponseDirectoryView>,
-    #[serde(rename = "parentDirectory", default, skip_serializing_if = "Option::is_none")]
-    pub parent_directory: Option<DropboxResponseParentDirectoryView>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub directories: Vec<DropboxResponseDirectoriesItemView>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxFileView {
-    /// The unique identifier of the file.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// The name of the file.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// The lowercased path of the file.
-    #[serde(rename = "pathLower", default, skip_serializing_if = "Option::is_none")]
-    pub path_lower: Option<String>,
-    /// The display path of the file.
-    #[serde(rename = "pathDisplay", default, skip_serializing_if = "Option::is_none")]
-    pub path_display: Option<String>,
-    /// The last modified date and time of the file on the client.
-    #[serde(rename = "clientModified", default, skip_serializing_if = "Option::is_none")]
-    pub client_modified: Option<DateTime<Utc>>,
-    /// The last modified date and time of the file on the server.
-    #[serde(rename = "serverModified", default, skip_serializing_if = "Option::is_none")]
-    pub server_modified: Option<DateTime<Utc>>,
-    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
-    pub file_id: Option<String>,
-    #[serde(rename = "directoryId", default, skip_serializing_if = "Option::is_none")]
-    pub directory_id: Option<String>,
-    #[serde(rename = "trackId", default, skip_serializing_if = "Option::is_none")]
-    pub track_id: Option<String>,
-    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxGetFilesParams {
-    /// Path to the Dropbox folder or root directory
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxResponseDirectoriesItemView {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
-    pub file_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<String>,
-    #[serde(rename = "parentId", default, skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<String>,
-    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxResponseDirectoryView {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxResponseParentDirectoryView {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DropboxTemporaryLinkView {
-    /// The temporary link to access the file.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub link: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -2559,13 +2437,6 @@ pub struct GetFeedSkeletonParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetFileParams {
-    /// The unique identifier of the file to retrieve
-    #[serde(rename = "fileId")]
-    pub file_id: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetFollowersOutput {
     pub subject: ActorProfileViewBasic,
     pub followers: Vec<ActorProfileViewBasic>,
@@ -2744,19 +2615,6 @@ pub struct GetLyricsParams {
     /// The song title.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetMetadataOutput {
-    /// Metadata returned by the provider; currently an empty object.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<Value>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetMetadataParams {
-    /// Path to the file or folder in Dropbox
-    pub path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3184,12 +3042,6 @@ pub struct GetStreamUrlParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GetTemporaryLinkParams {
-    /// Path to the file in Dropbox
-    pub path: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetTopArtistsOutput {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub artists: Vec<ArtistViewBasic>,
@@ -3336,77 +3188,6 @@ pub struct GetWrappedParams {
     /// The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub period: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GoogledriveDownloadFileParams {
-    /// The unique identifier of the file to download
-    #[serde(rename = "fileId")]
-    pub file_id: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GoogledriveFileListView {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub files: Vec<GoogledriveFileView>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub directory: Option<GoogledriveResponseDirectoryView>,
-    #[serde(rename = "parentDirectory", default, skip_serializing_if = "Option::is_none")]
-    pub parent_directory: Option<GoogledriveResponseParentDirectoryView>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub directories: Vec<GoogledriveResponseDirectoriesItemView>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GoogledriveFileView {
-    /// The unique identifier of the file.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
-    pub file_id: Option<String>,
-    #[serde(rename = "directoryId", default, skip_serializing_if = "Option::is_none")]
-    pub directory_id: Option<String>,
-    #[serde(rename = "trackId", default, skip_serializing_if = "Option::is_none")]
-    pub track_id: Option<String>,
-    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GoogledriveGetFilesParams {
-    /// Path to the Google Drive folder or root directory
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GoogledriveResponseDirectoriesItemView {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(rename = "fileId", default, skip_serializing_if = "Option::is_none")]
-    pub file_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<String>,
-    #[serde(rename = "parentId", default, skip_serializing_if = "Option::is_none")]
-    pub parent_id: Option<String>,
-    #[serde(rename = "createdAt", default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GoogledriveResponseDirectoryView {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct GoogledriveResponseParentDirectoryView {
 }
 
 /// indicates that a handle or DID could not be resolved

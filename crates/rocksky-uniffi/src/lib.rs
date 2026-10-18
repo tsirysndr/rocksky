@@ -394,8 +394,6 @@ pub struct ProfileView {
     pub updated_at: Option<String>,
     pub spotify_user: Option<SpotifyUserView>,
     pub spotify_connected: Option<bool>,
-    pub googledrive: Option<GoogledriveView>,
-    pub dropbox: Option<DropboxView>,
 }
 
 impl From<rocksky_sdk::appview::ProfileView> for ProfileView {
@@ -410,8 +408,6 @@ impl From<rocksky_sdk::appview::ProfileView> for ProfileView {
             updated_at: p.updated_at,
             spotify_user: p.spotify_user.map(Into::into),
             spotify_connected: p.spotify_connected,
-            googledrive: p.googledrive.map(Into::into),
-            dropbox: p.dropbox.map(Into::into),
         }
     }
 }
@@ -433,46 +429,6 @@ impl From<rocksky_sdk::appview::SpotifyUserView> for SpotifyUserView {
             id: v.id,
             user_id: v.user_id,
             spotify_app_id: v.spotify_app_id,
-            is_beta_user: v.is_beta_user,
-            created_at: v.created_at,
-            updated_at: v.updated_at,
-        }
-    }
-}
-
-/// The listener's linked Google Drive (`app.rocksky.actor.defs#responseGoogledriveView`).
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct GoogledriveView {
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-impl From<rocksky_sdk::appview::GoogledriveView> for GoogledriveView {
-    fn from(v: rocksky_sdk::appview::GoogledriveView) -> Self {
-        GoogledriveView {
-            created_at: v.created_at,
-            updated_at: v.updated_at,
-        }
-    }
-}
-
-/// The listener's linked Dropbox (`app.rocksky.actor.defs#responseDropboxView`).
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct DropboxView {
-    pub id: Option<String>,
-    pub email: Option<String>,
-    pub user_id: Option<String>,
-    pub is_beta_user: Option<bool>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-impl From<rocksky_sdk::appview::DropboxView> for DropboxView {
-    fn from(v: rocksky_sdk::appview::DropboxView) -> Self {
-        DropboxView {
-            id: v.id,
-            email: v.email,
-            user_id: v.user_id,
             is_beta_user: v.is_beta_user,
             created_at: v.created_at,
             updated_at: v.updated_at,

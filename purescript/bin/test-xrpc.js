@@ -47,7 +47,7 @@ for (const entry of await readdir(originalDir, { recursive: true })) {
   const source = await readFile(new URL(entry, originalDir), "utf8");
   for (const [, nsid] of source.matchAll(/server\.(app\.rocksky\.\w+\.\w+)\s*\(/g)) originalNsids.push(nsid);
 }
-assert.equal(originalNsids.length, 153);
+assert.equal(originalNsids.length, 146);
 assert.deepEqual([...methods.keys()].sort(), originalNsids.sort(), "Every original TypeScript XRPC handler is registered");
 
 for (const [nsid, config] of methods) {

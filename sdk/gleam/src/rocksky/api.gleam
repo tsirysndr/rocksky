@@ -147,26 +147,6 @@ pub fn charts_get_top_tracks(client: xrpc.Client, params: models.GetTopTracksPar
   xrpc.request(client, xrpc.Get, "app.rocksky.charts.getTopTracks", models.encode_get_top_tracks_params(params), None, models.get_top_tracks_output_decoder())
 }
 
-/// app.rocksky.dropbox.downloadFile
-pub fn dropbox_download_file(client: xrpc.Client, params: models.DropboxDownloadFileParams) -> Result(BitArray, xrpc.Error) {
-  xrpc.request_bytes(client, xrpc.Get, "app.rocksky.dropbox.downloadFile", models.encode_dropbox_download_file_params(params), None)
-}
-
-/// app.rocksky.dropbox.getFiles
-pub fn dropbox_get_files(client: xrpc.Client, params: models.DropboxGetFilesParams) -> Result(models.DropboxFileListView, xrpc.Error) {
-  xrpc.request(client, xrpc.Get, "app.rocksky.dropbox.getFiles", models.encode_dropbox_get_files_params(params), None, models.dropbox_file_list_view_decoder())
-}
-
-/// app.rocksky.dropbox.getMetadata
-pub fn dropbox_get_metadata(client: xrpc.Client, params: models.GetMetadataParams) -> Result(models.GetMetadataOutput, xrpc.Error) {
-  xrpc.request(client, xrpc.Get, "app.rocksky.dropbox.getMetadata", models.encode_get_metadata_params(params), None, models.get_metadata_output_decoder())
-}
-
-/// app.rocksky.dropbox.getTemporaryLink
-pub fn dropbox_get_temporary_link(client: xrpc.Client, params: models.GetTemporaryLinkParams) -> Result(models.DropboxTemporaryLinkView, xrpc.Error) {
-  xrpc.request(client, xrpc.Get, "app.rocksky.dropbox.getTemporaryLink", models.encode_get_temporary_link_params(params), None, models.dropbox_temporary_link_view_decoder())
-}
-
 /// app.rocksky.equalizer.deletePreset
 pub fn equalizer_delete_preset(client: xrpc.Client, params: models.DeletePresetParams) -> Result(Nil, xrpc.Error) {
   xrpc.request(client, xrpc.Post, "app.rocksky.equalizer.deletePreset", models.encode_delete_preset_params(params), None, decode.success(Nil))
@@ -250,21 +230,6 @@ pub fn feed_get_stories(client: xrpc.Client, params: models.GetStoriesParams) ->
 /// app.rocksky.feed.search
 pub fn feed_search(client: xrpc.Client, params: models.FeedSearchParams) -> Result(models.FeedSearchResultsView, xrpc.Error) {
   xrpc.request(client, xrpc.Get, "app.rocksky.feed.search", models.encode_feed_search_params(params), None, models.feed_search_results_view_decoder())
-}
-
-/// app.rocksky.googledrive.downloadFile
-pub fn googledrive_download_file(client: xrpc.Client, params: models.GoogledriveDownloadFileParams) -> Result(BitArray, xrpc.Error) {
-  xrpc.request_bytes(client, xrpc.Get, "app.rocksky.googledrive.downloadFile", models.encode_googledrive_download_file_params(params), None)
-}
-
-/// app.rocksky.googledrive.getFile
-pub fn googledrive_get_file(client: xrpc.Client, params: models.GetFileParams) -> Result(models.GoogledriveFileView, xrpc.Error) {
-  xrpc.request(client, xrpc.Get, "app.rocksky.googledrive.getFile", models.encode_get_file_params(params), None, models.googledrive_file_view_decoder())
-}
-
-/// app.rocksky.googledrive.getFiles
-pub fn googledrive_get_files(client: xrpc.Client, params: models.GoogledriveGetFilesParams) -> Result(models.GoogledriveFileListView, xrpc.Error) {
-  xrpc.request(client, xrpc.Get, "app.rocksky.googledrive.getFiles", models.encode_googledrive_get_files_params(params), None, models.googledrive_file_list_view_decoder())
 }
 
 /// app.rocksky.graph.followAccount

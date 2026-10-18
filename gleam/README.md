@@ -16,7 +16,7 @@ Rerun after changing Compose ports. Existing provider credentials and encryption
 keys are preserved; local service URLs are refreshed. Changed files are backed
 up as ignored `.env.local-dev-*.bak` files. The generated `.env` is gitignored and
 has mode `0600`. Missing OAuth signing keys and local secrets are generated.
-Spotify/Dropbox/S3 credentials remain blank unless already configured; S3 and
+Spotify/S3 credentials remain blank unless already configured; S3 and
 application sidecars require separate setup.
 
 Use `bun run dev:env --force` to reset settings and regenerate all local secrets
@@ -77,8 +77,7 @@ workflow. All commands below start at the **repository root** unless noted.
 
 1. Edit the Drizzle table definition in `apps/api/src/schema/`. For a new table,
    also export it from `apps/api/src/schema/index.ts`, which the Gleam binding
-   generator imports. `google-drive-tokens.ts` is explicitly included by the
-   generator because the original schema index omits it.
+   generator imports.
 2. Generate the migration using the existing API's Drizzle configuration:
 
    ```sh
@@ -230,7 +229,7 @@ OAuth policy, route registration and HTTP responses. Route inventory tests read
 Presence coverage is not a proof of behavioral equivalence. `PORTING.md` records
 implementation conventions, verification and intentional source bug fixes.
 
-The original TypeScript API already has unfinished player/API-key/cloud XRPC
+The original TypeScript API already has unfinished player/API-key XRPC
 methods. `xrpc/legacy.gleam` preserves those responses. Implementing those new
 features is separate from porting the existing API. Live production integration
 and deployment are not part of the local test suite.

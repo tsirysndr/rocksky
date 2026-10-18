@@ -37,10 +37,6 @@ import type * as AppRockskyChartsGetScrobblesChart from "./types/app/rocksky/cha
 import type * as AppRockskyChartsGetTopArtists from "./types/app/rocksky/charts/getTopArtists";
 import type * as AppRockskyChartsGetTopScrobblers from "./types/app/rocksky/charts/getTopScrobblers";
 import type * as AppRockskyChartsGetTopTracks from "./types/app/rocksky/charts/getTopTracks";
-import type * as AppRockskyDropboxDownloadFile from "./types/app/rocksky/dropbox/downloadFile";
-import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/getFiles";
-import type * as AppRockskyDropboxGetMetadata from "./types/app/rocksky/dropbox/getMetadata";
-import type * as AppRockskyDropboxGetTemporaryLink from "./types/app/rocksky/dropbox/getTemporaryLink";
 import type * as AppRockskyEqualizerDeletePreset from "./types/app/rocksky/equalizer/deletePreset";
 import type * as AppRockskyEqualizerListPresets from "./types/app/rocksky/equalizer/listPresets";
 import type * as AppRockskyEqualizerPutPreset from "./types/app/rocksky/equalizer/putPreset";
@@ -58,9 +54,6 @@ import type * as AppRockskyFeedGetFeedSkeleton from "./types/app/rocksky/feed/ge
 import type * as AppRockskyFeedGetRecommendations from "./types/app/rocksky/feed/getRecommendations";
 import type * as AppRockskyFeedGetStories from "./types/app/rocksky/feed/getStories";
 import type * as AppRockskyFeedSearch from "./types/app/rocksky/feed/search";
-import type * as AppRockskyGoogledriveDownloadFile from "./types/app/rocksky/googledrive/downloadFile";
-import type * as AppRockskyGoogledriveGetFile from "./types/app/rocksky/googledrive/getFile";
-import type * as AppRockskyGoogledriveGetFiles from "./types/app/rocksky/googledrive/getFiles";
 import type * as AppRockskyGraphFollowAccount from "./types/app/rocksky/graph/followAccount";
 import type * as AppRockskyGraphGetFollowers from "./types/app/rocksky/graph/getFollowers";
 import type * as AppRockskyGraphGetFollows from "./types/app/rocksky/graph/getFollows";
@@ -224,11 +217,9 @@ export class AppRockskyNS {
   apikey: AppRockskyApikeyNS;
   artist: AppRockskyArtistNS;
   charts: AppRockskyChartsNS;
-  dropbox: AppRockskyDropboxNS;
   equalizer: AppRockskyEqualizerNS;
   event: AppRockskyEventNS;
   feed: AppRockskyFeedNS;
-  googledrive: AppRockskyGoogledriveNS;
   graph: AppRockskyGraphNS;
   library: AppRockskyLibraryNS;
   like: AppRockskyLikeNS;
@@ -250,11 +241,9 @@ export class AppRockskyNS {
     this.apikey = new AppRockskyApikeyNS(server);
     this.artist = new AppRockskyArtistNS(server);
     this.charts = new AppRockskyChartsNS(server);
-    this.dropbox = new AppRockskyDropboxNS(server);
     this.equalizer = new AppRockskyEqualizerNS(server);
     this.event = new AppRockskyEventNS(server);
     this.feed = new AppRockskyFeedNS(server);
-    this.googledrive = new AppRockskyGoogledriveNS(server);
     this.graph = new AppRockskyGraphNS(server);
     this.library = new AppRockskyLibraryNS(server);
     this.like = new AppRockskyLikeNS(server);
@@ -619,58 +608,6 @@ export class AppRockskyChartsNS {
   }
 }
 
-export class AppRockskyDropboxNS {
-  _server: Server;
-
-  constructor(server: Server) {
-    this._server = server;
-  }
-
-  downloadFile<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyDropboxDownloadFile.Handler<ExtractAuth<AV>>,
-      AppRockskyDropboxDownloadFile.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.dropbox.downloadFile"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  getFiles<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyDropboxGetFiles.Handler<ExtractAuth<AV>>,
-      AppRockskyDropboxGetFiles.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.dropbox.getFiles"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  getMetadata<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyDropboxGetMetadata.Handler<ExtractAuth<AV>>,
-      AppRockskyDropboxGetMetadata.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.dropbox.getMetadata"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  getTemporaryLink<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyDropboxGetTemporaryLink.Handler<ExtractAuth<AV>>,
-      AppRockskyDropboxGetTemporaryLink.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.dropbox.getTemporaryLink"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-}
-
 export class AppRockskyEqualizerNS {
   _server: Server;
 
@@ -878,47 +815,6 @@ export class AppRockskyFeedNS {
     >,
   ) {
     const nsid = "app.rocksky.feed.search"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-}
-
-export class AppRockskyGoogledriveNS {
-  _server: Server;
-
-  constructor(server: Server) {
-    this._server = server;
-  }
-
-  downloadFile<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyGoogledriveDownloadFile.Handler<ExtractAuth<AV>>,
-      AppRockskyGoogledriveDownloadFile.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.googledrive.downloadFile"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  getFile<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyGoogledriveGetFile.Handler<ExtractAuth<AV>>,
-      AppRockskyGoogledriveGetFile.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.googledrive.getFile"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  getFiles<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyGoogledriveGetFiles.Handler<ExtractAuth<AV>>,
-      AppRockskyGoogledriveGetFiles.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.googledrive.getFiles"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

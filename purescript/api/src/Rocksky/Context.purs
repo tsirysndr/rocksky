@@ -57,8 +57,6 @@ type Context =
   , pools :: Pools
   , nc :: Connection
   , analytics :: Instance
-  , dropbox :: Instance
-  , googledrive :: Instance
   , tracklist :: Instance
   , matching :: Instance
   , musicbrainz :: Instance
@@ -111,8 +109,6 @@ createContext = do
   let
     axios base timeout = liftEffect (Axios.create { baseURL: base, timeout: toNullable timeout })
   analytics <- axios env."ANALYTICS" Nothing
-  dropbox <- axios env."DROPBOX" Nothing
-  googledrive <- axios env."GOOGLE_DRIVE" Nothing
   tracklist <- axios env."TRACKLIST" Nothing
   matching <- axios env."MATCHING_URL" (Just 10000)
   musicbrainz <- axios env."MUSICBRAINZ_URL" Nothing
@@ -130,8 +126,6 @@ createContext = do
     , pools
     , nc
     , analytics
-    , dropbox
-    , googledrive
     , tracklist
     , matching
     , musicbrainz

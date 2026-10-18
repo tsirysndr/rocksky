@@ -7225,74 +7225,6 @@ class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.tidal_link, buf)
 
 
-class DropboxView:
-    """
-    The listener's linked Dropbox (`app.rocksky.actor.defs#responseDropboxView`).
-    """
-
-    id: "typing.Optional[str]"
-    email: "typing.Optional[str]"
-    user_id: "typing.Optional[str]"
-    is_beta_user: "typing.Optional[bool]"
-    created_at: "typing.Optional[str]"
-    updated_at: "typing.Optional[str]"
-    def __init__(self, *, id: "typing.Optional[str]", email: "typing.Optional[str]", user_id: "typing.Optional[str]", is_beta_user: "typing.Optional[bool]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]"):
-        self.id = id
-        self.email = email
-        self.user_id = user_id
-        self.is_beta_user = is_beta_user
-        self.created_at = created_at
-        self.updated_at = updated_at
-
-    def __str__(self):
-        return "DropboxView(id={}, email={}, user_id={}, is_beta_user={}, created_at={}, updated_at={})".format(self.id, self.email, self.user_id, self.is_beta_user, self.created_at, self.updated_at)
-
-    def __eq__(self, other):
-        if self.id != other.id:
-            return False
-        if self.email != other.email:
-            return False
-        if self.user_id != other.user_id:
-            return False
-        if self.is_beta_user != other.is_beta_user:
-            return False
-        if self.created_at != other.created_at:
-            return False
-        if self.updated_at != other.updated_at:
-            return False
-        return True
-
-class _UniffiConverterTypeDropboxView(_UniffiConverterRustBuffer):
-    @staticmethod
-    def read(buf):
-        return DropboxView(
-            id=_UniffiConverterOptionalString.read(buf),
-            email=_UniffiConverterOptionalString.read(buf),
-            user_id=_UniffiConverterOptionalString.read(buf),
-            is_beta_user=_UniffiConverterOptionalBool.read(buf),
-            created_at=_UniffiConverterOptionalString.read(buf),
-            updated_at=_UniffiConverterOptionalString.read(buf),
-        )
-
-    @staticmethod
-    def check_lower(value):
-        _UniffiConverterOptionalString.check_lower(value.id)
-        _UniffiConverterOptionalString.check_lower(value.email)
-        _UniffiConverterOptionalString.check_lower(value.user_id)
-        _UniffiConverterOptionalBool.check_lower(value.is_beta_user)
-        _UniffiConverterOptionalString.check_lower(value.created_at)
-        _UniffiConverterOptionalString.check_lower(value.updated_at)
-
-    @staticmethod
-    def write(value, buf):
-        _UniffiConverterOptionalString.write(value.id, buf)
-        _UniffiConverterOptionalString.write(value.email, buf)
-        _UniffiConverterOptionalString.write(value.user_id, buf)
-        _UniffiConverterOptionalBool.write(value.is_beta_user, buf)
-        _UniffiConverterOptionalString.write(value.created_at, buf)
-        _UniffiConverterOptionalString.write(value.updated_at, buf)
-
-
 class EqualizerBand:
     """
     One EQ band (`app.rocksky.rockbox.defs#equalizerBand`). Same units rockbox
@@ -8335,46 +8267,6 @@ class _UniffiConverterTypeGlobalStats(_UniffiConverterRustBuffer):
         _UniffiConverterUInt64.write(value.tracks, buf)
 
 
-class GoogledriveView:
-    """
-    The listener's linked Google Drive (`app.rocksky.actor.defs#responseGoogledriveView`).
-    """
-
-    created_at: "typing.Optional[str]"
-    updated_at: "typing.Optional[str]"
-    def __init__(self, *, created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]"):
-        self.created_at = created_at
-        self.updated_at = updated_at
-
-    def __str__(self):
-        return "GoogledriveView(created_at={}, updated_at={})".format(self.created_at, self.updated_at)
-
-    def __eq__(self, other):
-        if self.created_at != other.created_at:
-            return False
-        if self.updated_at != other.updated_at:
-            return False
-        return True
-
-class _UniffiConverterTypeGoogledriveView(_UniffiConverterRustBuffer):
-    @staticmethod
-    def read(buf):
-        return GoogledriveView(
-            created_at=_UniffiConverterOptionalString.read(buf),
-            updated_at=_UniffiConverterOptionalString.read(buf),
-        )
-
-    @staticmethod
-    def check_lower(value):
-        _UniffiConverterOptionalString.check_lower(value.created_at)
-        _UniffiConverterOptionalString.check_lower(value.updated_at)
-
-    @staticmethod
-    def write(value, buf):
-        _UniffiConverterOptionalString.write(value.created_at, buf)
-        _UniffiConverterOptionalString.write(value.updated_at, buf)
-
-
 class NotificationActor:
     """
     The user who triggered a notification
@@ -8809,9 +8701,7 @@ class ProfileView:
     updated_at: "typing.Optional[str]"
     spotify_user: "typing.Optional[SpotifyUserView]"
     spotify_connected: "typing.Optional[bool]"
-    googledrive: "typing.Optional[GoogledriveView]"
-    dropbox: "typing.Optional[DropboxView]"
-    def __init__(self, *, id: "typing.Optional[str]", did: "typing.Optional[str]", handle: "typing.Optional[str]", display_name: "typing.Optional[str]", avatar: "typing.Optional[str]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]", spotify_user: "typing.Optional[SpotifyUserView]", spotify_connected: "typing.Optional[bool]", googledrive: "typing.Optional[GoogledriveView]", dropbox: "typing.Optional[DropboxView]"):
+    def __init__(self, *, id: "typing.Optional[str]", did: "typing.Optional[str]", handle: "typing.Optional[str]", display_name: "typing.Optional[str]", avatar: "typing.Optional[str]", created_at: "typing.Optional[str]", updated_at: "typing.Optional[str]", spotify_user: "typing.Optional[SpotifyUserView]", spotify_connected: "typing.Optional[bool]"):
         self.id = id
         self.did = did
         self.handle = handle
@@ -8821,11 +8711,9 @@ class ProfileView:
         self.updated_at = updated_at
         self.spotify_user = spotify_user
         self.spotify_connected = spotify_connected
-        self.googledrive = googledrive
-        self.dropbox = dropbox
 
     def __str__(self):
-        return "ProfileView(id={}, did={}, handle={}, display_name={}, avatar={}, created_at={}, updated_at={}, spotify_user={}, spotify_connected={}, googledrive={}, dropbox={})".format(self.id, self.did, self.handle, self.display_name, self.avatar, self.created_at, self.updated_at, self.spotify_user, self.spotify_connected, self.googledrive, self.dropbox)
+        return "ProfileView(id={}, did={}, handle={}, display_name={}, avatar={}, created_at={}, updated_at={}, spotify_user={}, spotify_connected={})".format(self.id, self.did, self.handle, self.display_name, self.avatar, self.created_at, self.updated_at, self.spotify_user, self.spotify_connected)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -8846,10 +8734,6 @@ class ProfileView:
             return False
         if self.spotify_connected != other.spotify_connected:
             return False
-        if self.googledrive != other.googledrive:
-            return False
-        if self.dropbox != other.dropbox:
-            return False
         return True
 
 class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
@@ -8865,8 +8749,6 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
             updated_at=_UniffiConverterOptionalString.read(buf),
             spotify_user=_UniffiConverterOptionalTypeSpotifyUserView.read(buf),
             spotify_connected=_UniffiConverterOptionalBool.read(buf),
-            googledrive=_UniffiConverterOptionalTypeGoogledriveView.read(buf),
-            dropbox=_UniffiConverterOptionalTypeDropboxView.read(buf),
         )
 
     @staticmethod
@@ -8880,8 +8762,6 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.check_lower(value.updated_at)
         _UniffiConverterOptionalTypeSpotifyUserView.check_lower(value.spotify_user)
         _UniffiConverterOptionalBool.check_lower(value.spotify_connected)
-        _UniffiConverterOptionalTypeGoogledriveView.check_lower(value.googledrive)
-        _UniffiConverterOptionalTypeDropboxView.check_lower(value.dropbox)
 
     @staticmethod
     def write(value, buf):
@@ -8894,8 +8774,6 @@ class _UniffiConverterTypeProfileView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.updated_at, buf)
         _UniffiConverterOptionalTypeSpotifyUserView.write(value.spotify_user, buf)
         _UniffiConverterOptionalBool.write(value.spotify_connected, buf)
-        _UniffiConverterOptionalTypeGoogledriveView.write(value.googledrive, buf)
-        _UniffiConverterOptionalTypeDropboxView.write(value.dropbox, buf)
 
 
 class PutRsvpResult:
@@ -12137,33 +12015,6 @@ class _UniffiConverterOptionalBytes(_UniffiConverterRustBuffer):
 
 
 
-class _UniffiConverterOptionalTypeDropboxView(_UniffiConverterRustBuffer):
-    @classmethod
-    def check_lower(cls, value):
-        if value is not None:
-            _UniffiConverterTypeDropboxView.check_lower(value)
-
-    @classmethod
-    def write(cls, value, buf):
-        if value is None:
-            buf.write_u8(0)
-            return
-
-        buf.write_u8(1)
-        _UniffiConverterTypeDropboxView.write(value, buf)
-
-    @classmethod
-    def read(cls, buf):
-        flag = buf.read_u8()
-        if flag == 0:
-            return None
-        elif flag == 1:
-            return _UniffiConverterTypeDropboxView.read(buf)
-        else:
-            raise InternalError("Unexpected flag byte for optional type")
-
-
-
 class _UniffiConverterOptionalTypeEventExternalIds(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -12186,33 +12037,6 @@ class _UniffiConverterOptionalTypeEventExternalIds(_UniffiConverterRustBuffer):
             return None
         elif flag == 1:
             return _UniffiConverterTypeEventExternalIds.read(buf)
-        else:
-            raise InternalError("Unexpected flag byte for optional type")
-
-
-
-class _UniffiConverterOptionalTypeGoogledriveView(_UniffiConverterRustBuffer):
-    @classmethod
-    def check_lower(cls, value):
-        if value is not None:
-            _UniffiConverterTypeGoogledriveView.check_lower(value)
-
-    @classmethod
-    def write(cls, value, buf):
-        if value is None:
-            buf.write_u8(0)
-            return
-
-        buf.write_u8(1)
-        _UniffiConverterTypeGoogledriveView.write(value, buf)
-
-    @classmethod
-    def read(cls, buf):
-        flag = buf.read_u8()
-        if flag == 0:
-            return None
-        elif flag == 1:
-            return _UniffiConverterTypeGoogledriveView.read(buf)
         else:
             raise InternalError("Unexpected flag byte for optional type")
 
@@ -12933,7 +12757,6 @@ __all__ = [
     "AlbumView",
     "ArtistInput",
     "ArtistView",
-    "DropboxView",
     "EqualizerBand",
     "EqualizerPreset",
     "EventArtist",
@@ -12944,7 +12767,6 @@ __all__ = [
     "EventView",
     "EventsQuery",
     "GlobalStats",
-    "GoogledriveView",
     "NotificationActor",
     "NotificationList",
     "NotificationSubject",

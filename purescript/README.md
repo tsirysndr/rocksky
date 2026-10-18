@@ -235,7 +235,7 @@ change the database schema only when the new API contract needs storage changes.
 
    `test:xrpc` builds and registers handlers against the real JSON lexicons.
    When adding/removing endpoints, update its explicit expected handler count
-   (currently 153) to the reviewed total. Registration tests do not replace
+   (currently 146) to the reviewed total. Registration tests do not replace
    assertions about input validation and response shapes.
 6. Commit the PKL source, generated JSON/TypeScript bindings, PureScript changes,
    registration files and tests together. Restart the API to load changed JSON.
@@ -259,8 +259,8 @@ Effect-TS is not ported: pipelines are plain `Aff` with the helpers in
 
 ## Port status
 
-All 340 non-generated source modules are mapped, including both entrypoints,
-all REST applications, operational scripts, and 153 XRPC handlers across 23 groups.
+All current non-generated source modules are mapped, including both entrypoints,
+all REST applications, operational scripts, and 146 XRPC handlers across 21 groups.
 `bun run audit:port` regenerates the source inventory. The inventory measures
 coverage; behavioral checks are maintained separately in `bin/test-*.js`.
 
@@ -276,9 +276,8 @@ installed `node_modules`. Run bundles from this workspace root, with dependencie
 installed and the lexicon directories available. `bun run check:bundles` checks
 that both bundles load without executing startup or contacting services.
 
-Existing TypeScript limitations are preserved: several player/API-key/cloud
-XRPC endpoints are no-ops or empty responses, and cloud downloads report
-“Not implemented yet.” These are source behavior, not newly added features.
+Existing TypeScript limitations are preserved: several player/API-key
+XRPC endpoints are no-ops or empty responses. These are source behavior, not newly added features.
 See `PORTING.md` for implementation history and final validation details.
 
 ## Production service

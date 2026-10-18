@@ -2405,237 +2405,6 @@
         }
       }
     },
-    "/app.rocksky.dropbox.downloadFile": {
-      "get": {
-        "tags": [
-          "app.rocksky.dropbox"
-        ],
-        "summary": "Download a file from Dropbox by its unique identifier",
-        "operationId": "app.rocksky.dropbox.downloadFile",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "fileId",
-            "in": "query",
-            "required": true,
-            "description": "The unique identifier of the file to download",
-            "schema": {
-              "type": "string",
-              "description": "The unique identifier of the file to download"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "description": "Invalid XRPC request or parameters.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "XRPC error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          }
-        },
-        "description": "This route is registered but currently throws a not-implemented error. It does not return the download described by its lexicon.",
-        "x-implementation-status": "not-implemented"
-      }
-    },
-    "/app.rocksky.dropbox.getFiles": {
-      "get": {
-        "tags": [
-          "app.rocksky.dropbox"
-        ],
-        "summary": "Retrieve a list of files from Dropbox",
-        "operationId": "app.rocksky.dropbox.getFiles",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "at",
-            "in": "query",
-            "required": false,
-            "description": "Path to the Dropbox folder or root directory",
-            "schema": {
-              "type": "string",
-              "description": "Path to the Dropbox folder or root directory"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/app.rocksky.dropbox.defs__fileListView"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid XRPC request or parameters.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "XRPC error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/app.rocksky.dropbox.getMetadata": {
-      "get": {
-        "tags": [
-          "app.rocksky.dropbox"
-        ],
-        "summary": "Retrieve metadata of a file or folder in Dropbox",
-        "operationId": "app.rocksky.dropbox.getMetadata",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "path",
-            "in": "query",
-            "required": true,
-            "description": "Path to the file or folder in Dropbox",
-            "schema": {
-              "type": "string",
-              "description": "Path to the file or folder in Dropbox"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "metadata": {
-                      "description": "Metadata returned by the provider; currently an empty object."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid XRPC request or parameters.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "XRPC error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          }
-        },
-        "description": "The current handler contains placeholder logic; a successful response does not guarantee the requested operation was performed.",
-        "x-implementation-status": "placeholder"
-      }
-    },
-    "/app.rocksky.dropbox.getTemporaryLink": {
-      "get": {
-        "tags": [
-          "app.rocksky.dropbox"
-        ],
-        "summary": "Retrieve a temporary link to access a file in Dropbox",
-        "operationId": "app.rocksky.dropbox.getTemporaryLink",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "path",
-            "in": "query",
-            "required": true,
-            "description": "Path to the file in Dropbox",
-            "schema": {
-              "type": "string",
-              "description": "Path to the file in Dropbox"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/app.rocksky.dropbox.defs__temporaryLinkView"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid XRPC request or parameters.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "XRPC error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/app.rocksky.equalizer.deletePreset": {
       "post": {
         "tags": [
@@ -3763,174 +3532,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/app.rocksky.feed.defs__searchResultsView"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid XRPC request or parameters.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "XRPC error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/app.rocksky.googledrive.downloadFile": {
-      "get": {
-        "tags": [
-          "app.rocksky.googledrive"
-        ],
-        "summary": "Download a file from Google Drive by its unique identifier",
-        "operationId": "app.rocksky.googledrive.downloadFile",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "fileId",
-            "in": "query",
-            "required": true,
-            "description": "The unique identifier of the file to download",
-            "schema": {
-              "type": "string",
-              "description": "The unique identifier of the file to download"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "description": "Invalid XRPC request or parameters.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "XRPC error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          }
-        },
-        "description": "This route is registered but currently throws a not-implemented error. It does not return the download described by its lexicon.",
-        "x-implementation-status": "not-implemented"
-      }
-    },
-    "/app.rocksky.googledrive.getFile": {
-      "get": {
-        "tags": [
-          "app.rocksky.googledrive"
-        ],
-        "summary": "Get a file from Google Drive by its unique identifier",
-        "operationId": "app.rocksky.googledrive.getFile",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "fileId",
-            "in": "query",
-            "required": true,
-            "description": "The unique identifier of the file to retrieve",
-            "schema": {
-              "type": "string",
-              "description": "The unique identifier of the file to retrieve"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/app.rocksky.googledrive.defs__fileView"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid XRPC request or parameters.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "XRPC error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/XrpcError"
-                }
-              }
-            }
-          }
-        },
-        "description": "The current handler contains placeholder logic; a successful response does not guarantee the requested operation was performed.",
-        "x-implementation-status": "placeholder"
-      }
-    },
-    "/app.rocksky.googledrive.getFiles": {
-      "get": {
-        "tags": [
-          "app.rocksky.googledrive"
-        ],
-        "summary": "Get a list of files from Google Drive",
-        "operationId": "app.rocksky.googledrive.getFiles",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "at",
-            "in": "query",
-            "required": false,
-            "description": "Path to the Google Drive folder or root directory",
-            "schema": {
-              "type": "string",
-              "description": "Path to the Google Drive folder or root directory"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/app.rocksky.googledrive.defs__fileListView"
                 }
               }
             }
@@ -11383,7 +10984,7 @@
         "tags": [
           "app.rocksky.song"
         ],
-        "summary": "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album",
+        "summary": "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album. Completed lookups return HTTP 200 in the existing songViewDetailed format. When multiple recordings remain, the highest-ranked accepted candidate supplies the song fields; external alternatives remain in matches. When no candidate is accepted, returns an empty matches array without song fields. Supply a known isrc or mbId to anchor a recording.",
         "operationId": "app.rocksky.song.matchSong",
         "security": [],
         "parameters": [
@@ -11411,10 +11012,10 @@
             "name": "album",
             "in": "query",
             "required": false,
-            "description": "Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release",
+            "description": "Optional album title — only candidates matching this album after normalization are accepted, including when an explicit identifier is supplied",
             "schema": {
               "type": "string",
-              "description": "Optional album title — candidates whose album matches it (case-insensitive) are preferred, so remaster/live/single editions don't shadow the intended release"
+              "description": "Optional album title — only candidates matching this album after normalization are accepted, including when an explicit identifier is supplied"
             }
           },
           {
@@ -11986,12 +11587,6 @@
           },
           "spotifyConnected": {
             "type": "boolean"
-          },
-          "googledrive": {
-            "$ref": "#/components/schemas/app.rocksky.actor.defs__responseGoogledriveView"
-          },
-          "dropbox": {
-            "$ref": "#/components/schemas/app.rocksky.actor.defs__responseDropboxView"
           }
         }
       },
@@ -12186,57 +11781,6 @@
             "type": "boolean"
           },
           "spotifyAppId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        }
-      },
-      "app.rocksky.actor.defs__responseGoogledriveView": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "app.rocksky.actor.defs__responseDropboxView": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "isBetaUser": {
-            "type": "boolean"
-          },
-          "userId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "xataVersion": {
             "anyOf": [
               {
                 "type": "string"
@@ -13399,120 +12943,6 @@
           "uniqueTracks": {
             "type": "integer",
             "description": "The number of distinct tracks scrobbled in the window."
-          }
-        }
-      },
-      "app.rocksky.dropbox.defs__fileView": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The unique identifier of the file."
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the file."
-          },
-          "pathLower": {
-            "type": "string",
-            "description": "The lowercased path of the file."
-          },
-          "pathDisplay": {
-            "type": "string",
-            "description": "The display path of the file."
-          },
-          "clientModified": {
-            "type": "string",
-            "description": "The last modified date and time of the file on the client.",
-            "format": "date-time"
-          },
-          "serverModified": {
-            "type": "string",
-            "description": "The last modified date and time of the file on the server.",
-            "format": "date-time"
-          },
-          "fileId": {
-            "type": "string"
-          },
-          "directoryId": {
-            "type": "string"
-          },
-          "trackId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "app.rocksky.dropbox.defs__fileListView": {
-        "type": "object",
-        "properties": {
-          "files": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/app.rocksky.dropbox.defs__fileView"
-            },
-            "description": "A list of files in the Dropbox."
-          },
-          "directory": {
-            "$ref": "#/components/schemas/app.rocksky.dropbox.defs__responseDirectoryView"
-          },
-          "parentDirectory": {
-            "$ref": "#/components/schemas/app.rocksky.dropbox.defs__responseParentDirectoryView"
-          },
-          "directories": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/app.rocksky.dropbox.defs__responseDirectoriesItemView"
-            }
-          }
-        }
-      },
-      "app.rocksky.dropbox.defs__temporaryLinkView": {
-        "type": "object",
-        "properties": {
-          "link": {
-            "type": "string",
-            "description": "The temporary link to access the file.",
-            "format": "uri"
-          }
-        }
-      },
-      "app.rocksky.dropbox.defs__responseDirectoryView": {
-        "type": "object",
-        "properties": {}
-      },
-      "app.rocksky.dropbox.defs__responseParentDirectoryView": {
-        "type": "object",
-        "properties": {}
-      },
-      "app.rocksky.dropbox.defs__responseDirectoriesItemView": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "fileId": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          },
-          "parentId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         }
       },
@@ -14848,90 +14278,6 @@
               "null"
             ],
             "description": "Production returns a nullable floating-point number. Lexicon has no float primitive; retained as an open extension without changing response data."
-          }
-        }
-      },
-      "app.rocksky.googledrive.defs__fileView": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The unique identifier of the file."
-          },
-          "name": {
-            "type": "string"
-          },
-          "fileId": {
-            "type": "string"
-          },
-          "directoryId": {
-            "type": "string"
-          },
-          "trackId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "app.rocksky.googledrive.defs__fileListView": {
-        "type": "object",
-        "properties": {
-          "files": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/app.rocksky.googledrive.defs__fileView"
-            }
-          },
-          "directory": {
-            "$ref": "#/components/schemas/app.rocksky.googledrive.defs__responseDirectoryView"
-          },
-          "parentDirectory": {
-            "$ref": "#/components/schemas/app.rocksky.googledrive.defs__responseParentDirectoryView"
-          },
-          "directories": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/app.rocksky.googledrive.defs__responseDirectoriesItemView"
-            }
-          }
-        }
-      },
-      "app.rocksky.googledrive.defs__responseDirectoryView": {
-        "type": "object",
-        "properties": {}
-      },
-      "app.rocksky.googledrive.defs__responseParentDirectoryView": {
-        "type": "object",
-        "properties": {}
-      },
-      "app.rocksky.googledrive.defs__responseDirectoriesItemView": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "fileId": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          },
-          "parentId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
           }
         }
       },
@@ -17001,6 +16347,28 @@
             "description": "Match confidence score in the range 0-100 (higher is better).",
             "minimum": 0,
             "maximum": 100
+          },
+          "source": {
+            "type": "string",
+            "description": "The metadata provider for this candidate."
+          },
+          "providerId": {
+            "type": "string",
+            "description": "The provider identifier, including non-numeric identifiers."
+          },
+          "mbId": {
+            "type": "string",
+            "description": "The MusicBrainz recording identifier of this candidate."
+          },
+          "mbReleaseId": {
+            "type": "string",
+            "description": "The MusicBrainz release identifier of this candidate."
+          },
+          "mbArtists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/app.rocksky.song.defs__responseMbArtistsItemView"
+            }
           }
         },
         "description": "A ranked candidate match for a song from an external metadata provider."

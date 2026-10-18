@@ -140,26 +140,6 @@ defmodule Rocksky.Api do
     Rocksky.Xrpc.request(client, :get, "app.rocksky.charts.getTopTracks", Rocksky.Models.GetTopTracksParams.encode(params), nil, {:record, Rocksky.Models.GetTopTracksOutput})
   end
 
-  @spec dropbox_download_file(Rocksky.Xrpc.t(), Rocksky.Models.DropboxDownloadFileParams.t()) :: {:ok, binary()} | {:error, term()}
-  def dropbox_download_file(client, params) do
-    Rocksky.Xrpc.request(client, :get, "app.rocksky.dropbox.downloadFile", Rocksky.Models.DropboxDownloadFileParams.encode(params), nil, :binary)
-  end
-
-  @spec dropbox_get_files(Rocksky.Xrpc.t(), Rocksky.Models.DropboxGetFilesParams.t()) :: {:ok, Rocksky.Models.DropboxFileListView.t()} | {:error, term()}
-  def dropbox_get_files(client, params) do
-    Rocksky.Xrpc.request(client, :get, "app.rocksky.dropbox.getFiles", Rocksky.Models.DropboxGetFilesParams.encode(params), nil, {:record, Rocksky.Models.DropboxFileListView})
-  end
-
-  @spec dropbox_get_metadata(Rocksky.Xrpc.t(), Rocksky.Models.GetMetadataParams.t()) :: {:ok, Rocksky.Models.GetMetadataOutput.t()} | {:error, term()}
-  def dropbox_get_metadata(client, params) do
-    Rocksky.Xrpc.request(client, :get, "app.rocksky.dropbox.getMetadata", Rocksky.Models.GetMetadataParams.encode(params), nil, {:record, Rocksky.Models.GetMetadataOutput})
-  end
-
-  @spec dropbox_get_temporary_link(Rocksky.Xrpc.t(), Rocksky.Models.GetTemporaryLinkParams.t()) :: {:ok, Rocksky.Models.DropboxTemporaryLinkView.t()} | {:error, term()}
-  def dropbox_get_temporary_link(client, params) do
-    Rocksky.Xrpc.request(client, :get, "app.rocksky.dropbox.getTemporaryLink", Rocksky.Models.GetTemporaryLinkParams.encode(params), nil, {:record, Rocksky.Models.DropboxTemporaryLinkView})
-  end
-
   @spec equalizer_delete_preset(Rocksky.Xrpc.t(), Rocksky.Models.DeletePresetParams.t()) :: {:ok, nil} | {:error, term()}
   def equalizer_delete_preset(client, params) do
     Rocksky.Xrpc.request(client, :post, "app.rocksky.equalizer.deletePreset", Rocksky.Models.DeletePresetParams.encode(params), nil, :none)
@@ -243,21 +223,6 @@ defmodule Rocksky.Api do
   @spec feed_search(Rocksky.Xrpc.t(), Rocksky.Models.FeedSearchParams.t()) :: {:ok, Rocksky.Models.FeedSearchResultsView.t()} | {:error, term()}
   def feed_search(client, params) do
     Rocksky.Xrpc.request(client, :get, "app.rocksky.feed.search", Rocksky.Models.FeedSearchParams.encode(params), nil, {:record, Rocksky.Models.FeedSearchResultsView})
-  end
-
-  @spec googledrive_download_file(Rocksky.Xrpc.t(), Rocksky.Models.GoogledriveDownloadFileParams.t()) :: {:ok, binary()} | {:error, term()}
-  def googledrive_download_file(client, params) do
-    Rocksky.Xrpc.request(client, :get, "app.rocksky.googledrive.downloadFile", Rocksky.Models.GoogledriveDownloadFileParams.encode(params), nil, :binary)
-  end
-
-  @spec googledrive_get_file(Rocksky.Xrpc.t(), Rocksky.Models.GetFileParams.t()) :: {:ok, Rocksky.Models.GoogledriveFileView.t()} | {:error, term()}
-  def googledrive_get_file(client, params) do
-    Rocksky.Xrpc.request(client, :get, "app.rocksky.googledrive.getFile", Rocksky.Models.GetFileParams.encode(params), nil, {:record, Rocksky.Models.GoogledriveFileView})
-  end
-
-  @spec googledrive_get_files(Rocksky.Xrpc.t(), Rocksky.Models.GoogledriveGetFilesParams.t()) :: {:ok, Rocksky.Models.GoogledriveFileListView.t()} | {:error, term()}
-  def googledrive_get_files(client, params) do
-    Rocksky.Xrpc.request(client, :get, "app.rocksky.googledrive.getFiles", Rocksky.Models.GoogledriveGetFilesParams.encode(params), nil, {:record, Rocksky.Models.GoogledriveFileListView})
   end
 
   @spec graph_follow_account(Rocksky.Xrpc.t(), Rocksky.Models.FollowAccountParams.t()) :: {:ok, Rocksky.Models.FollowAccountOutput.t()} | {:error, term()}

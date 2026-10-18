@@ -60,18 +60,6 @@
     "status": "mapped"
   },
   {
-    "source": "dropbox/app.ts",
-    "module": "Rocksky.Dropbox.App",
-    "target": "api/src/Rocksky/Dropbox/App.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "googledrive/app.ts",
-    "module": "Rocksky.Googledrive.App",
-    "target": "api/src/Rocksky/Googledrive/App.purs",
-    "status": "mapped"
-  },
-  {
     "source": "import/app.ts",
     "module": "Rocksky.Import.App",
     "target": "api/src/Rocksky/Import/App.purs",
@@ -480,36 +468,6 @@
     "status": "mapped"
   },
   {
-    "source": "schema/dropbox-accounts.ts",
-    "module": "Rocksky.Schema.DropboxAccounts",
-    "target": "api/src/Rocksky/Schema/DropboxAccounts.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/dropbox-directories.ts",
-    "module": "Rocksky.Schema.DropboxDirectories",
-    "target": "api/src/Rocksky/Schema/DropboxDirectories.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/dropbox-paths.ts",
-    "module": "Rocksky.Schema.DropboxPaths",
-    "target": "api/src/Rocksky/Schema/DropboxPaths.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/dropbox-tokens.ts",
-    "module": "Rocksky.Schema.DropboxTokens",
-    "target": "api/src/Rocksky/Schema/DropboxTokens.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/dropbox.ts",
-    "module": "Rocksky.Schema.Dropbox",
-    "target": "api/src/Rocksky/Schema/Dropbox.purs",
-    "status": "mapped"
-  },
-  {
     "source": "schema/event-artists.ts",
     "module": "Rocksky.Schema.EventArtists",
     "target": "api/src/Rocksky/Schema/EventArtists.purs",
@@ -537,36 +495,6 @@
     "source": "schema/follows.ts",
     "module": "Rocksky.Schema.Follows",
     "target": "api/src/Rocksky/Schema/Follows.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/google-drive-accounts.ts",
-    "module": "Rocksky.Schema.GoogleDriveAccounts",
-    "target": "api/src/Rocksky/Schema/GoogleDriveAccounts.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/google-drive-directories.ts",
-    "module": "Rocksky.Schema.GoogleDriveDirectories",
-    "target": "api/src/Rocksky/Schema/GoogleDriveDirectories.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/google-drive-paths.ts",
-    "module": "Rocksky.Schema.GoogleDrivePaths",
-    "target": "api/src/Rocksky/Schema/GoogleDrivePaths.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/google-drive-tokens.ts",
-    "module": "Rocksky.Schema.GoogleDriveTokens",
-    "target": "api/src/Rocksky/Schema/GoogleDriveTokens.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/googledrive.ts",
-    "module": "Rocksky.Schema.GoogleDrive",
-    "target": "api/src/Rocksky/Schema/GoogleDrive.purs",
     "status": "mapped"
   },
   {
@@ -1248,30 +1176,6 @@
     "status": "mapped"
   },
   {
-    "source": "xrpc/app/rocksky/dropbox/downloadFile.ts",
-    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.DownloadFile",
-    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/DownloadFile.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "xrpc/app/rocksky/dropbox/getFiles.ts",
-    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.GetFiles",
-    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/GetFiles.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "xrpc/app/rocksky/dropbox/getMetadata.ts",
-    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.GetMetadata",
-    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/GetMetadata.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "xrpc/app/rocksky/dropbox/getTemporaryLink.ts",
-    "module": "Rocksky.Xrpc.App.Rocksky.Dropbox.GetTemporaryLink",
-    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Dropbox/GetTemporaryLink.purs",
-    "status": "mapped"
-  },
-  {
     "source": "xrpc/app/rocksky/equalizer/deletePreset.ts",
     "module": "Rocksky.Xrpc.App.Rocksky.Equalizer.DeletePreset",
     "target": "api/src/Rocksky/Xrpc/App/Rocksky/Equalizer/DeletePreset.purs",
@@ -1365,24 +1269,6 @@
     "source": "xrpc/app/rocksky/feed/search.ts",
     "module": "Rocksky.Xrpc.App.Rocksky.Feed.Search",
     "target": "api/src/Rocksky/Xrpc/App/Rocksky/Feed/Search.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "xrpc/app/rocksky/googledrive/downloadFile.ts",
-    "module": "Rocksky.Xrpc.App.Rocksky.Googledrive.DownloadFile",
-    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Googledrive/DownloadFile.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "xrpc/app/rocksky/googledrive/getFile.ts",
-    "module": "Rocksky.Xrpc.App.Rocksky.Googledrive.GetFile",
-    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Googledrive/GetFile.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "xrpc/app/rocksky/googledrive/getFiles.ts",
-    "module": "Rocksky.Xrpc.App.Rocksky.Googledrive.GetFiles",
-    "target": "api/src/Rocksky/Xrpc/App/Rocksky/Googledrive/GetFiles.purs",
     "status": "mapped"
   },
   {

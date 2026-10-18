@@ -497,82 +497,56 @@ var discogsTracks = pgTable18("discogs_tracks", {
 ]);
 var discogs_tracks_default = discogsTracks;
 
-// ../apps/api/src/schema/dropbox.ts
-import { sql as sql20 } from "drizzle-orm";
-import { pgTable as pgTable20, text as text20, timestamp as timestamp20 } from "drizzle-orm/pg-core";
-
-// ../apps/api/src/schema/dropbox-tokens.ts
-import { sql as sql19 } from "drizzle-orm";
-import { pgTable as pgTable19, text as text19, timestamp as timestamp19 } from "drizzle-orm/pg-core";
-var dropboxTokens = pgTable19("dropbox_tokens", {
-  id: text19("xata_id").primaryKey().default(sql19`xata_id()`),
-  refreshToken: text19("refresh_token").notNull(),
-  createdAt: timestamp19("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp19("xata_updatedat").defaultNow().notNull()
-});
-var dropbox_tokens_default = dropboxTokens;
-
-// ../apps/api/src/schema/dropbox.ts
-var dropbox = pgTable20("dropbox", {
-  id: text20("xata_id").primaryKey().default(sql20`xata_id()`),
-  userId: text20("user_id").notNull().references(() => users_default.id),
-  dropboxTokenId: text20("dropbox_token_id").notNull().references(() => dropbox_tokens_default.id),
-  xataVersion: text20("xata_version"),
-  createdAt: timestamp20("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp20("xata_updatedat").defaultNow().notNull()
-});
-var dropbox_default = dropbox;
-
 // ../apps/api/src/schema/event-artists.ts
-import { sql as sql22 } from "drizzle-orm";
+import { sql as sql20 } from "drizzle-orm";
 import {
   index as index17,
   integer as integer18,
-  pgTable as pgTable22,
-  text as text22,
-  timestamp as timestamp22,
+  pgTable as pgTable20,
+  text as text20,
+  timestamp as timestamp20,
   uniqueIndex
 } from "drizzle-orm/pg-core";
 
 // ../apps/api/src/schema/events.ts
-import { sql as sql21 } from "drizzle-orm";
+import { sql as sql19 } from "drizzle-orm";
 import {
   index as index16,
   integer as integer17,
   jsonb,
-  pgTable as pgTable21,
-  text as text21,
-  timestamp as timestamp21
+  pgTable as pgTable19,
+  text as text19,
+  timestamp as timestamp19
 } from "drizzle-orm/pg-core";
-var events = pgTable21("events", {
-  id: text21("xata_id").primaryKey().default(sql21`xata_id()`),
-  uri: text21("uri").unique().notNull(),
-  cid: text21("cid"),
-  musicUri: text21("music_uri").unique().notNull(),
-  musicCid: text21("music_cid"),
-  name: text21("name").notNull(),
-  description: text21("description"),
-  startsAt: timestamp21("starts_at", { withTimezone: true }),
-  endsAt: timestamp21("ends_at", { withTimezone: true }),
-  mode: text21("mode"),
-  status: text21("status"),
+var events = pgTable19("events", {
+  id: text19("xata_id").primaryKey().default(sql19`xata_id()`),
+  uri: text19("uri").unique().notNull(),
+  cid: text19("cid"),
+  musicUri: text19("music_uri").unique().notNull(),
+  musicCid: text19("music_cid"),
+  name: text19("name").notNull(),
+  description: text19("description"),
+  startsAt: timestamp19("starts_at", { withTimezone: true }),
+  endsAt: timestamp19("ends_at", { withTimezone: true }),
+  mode: text19("mode"),
+  status: text19("status"),
   locations: jsonb("locations").$type(),
   uris: jsonb("uris").$type(),
   media: jsonb("media").$type(),
-  kind: text21("kind"),
-  genre: text21("genre"),
-  tags: text21("tags").array(),
+  kind: text19("kind"),
+  genre: text19("genre"),
+  tags: text19("tags").array(),
   externalIds: jsonb("external_ids").$type(),
-  ticketsUrl: text21("tickets_url"),
-  imageUrl: text21("image_url"),
-  createdBy: text21("created_by").notNull().references(() => users_default.id),
-  sha256: text21("sha256"),
-  duplicateOf: text21("duplicate_of").references(() => events.id, {
+  ticketsUrl: text19("tickets_url"),
+  imageUrl: text19("image_url"),
+  createdBy: text19("created_by").notNull().references(() => users_default.id),
+  sha256: text19("sha256"),
+  duplicateOf: text19("duplicate_of").references(() => events.id, {
     onDelete: "set null"
   }),
-  createdAt: timestamp21("created_at", { withTimezone: true }),
-  xataCreatedAt: timestamp21("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp21("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp19("created_at", { withTimezone: true }),
+  xataCreatedAt: timestamp19("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp19("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer17("xata_version")
 }, (table) => [
   index16("events_starts_at_idx").on(table.startsAt),
@@ -583,17 +557,17 @@ var events = pgTable21("events", {
 var events_default = events;
 
 // ../apps/api/src/schema/event-artists.ts
-var eventArtists = pgTable22("event_artists", {
-  id: text22("xata_id").primaryKey().default(sql22`xata_id()`),
-  eventId: text22("event_id").notNull().references(() => events_default.id, { onDelete: "cascade" }),
-  artistId: text22("artist_id").notNull().references(() => artists_default.id),
-  name: text22("name").notNull(),
-  role: text22("role"),
-  stage: text22("stage"),
-  mbid: text22("mbid"),
-  startsAt: timestamp22("starts_at", { withTimezone: true }),
+var eventArtists = pgTable20("event_artists", {
+  id: text20("xata_id").primaryKey().default(sql20`xata_id()`),
+  eventId: text20("event_id").notNull().references(() => events_default.id, { onDelete: "cascade" }),
+  artistId: text20("artist_id").notNull().references(() => artists_default.id),
+  name: text20("name").notNull(),
+  role: text20("role"),
+  stage: text20("stage"),
+  mbid: text20("mbid"),
+  startsAt: timestamp20("starts_at", { withTimezone: true }),
   position: integer18("position").notNull().default(0),
-  createdAt: timestamp22("xata_createdat").defaultNow().notNull()
+  createdAt: timestamp20("xata_createdat").defaultNow().notNull()
 }, (table) => [
   uniqueIndex("event_artists_event_artist_idx").on(table.eventId, table.artistId),
   index17("event_artists_artist_id_idx").on(table.artistId)
@@ -601,196 +575,77 @@ var eventArtists = pgTable22("event_artists", {
 var event_artists_default = eventArtists;
 
 // ../apps/api/src/schema/event-rsvps.ts
-import { sql as sql23 } from "drizzle-orm";
+import { sql as sql21 } from "drizzle-orm";
 import {
   index as index18,
-  pgTable as pgTable23,
-  text as text23,
-  timestamp as timestamp23,
+  pgTable as pgTable21,
+  text as text21,
+  timestamp as timestamp21,
   uniqueIndex as uniqueIndex2
 } from "drizzle-orm/pg-core";
-var eventRsvps = pgTable23("event_rsvps", {
-  id: text23("xata_id").primaryKey().default(sql23`xata_id()`),
-  eventId: text23("event_id").notNull().references(() => events_default.id, { onDelete: "cascade" }),
-  userId: text23("user_id").notNull().references(() => users_default.id),
-  uri: text23("uri").unique().notNull(),
-  cid: text23("cid"),
-  status: text23("status").notNull(),
-  createdAt: timestamp23("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp23("xata_updatedat").defaultNow().notNull()
+var eventRsvps = pgTable21("event_rsvps", {
+  id: text21("xata_id").primaryKey().default(sql21`xata_id()`),
+  eventId: text21("event_id").notNull().references(() => events_default.id, { onDelete: "cascade" }),
+  userId: text21("user_id").notNull().references(() => users_default.id),
+  uri: text21("uri").unique().notNull(),
+  cid: text21("cid"),
+  status: text21("status").notNull(),
+  createdAt: timestamp21("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp21("xata_updatedat").defaultNow().notNull()
 }, (table) => [
   uniqueIndex2("event_rsvps_event_user_idx").on(table.eventId, table.userId),
   index18("event_rsvps_user_id_idx").on(table.userId)
 ]);
 var event_rsvps_default = eventRsvps;
 
-// ../apps/api/src/schema/dropbox-accounts.ts
-import { sql as sql24 } from "drizzle-orm";
-import { boolean as boolean3, pgTable as pgTable24, text as text24, timestamp as timestamp24 } from "drizzle-orm/pg-core";
-var dropboxAccounts = pgTable24("dropbox_accounts", {
-  id: text24("xata_id").primaryKey().default(sql24`xata_id()`),
-  email: text24("email").unique().notNull(),
-  isBetaUser: boolean3("is_beta_user").default(false).notNull(),
-  userId: text24("user_id").notNull().references(() => users_default.id),
-  xataVersion: text24("xata_version"),
-  createdAt: timestamp24("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp24("xata_updatedat").defaultNow().notNull()
-});
-var dropbox_accounts_default = dropboxAccounts;
-
-// ../apps/api/src/schema/dropbox-directories.ts
-import { sql as sql25 } from "drizzle-orm";
-import { pgTable as pgTable25, text as text25, timestamp as timestamp25 } from "drizzle-orm/pg-core";
-var dropboxDirectories = pgTable25("dropbox_directories", {
-  id: text25("xata_id").primaryKey().default(sql25`xata_id()`),
-  name: text25("name").notNull(),
-  path: text25("path").notNull(),
-  parentId: text25("parent_id").references(() => dropboxDirectories.id),
-  dropboxId: text25("dropbox_id").notNull(),
-  fileId: text25("file_id").notNull().unique(),
-  xataVersion: text25("xata_version"),
-  createdAt: timestamp25("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp25("xata_updatedat").defaultNow().notNull()
-});
-var dropbox_directories_default = dropboxDirectories;
-
-// ../apps/api/src/schema/dropbox-paths.ts
-import { sql as sql26 } from "drizzle-orm";
-import { pgTable as pgTable26, text as text26, timestamp as timestamp26 } from "drizzle-orm/pg-core";
-var dropboxPaths = pgTable26("dropbox_paths", {
-  id: text26("xata_id").primaryKey().default(sql26`xata_id()`),
-  path: text26("path").notNull(),
-  name: text26("name").notNull(),
-  dropboxId: text26("dropbox_id").notNull(),
-  trackId: text26("track_id").notNull(),
-  directoryId: text26("directory_id").references(() => dropbox_directories_default.id),
-  fileId: text26("file_id").notNull().unique(),
-  xataVersion: text26("xata_version"),
-  createdAt: timestamp26("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp26("xata_updatedat").defaultNow().notNull()
-});
-var dropbox_paths_default = dropboxPaths;
-
 // ../apps/api/src/schema/feeds.ts
-import { sql as sql27 } from "drizzle-orm";
-import { integer as integer19, pgTable as pgTable27, text as text27, timestamp as timestamp27 } from "drizzle-orm/pg-core";
-var feeds = pgTable27("feeds", {
-  id: text27("xata_id").primaryKey().default(sql27`xata_id()`),
-  displayName: text27("display_name").notNull(),
-  description: text27("description"),
-  did: text27("did").notNull(),
-  uri: text27("uri").notNull().unique(),
-  avatar: text27("avatar"),
-  userId: text27("user_id").notNull().references(() => users_default.id),
+import { sql as sql22 } from "drizzle-orm";
+import { integer as integer19, pgTable as pgTable22, text as text22, timestamp as timestamp22 } from "drizzle-orm/pg-core";
+var feeds = pgTable22("feeds", {
+  id: text22("xata_id").primaryKey().default(sql22`xata_id()`),
+  displayName: text22("display_name").notNull(),
+  description: text22("description"),
+  did: text22("did").notNull(),
+  uri: text22("uri").notNull().unique(),
+  avatar: text22("avatar"),
+  userId: text22("user_id").notNull().references(() => users_default.id),
   xataVersion: integer19("xata_version"),
-  createdAt: timestamp27("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp27("xata_updatedat").defaultNow().notNull()
+  createdAt: timestamp22("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp22("xata_updatedat").defaultNow().notNull()
 });
 var feeds_default = feeds;
 
 // ../apps/api/src/schema/follows.ts
-import { sql as sql28 } from "drizzle-orm";
+import { sql as sql23 } from "drizzle-orm";
 import {
   integer as integer20,
-  pgTable as pgTable28,
-  text as text28,
-  timestamp as timestamp28,
+  pgTable as pgTable23,
+  text as text23,
+  timestamp as timestamp23,
   uniqueIndex as uniqueIndex3
 } from "drizzle-orm/pg-core";
-var follows = pgTable28("follows", {
-  id: text28("xata_id").primaryKey().default(sql28`xata_id()`),
-  uri: text28("uri").notNull().unique(),
-  follower_did: text28("follower_did").notNull(),
-  subject_did: text28("subject_did").notNull(),
+var follows = pgTable23("follows", {
+  id: text23("xata_id").primaryKey().default(sql23`xata_id()`),
+  uri: text23("uri").notNull().unique(),
+  follower_did: text23("follower_did").notNull(),
+  subject_did: text23("subject_did").notNull(),
   xataVersion: integer20("xata_version"),
-  createdAt: timestamp28("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp28("xata_updatedat").defaultNow().notNull()
+  createdAt: timestamp23("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp23("xata_updatedat").defaultNow().notNull()
 }, (t) => [
   uniqueIndex3("follows_follower_subject_unique").on(t.follower_did, t.subject_did)
 ]);
 var follows_default = follows;
 
-// ../apps/api/src/schema/google-drive-accounts.ts
-import { sql as sql29 } from "drizzle-orm";
-import { boolean as boolean4, pgTable as pgTable29, text as text29, timestamp as timestamp29 } from "drizzle-orm/pg-core";
-var googleDriveAccounts = pgTable29("google_drive_accounts", {
-  id: text29("xata_id").primaryKey().default(sql29`xata_id()`),
-  email: text29("email").unique().notNull(),
-  isBetaUser: boolean4("is_beta_user").default(false).notNull(),
-  userId: text29("user_id").notNull().references(() => users_default.id),
-  xataVersion: text29("xata_version"),
-  createdAt: timestamp29("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp29("xata_updatedat").defaultNow().notNull()
-});
-var google_drive_accounts_default = googleDriveAccounts;
-
-// ../apps/api/src/schema/google-drive-directories.ts
-import { sql as sql30 } from "drizzle-orm";
-import { pgTable as pgTable30, text as text30, timestamp as timestamp30 } from "drizzle-orm/pg-core";
-var googleDriveDirectories = pgTable30("google_drive_directories", {
-  id: text30("xata_id").primaryKey().default(sql30`xata_id()`),
-  name: text30("name").notNull(),
-  path: text30("path").notNull(),
-  parentId: text30("parent_id").references(() => googleDriveDirectories.id),
-  googleDriveId: text30("google_drive_id").notNull(),
-  fileId: text30("file_id").notNull().unique(),
-  xataVersion: text30("xata_version"),
-  createdAt: timestamp30("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp30("xata_updatedat").defaultNow().notNull()
-});
-var google_drive_directories_default = googleDriveDirectories;
-
-// ../apps/api/src/schema/google-drive-paths.ts
-import { sql as sql31 } from "drizzle-orm";
-import { pgTable as pgTable31, text as text31, timestamp as timestamp31 } from "drizzle-orm/pg-core";
-var googleDrivePaths = pgTable31("google_drive_paths", {
-  id: text31("xata_id").primaryKey().default(sql31`xata_id()`),
-  googleDriveId: text31("google_drive_id").notNull(),
-  trackId: text31("track_id").notNull(),
-  name: text31("name").notNull(),
-  directoryId: text31("directory_id").references(() => google_drive_directories_default.id),
-  fileId: text31("file_id").notNull().unique(),
-  xataVersion: text31("xata_version"),
-  createdAt: timestamp31("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp31("xata_updatedat").defaultNow().notNull()
-});
-var google_drive_paths_default = googleDrivePaths;
-
-// ../apps/api/src/schema/googledrive.ts
-import { sql as sql33 } from "drizzle-orm";
-import { pgTable as pgTable33, text as text33, timestamp as timestamp33 } from "drizzle-orm/pg-core";
-
-// ../apps/api/src/schema/google-drive-tokens.ts
-import { sql as sql32 } from "drizzle-orm";
-import { pgTable as pgTable32, text as text32, timestamp as timestamp32 } from "drizzle-orm/pg-core";
-var googleDriveTokens = pgTable32("google_drive_tokens", {
-  id: text32("xata_id").primaryKey().default(sql32`xata_id()`),
-  refreshToken: text32("refresh_token").notNull(),
-  createdAt: timestamp32("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp32("xata_updatedat").defaultNow().notNull()
-});
-var google_drive_tokens_default = googleDriveTokens;
-
-// ../apps/api/src/schema/googledrive.ts
-var googleDrive = pgTable33("google_drive", {
-  id: text33("xata_id").primaryKey().default(sql33`xata_id()`),
-  googleDriveTokenId: text33("google_drive_token_id").notNull().references(() => google_drive_tokens_default.id),
-  userId: text33("user_id").notNull().references(() => users_default.id),
-  xataVersion: text33("xata_version"),
-  createdAt: timestamp33("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp33("xata_updatedat").defaultNow().notNull()
-});
-var googledrive_default = googleDrive;
-
 // ../apps/api/src/schema/loved-tracks.ts
-import { sql as sql34 } from "drizzle-orm";
-import { index as index19, pgTable as pgTable34, text as text34, timestamp as timestamp34 } from "drizzle-orm/pg-core";
-var lovedTracks = pgTable34("loved_tracks", {
-  id: text34("xata_id").primaryKey().default(sql34`xata_id()`),
-  userId: text34("user_id").notNull().references(() => users_default.id),
-  trackId: text34("track_id").notNull().references(() => tracks_default.id),
-  uri: text34("uri").unique(),
-  createdAt: timestamp34("xata_createdat").defaultNow().notNull()
+import { sql as sql24 } from "drizzle-orm";
+import { index as index19, pgTable as pgTable24, text as text24, timestamp as timestamp24 } from "drizzle-orm/pg-core";
+var lovedTracks = pgTable24("loved_tracks", {
+  id: text24("xata_id").primaryKey().default(sql24`xata_id()`),
+  userId: text24("user_id").notNull().references(() => users_default.id),
+  trackId: text24("track_id").notNull().references(() => tracks_default.id),
+  uri: text24("uri").unique(),
+  createdAt: timestamp24("xata_createdat").defaultNow().notNull()
 }, (t) => [
   index19("loved_tracks_track_id_idx").on(t.trackId),
   index19("loved_tracks_user_id_idx").on(t.userId)
@@ -798,28 +653,28 @@ var lovedTracks = pgTable34("loved_tracks", {
 var loved_tracks_default = lovedTracks;
 
 // ../apps/api/src/schema/mirror-sources.ts
-import { sql as sql35 } from "drizzle-orm";
+import { sql as sql25 } from "drizzle-orm";
 import {
-  boolean as boolean5,
+  boolean as boolean3,
   index as index20,
   integer as integer21,
-  pgTable as pgTable35,
-  text as text35,
-  timestamp as timestamp35,
+  pgTable as pgTable25,
+  text as text25,
+  timestamp as timestamp25,
   uniqueIndex as uniqueIndex4
 } from "drizzle-orm/pg-core";
-var mirrorSources = pgTable35("mirror_sources", {
-  id: text35("xata_id").primaryKey().default(sql35`xata_id()`),
-  userId: text35("user_id").notNull().references(() => users_default.id),
-  provider: text35("provider").notNull(),
-  enabled: boolean5("enabled").notNull().default(false),
-  pushEnabled: boolean5("push_enabled"),
-  externalUsername: text35("external_username"),
-  encryptedApiKey: text35("encrypted_api_key"),
-  lastPolledAt: timestamp35("last_polled_at"),
-  lastScrobbleSeenAt: timestamp35("last_scrobble_seen_at"),
-  createdAt: timestamp35("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp35("xata_updatedat").defaultNow().notNull(),
+var mirrorSources = pgTable25("mirror_sources", {
+  id: text25("xata_id").primaryKey().default(sql25`xata_id()`),
+  userId: text25("user_id").notNull().references(() => users_default.id),
+  provider: text25("provider").notNull(),
+  enabled: boolean3("enabled").notNull().default(false),
+  pushEnabled: boolean3("push_enabled"),
+  externalUsername: text25("external_username"),
+  encryptedApiKey: text25("encrypted_api_key"),
+  lastPolledAt: timestamp25("last_polled_at"),
+  lastScrobbleSeenAt: timestamp25("last_scrobble_seen_at"),
+  createdAt: timestamp25("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp25("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer21("xata_version")
 }, (t) => [
   uniqueIndex4("mirror_sources_user_provider_idx").on(t.userId, t.provider),
@@ -828,61 +683,61 @@ var mirrorSources = pgTable35("mirror_sources", {
 var mirror_sources_default = mirrorSources;
 
 // ../apps/api/src/schema/navidrome-playlist-tracks.ts
-import { sql as sql37 } from "drizzle-orm";
-import { pgTable as pgTable37, text as text37, timestamp as timestamp37 } from "drizzle-orm/pg-core";
+import { sql as sql27 } from "drizzle-orm";
+import { pgTable as pgTable27, text as text27, timestamp as timestamp27 } from "drizzle-orm/pg-core";
 
 // ../apps/api/src/schema/navidrome-playlists.ts
-import { sql as sql36 } from "drizzle-orm";
-import { pgTable as pgTable36, text as text36, timestamp as timestamp36 } from "drizzle-orm/pg-core";
-var navidromePlaylists = pgTable36("navidrome_playlists", {
-  id: text36("xata_id").primaryKey().default(sql36`xata_id()`),
-  name: text36("name").notNull(),
-  description: text36("description"),
-  uri: text36("uri").unique(),
-  userId: text36("user_id").notNull().references(() => users_default.id),
-  createdAt: timestamp36("xata_createdat", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp36("xata_updatedat", { withTimezone: true }).defaultNow().notNull()
+import { sql as sql26 } from "drizzle-orm";
+import { pgTable as pgTable26, text as text26, timestamp as timestamp26 } from "drizzle-orm/pg-core";
+var navidromePlaylists = pgTable26("navidrome_playlists", {
+  id: text26("xata_id").primaryKey().default(sql26`xata_id()`),
+  name: text26("name").notNull(),
+  description: text26("description"),
+  uri: text26("uri").unique(),
+  userId: text26("user_id").notNull().references(() => users_default.id),
+  createdAt: timestamp26("xata_createdat", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp26("xata_updatedat", { withTimezone: true }).defaultNow().notNull()
 });
 var navidrome_playlists_default = navidromePlaylists;
 
 // ../apps/api/src/schema/navidrome-playlist-tracks.ts
-var navidromePlaylistTracks = pgTable37("navidrome_playlist_tracks", {
-  id: text37("xata_id").primaryKey().default(sql37`xata_id()`),
-  playlistId: text37("playlist_id").notNull().references(() => navidrome_playlists_default.id),
-  trackId: text37("track_id").notNull().references(() => tracks_default.id),
-  createdAt: timestamp37("xata_createdat", { withTimezone: true }).defaultNow().notNull()
+var navidromePlaylistTracks = pgTable27("navidrome_playlist_tracks", {
+  id: text27("xata_id").primaryKey().default(sql27`xata_id()`),
+  playlistId: text27("playlist_id").notNull().references(() => navidrome_playlists_default.id),
+  trackId: text27("track_id").notNull().references(() => tracks_default.id),
+  createdAt: timestamp27("xata_createdat", { withTimezone: true }).defaultNow().notNull()
 });
 var navidrome_playlist_tracks_default = navidromePlaylistTracks;
 
 // ../apps/api/src/schema/notifications.ts
-import { sql as sql40 } from "drizzle-orm";
-import { boolean as boolean6, index as index22, pgTable as pgTable40, text as text40, timestamp as timestamp40 } from "drizzle-orm/pg-core";
+import { sql as sql30 } from "drizzle-orm";
+import { boolean as boolean4, index as index22, pgTable as pgTable30, text as text30, timestamp as timestamp30 } from "drizzle-orm/pg-core";
 
 // ../apps/api/src/schema/shouts.ts
-import { sql as sql39 } from "drizzle-orm";
-import { integer as integer23, jsonb as jsonb2, pgTable as pgTable39, text as text39, timestamp as timestamp39 } from "drizzle-orm/pg-core";
+import { sql as sql29 } from "drizzle-orm";
+import { integer as integer23, jsonb as jsonb2, pgTable as pgTable29, text as text29, timestamp as timestamp29 } from "drizzle-orm/pg-core";
 
 // ../apps/api/src/schema/scrobbles.ts
-import { sql as sql38 } from "drizzle-orm";
+import { sql as sql28 } from "drizzle-orm";
 import {
   index as index21,
   integer as integer22,
-  pgTable as pgTable38,
-  text as text38,
-  timestamp as timestamp38,
+  pgTable as pgTable28,
+  text as text28,
+  timestamp as timestamp28,
   unique as unique9
 } from "drizzle-orm/pg-core";
-var scrobbles = pgTable38("scrobbles", {
-  id: text38("xata_id").primaryKey().default(sql38`xata_id()`),
-  userId: text38("user_id").references(() => users_default.id),
-  trackId: text38("track_id").references(() => tracks_default.id),
-  albumId: text38("album_id").references(() => albums_default.id),
-  artistId: text38("artist_id").references(() => artists_default.id),
-  uri: text38("uri").unique(),
-  createdAt: timestamp38("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp38("xata_updatedat").defaultNow().notNull(),
+var scrobbles = pgTable28("scrobbles", {
+  id: text28("xata_id").primaryKey().default(sql28`xata_id()`),
+  userId: text28("user_id").references(() => users_default.id),
+  trackId: text28("track_id").references(() => tracks_default.id),
+  albumId: text28("album_id").references(() => albums_default.id),
+  artistId: text28("artist_id").references(() => artists_default.id),
+  uri: text28("uri").unique(),
+  createdAt: timestamp28("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp28("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer22("xata_version"),
-  timestamp: timestamp38("timestamp").defaultNow().notNull()
+  timestamp: timestamp28("timestamp").defaultNow().notNull()
 }, (t) => [
   index21("scrobbles_user_id_timestamp_idx").on(t.userId, t.timestamp),
   index21("scrobbles_wrapped_idx").on(t.userId, t.timestamp, t.artistId, t.albumId, t.trackId),
@@ -900,38 +755,38 @@ var scrobbles = pgTable38("scrobbles", {
 var scrobbles_default = scrobbles;
 
 // ../apps/api/src/schema/shouts.ts
-var shouts = pgTable39("shouts", {
-  id: text39("xata_id").primaryKey().default(sql39`xata_id()`),
-  content: text39("content").notNull(),
-  trackId: text39("track_id").references(() => tracks_default.id),
-  artistId: text39("artist_id").references(() => users_default.id),
-  albumId: text39("album_id").references(() => albums_default.id),
-  scrobbleId: text39("scrobble_id").references(() => scrobbles_default.id),
-  uri: text39("uri").unique().notNull(),
-  authorId: text39("author_id").references(() => users_default.id).notNull(),
-  parentId: text39("parent_id").references(() => shouts.id),
-  gifUrl: text39("gif_url"),
-  gifPreviewUrl: text39("gif_preview_url"),
-  gifAlt: text39("gif_alt"),
+var shouts = pgTable29("shouts", {
+  id: text29("xata_id").primaryKey().default(sql29`xata_id()`),
+  content: text29("content").notNull(),
+  trackId: text29("track_id").references(() => tracks_default.id),
+  artistId: text29("artist_id").references(() => users_default.id),
+  albumId: text29("album_id").references(() => albums_default.id),
+  scrobbleId: text29("scrobble_id").references(() => scrobbles_default.id),
+  uri: text29("uri").unique().notNull(),
+  authorId: text29("author_id").references(() => users_default.id).notNull(),
+  parentId: text29("parent_id").references(() => shouts.id),
+  gifUrl: text29("gif_url"),
+  gifPreviewUrl: text29("gif_preview_url"),
+  gifAlt: text29("gif_alt"),
   gifWidth: integer23("gif_width"),
   gifHeight: integer23("gif_height"),
   facets: jsonb2("facets").$type(),
-  createdAt: timestamp39("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp39("xata_updatedat").defaultNow().notNull()
+  createdAt: timestamp29("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp29("xata_updatedat").defaultNow().notNull()
 });
 var shouts_default = shouts;
 
 // ../apps/api/src/schema/notifications.ts
-var notifications = pgTable40("notifications", {
-  id: text40("xata_id").primaryKey().default(sql40`xata_id()`),
-  userId: text40("user_id").notNull().references(() => users_default.id),
-  actorId: text40("actor_id").notNull().references(() => users_default.id),
-  type: text40("type").notNull(),
-  shoutId: text40("shout_id").references(() => shouts_default.id),
-  subjectUri: text40("subject_uri"),
-  read: boolean6("read").notNull().default(false),
-  readAt: timestamp40("read_at", { withTimezone: true }),
-  createdAt: timestamp40("xata_createdat").defaultNow().notNull()
+var notifications = pgTable30("notifications", {
+  id: text30("xata_id").primaryKey().default(sql30`xata_id()`),
+  userId: text30("user_id").notNull().references(() => users_default.id),
+  actorId: text30("actor_id").notNull().references(() => users_default.id),
+  type: text30("type").notNull(),
+  shoutId: text30("shout_id").references(() => shouts_default.id),
+  subjectUri: text30("subject_uri"),
+  read: boolean4("read").notNull().default(false),
+  readAt: timestamp30("read_at", { withTimezone: true }),
+  createdAt: timestamp30("xata_createdat").defaultNow().notNull()
 }, (t) => [
   index22("notifications_user_id_read_idx").on(t.userId, t.read),
   index22("notifications_user_id_createdat_idx").on(t.userId, t.createdAt)
@@ -939,39 +794,39 @@ var notifications = pgTable40("notifications", {
 var notifications_default = notifications;
 
 // ../apps/api/src/schema/playlist-tracks.ts
-import { sql as sql42 } from "drizzle-orm";
-import { index as index23, pgTable as pgTable42, text as text42, timestamp as timestamp42 } from "drizzle-orm/pg-core";
+import { sql as sql32 } from "drizzle-orm";
+import { index as index23, pgTable as pgTable32, text as text32, timestamp as timestamp32 } from "drizzle-orm/pg-core";
 
 // ../apps/api/src/schema/playlists.ts
-import { sql as sql41 } from "drizzle-orm";
-import { pgTable as pgTable41, text as text41, timestamp as timestamp41 } from "drizzle-orm/pg-core";
-var playlists = pgTable41("playlists", {
-  id: text41("xata_id").primaryKey().default(sql41`xata_id()`),
-  name: text41("name").notNull(),
-  picture: text41("picture"),
-  description: text41("description"),
-  uri: text41("uri").unique(),
-  cid: text41("cid"),
-  collaborators: text41("collaborators").array(),
-  spotifyLink: text41("spotify_link"),
-  tidalLink: text41("tidal_link"),
-  appleMusicLink: text41("apple_music_link"),
-  createdBy: text41("created_by").notNull().references(() => users_default.id),
-  createdAt: timestamp41("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp41("xata_updatedat").defaultNow().notNull()
+import { sql as sql31 } from "drizzle-orm";
+import { pgTable as pgTable31, text as text31, timestamp as timestamp31 } from "drizzle-orm/pg-core";
+var playlists = pgTable31("playlists", {
+  id: text31("xata_id").primaryKey().default(sql31`xata_id()`),
+  name: text31("name").notNull(),
+  picture: text31("picture"),
+  description: text31("description"),
+  uri: text31("uri").unique(),
+  cid: text31("cid"),
+  collaborators: text31("collaborators").array(),
+  spotifyLink: text31("spotify_link"),
+  tidalLink: text31("tidal_link"),
+  appleMusicLink: text31("apple_music_link"),
+  createdBy: text31("created_by").notNull().references(() => users_default.id),
+  createdAt: timestamp31("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp31("xata_updatedat").defaultNow().notNull()
 });
 var playlists_default = playlists;
 
 // ../apps/api/src/schema/playlist-tracks.ts
-var playlistTracks = pgTable42("playlist_tracks", {
-  id: text42("xata_id").primaryKey().default(sql42`xata_id()`),
-  playlistId: text42("playlist_id").notNull().references(() => playlists_default.id),
-  trackId: text42("track_id").notNull().references(() => tracks_default.id),
-  uri: text42("uri").unique(),
-  cid: text42("cid"),
-  addedBy: text42("added_by").references(() => users_default.id),
-  addedAt: timestamp42("added_at", { withTimezone: true }),
-  createdAt: timestamp42("xata_createdat").defaultNow().notNull()
+var playlistTracks = pgTable32("playlist_tracks", {
+  id: text32("xata_id").primaryKey().default(sql32`xata_id()`),
+  playlistId: text32("playlist_id").notNull().references(() => playlists_default.id),
+  trackId: text32("track_id").notNull().references(() => tracks_default.id),
+  uri: text32("uri").unique(),
+  cid: text32("cid"),
+  addedBy: text32("added_by").references(() => users_default.id),
+  addedAt: timestamp32("added_at", { withTimezone: true }),
+  createdAt: timestamp32("xata_createdat").defaultNow().notNull()
 }, (table) => [
   index23("playlist_tracks_track_playlist_idx").on(table.trackId, table.playlistId),
   index23("playlist_tracks_playlist_id_added_at_idx").on(table.playlistId, table.addedAt)
@@ -979,130 +834,130 @@ var playlistTracks = pgTable42("playlist_tracks", {
 var playlist_tracks_default = playlistTracks;
 
 // ../apps/api/src/schema/profile-shouts.ts
-import { sql as sql43 } from "drizzle-orm";
-import { pgTable as pgTable43, text as text43, timestamp as timestamp43 } from "drizzle-orm/pg-core";
-var profileShouts = pgTable43("profile_shouts", {
-  id: text43("xata_id").primaryKey().default(sql43`xata_id()`),
-  userId: text43("user_id").notNull().references(() => users_default.id),
-  shoutId: text43("shout_id").notNull().references(() => shouts_default.id),
-  createdAt: timestamp43("xata_createdat").defaultNow().notNull()
+import { sql as sql33 } from "drizzle-orm";
+import { pgTable as pgTable33, text as text33, timestamp as timestamp33 } from "drizzle-orm/pg-core";
+var profileShouts = pgTable33("profile_shouts", {
+  id: text33("xata_id").primaryKey().default(sql33`xata_id()`),
+  userId: text33("user_id").notNull().references(() => users_default.id),
+  shoutId: text33("shout_id").notNull().references(() => shouts_default.id),
+  createdAt: timestamp33("xata_createdat").defaultNow().notNull()
 });
 var profile_shouts_default = profileShouts;
 
 // ../apps/api/src/schema/queue-tracks.ts
-import { sql as sql44 } from "drizzle-orm";
-import { integer as integer24, pgTable as pgTable44, text as text44, timestamp as timestamp44 } from "drizzle-orm/pg-core";
-var queueTracks = pgTable44("queue_tracks", {
-  id: text44("xata_id").primaryKey().default(sql44`xata_id()`),
-  userId: text44("user_id").notNull().references(() => users_default.id),
-  trackId: text44("track_id").notNull().references(() => tracks_default.id),
+import { sql as sql34 } from "drizzle-orm";
+import { integer as integer24, pgTable as pgTable34, text as text34, timestamp as timestamp34 } from "drizzle-orm/pg-core";
+var queueTracks = pgTable34("queue_tracks", {
+  id: text34("xata_id").primaryKey().default(sql34`xata_id()`),
+  userId: text34("user_id").notNull().references(() => users_default.id),
+  trackId: text34("track_id").notNull().references(() => tracks_default.id),
   position: integer24("position").notNull(),
-  fileUri: text44("file_uri").notNull(),
+  fileUri: text34("file_uri").notNull(),
   version: integer24("xata_version").default(0).notNull(),
-  createdAt: timestamp44("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp44("xata_updatedat").defaultNow().notNull()
+  createdAt: timestamp34("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp34("xata_updatedat").defaultNow().notNull()
 });
 var queue_tracks_default = queueTracks;
 
 // ../apps/api/src/schema/shout-likes.ts
-import { sql as sql45 } from "drizzle-orm";
-import { pgTable as pgTable45, text as text45, timestamp as timestamp45 } from "drizzle-orm/pg-core";
-var shoutLikes = pgTable45("shout_likes", {
-  id: text45("xata_id").primaryKey().default(sql45`xata_id()`),
-  userId: text45("user_id").notNull().references(() => users_default.id),
-  shoutId: text45("shout_id").notNull().references(() => shouts_default.id),
-  createdAt: timestamp45("xata_createdat").defaultNow().notNull(),
-  uri: text45("uri").unique().notNull()
+import { sql as sql35 } from "drizzle-orm";
+import { pgTable as pgTable35, text as text35, timestamp as timestamp35 } from "drizzle-orm/pg-core";
+var shoutLikes = pgTable35("shout_likes", {
+  id: text35("xata_id").primaryKey().default(sql35`xata_id()`),
+  userId: text35("user_id").notNull().references(() => users_default.id),
+  shoutId: text35("shout_id").notNull().references(() => shouts_default.id),
+  createdAt: timestamp35("xata_createdat").defaultNow().notNull(),
+  uri: text35("uri").unique().notNull()
 });
 var shout_likes_default = shoutLikes;
 
 // ../apps/api/src/schema/shout-reports.ts
-import { sql as sql46 } from "drizzle-orm";
-import { pgTable as pgTable46, text as text46, timestamp as timestamp46 } from "drizzle-orm/pg-core";
-var shoutReports = pgTable46("shout_reports", {
-  id: text46("xata_id").primaryKey().default(sql46`xata_id()`),
-  userId: text46("user_id").notNull().references(() => users_default.id),
-  shoutId: text46("shout_id").notNull().references(() => shouts_default.id),
-  createdAt: timestamp46("xata_createdat").defaultNow().notNull()
+import { sql as sql36 } from "drizzle-orm";
+import { pgTable as pgTable36, text as text36, timestamp as timestamp36 } from "drizzle-orm/pg-core";
+var shoutReports = pgTable36("shout_reports", {
+  id: text36("xata_id").primaryKey().default(sql36`xata_id()`),
+  userId: text36("user_id").notNull().references(() => users_default.id),
+  shoutId: text36("shout_id").notNull().references(() => shouts_default.id),
+  createdAt: timestamp36("xata_createdat").defaultNow().notNull()
 });
 var shout_reports_default = shoutReports;
 
 // ../apps/api/src/schema/spotify-accounts.ts
-import { sql as sql47 } from "drizzle-orm";
+import { sql as sql37 } from "drizzle-orm";
 import {
-  boolean as boolean7,
+  boolean as boolean5,
   integer as integer25,
-  pgTable as pgTable47,
-  text as text47,
-  timestamp as timestamp47
+  pgTable as pgTable37,
+  text as text37,
+  timestamp as timestamp37
 } from "drizzle-orm/pg-core";
-var spotifyAccounts = pgTable47("spotify_accounts", {
-  id: text47("xata_id").primaryKey().default(sql47`xata_id()`),
+var spotifyAccounts = pgTable37("spotify_accounts", {
+  id: text37("xata_id").primaryKey().default(sql37`xata_id()`),
   xataVersion: integer25("xata_version"),
-  email: text47("email").notNull(),
-  userId: text47("user_id").notNull().references(() => users_default.id),
-  isBetaUser: boolean7("is_beta_user").default(false).notNull(),
-  spotifyAppId: text47("spotify_app_id"),
-  createdAt: timestamp47("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp47("xata_updatedat").defaultNow().notNull()
+  email: text37("email").notNull(),
+  userId: text37("user_id").notNull().references(() => users_default.id),
+  isBetaUser: boolean5("is_beta_user").default(false).notNull(),
+  spotifyAppId: text37("spotify_app_id"),
+  createdAt: timestamp37("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp37("xata_updatedat").defaultNow().notNull()
 });
 var spotify_accounts_default = spotifyAccounts;
 
 // ../apps/api/src/schema/spotify-apps.ts
-import { sql as sql48 } from "drizzle-orm";
-import { integer as integer26, pgTable as pgTable48, text as text48, timestamp as timestamp48 } from "drizzle-orm/pg-core";
-var spotifyApps = pgTable48("spotify_apps", {
-  id: text48("xata_id").primaryKey().default(sql48`xata_id()`),
+import { sql as sql38 } from "drizzle-orm";
+import { integer as integer26, pgTable as pgTable38, text as text38, timestamp as timestamp38 } from "drizzle-orm/pg-core";
+var spotifyApps = pgTable38("spotify_apps", {
+  id: text38("xata_id").primaryKey().default(sql38`xata_id()`),
   xataVersion: integer26("xata_version"),
-  spotifyAppId: text48("spotify_app_id").unique().notNull(),
-  spotifySecret: text48("spotify_secret").notNull(),
-  createdAt: timestamp48("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp48("xata_updatedat").defaultNow().notNull()
+  spotifyAppId: text38("spotify_app_id").unique().notNull(),
+  spotifySecret: text38("spotify_secret").notNull(),
+  createdAt: timestamp38("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp38("xata_updatedat").defaultNow().notNull()
 });
 var spotify_apps_default = spotifyApps;
 
 // ../apps/api/src/schema/spotify-tokens.ts
-import { sql as sql49 } from "drizzle-orm";
-import { integer as integer27, pgTable as pgTable49, text as text49, timestamp as timestamp49 } from "drizzle-orm/pg-core";
-var spotifyTokens = pgTable49("spotify_tokens", {
-  id: text49("xata_id").primaryKey().default(sql49`xata_id()`),
+import { sql as sql39 } from "drizzle-orm";
+import { integer as integer27, pgTable as pgTable39, text as text39, timestamp as timestamp39 } from "drizzle-orm/pg-core";
+var spotifyTokens = pgTable39("spotify_tokens", {
+  id: text39("xata_id").primaryKey().default(sql39`xata_id()`),
   xataVersion: integer27("xata_version"),
-  accessToken: text49("access_token").notNull(),
-  refreshToken: text49("refresh_token").notNull(),
-  userId: text49("user_id").notNull().references(() => users_default.id),
-  spotifyAppId: text49("spotify_app_id").notNull(),
-  createdAt: timestamp49("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp49("xata_updatedat").defaultNow().notNull()
+  accessToken: text39("access_token").notNull(),
+  refreshToken: text39("refresh_token").notNull(),
+  userId: text39("user_id").notNull().references(() => users_default.id),
+  spotifyAppId: text39("spotify_app_id").notNull(),
+  createdAt: timestamp39("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp39("xata_updatedat").defaultNow().notNull()
 });
 var spotify_tokens_default = spotifyTokens;
 
 // ../apps/api/src/schema/user-albums.ts
-import { sql as sql50 } from "drizzle-orm";
-import { index as index24, integer as integer28, pgTable as pgTable50, text as text50, timestamp as timestamp50 } from "drizzle-orm/pg-core";
-var userAlbums = pgTable50("user_albums", {
-  id: text50("xata_id").primaryKey().default(sql50`xata_id()`),
-  userId: text50("user_id").notNull().references(() => users_default.id),
-  albumId: text50("album_id").notNull().references(() => albums_default.id),
-  createdAt: timestamp50("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp50("xata_updatedat").defaultNow().notNull(),
+import { sql as sql40 } from "drizzle-orm";
+import { index as index24, integer as integer28, pgTable as pgTable40, text as text40, timestamp as timestamp40 } from "drizzle-orm/pg-core";
+var userAlbums = pgTable40("user_albums", {
+  id: text40("xata_id").primaryKey().default(sql40`xata_id()`),
+  userId: text40("user_id").notNull().references(() => users_default.id),
+  albumId: text40("album_id").notNull().references(() => albums_default.id),
+  createdAt: timestamp40("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp40("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer28("xata_version"),
   scrobbles: integer28("scrobbles"),
-  uri: text50("uri").unique()
+  uri: text40("uri").unique()
 }, (t) => [index24("user_albums_user_id_idx").on(t.userId)]);
 var user_albums_default = userAlbums;
 
 // ../apps/api/src/schema/user-artists.ts
-import { sql as sql51 } from "drizzle-orm";
-import { index as index25, integer as integer29, pgTable as pgTable51, text as text51, timestamp as timestamp51 } from "drizzle-orm/pg-core";
-var userArtists = pgTable51("user_artists", {
-  id: text51("xata_id").primaryKey().default(sql51`xata_id()`),
-  userId: text51("user_id").notNull().references(() => users_default.id),
-  artistId: text51("artist_id").notNull().references(() => artists_default.id),
-  createdAt: timestamp51("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp51("xata_updatedat").defaultNow().notNull(),
+import { sql as sql41 } from "drizzle-orm";
+import { index as index25, integer as integer29, pgTable as pgTable41, text as text41, timestamp as timestamp41 } from "drizzle-orm/pg-core";
+var userArtists = pgTable41("user_artists", {
+  id: text41("xata_id").primaryKey().default(sql41`xata_id()`),
+  userId: text41("user_id").notNull().references(() => users_default.id),
+  artistId: text41("artist_id").notNull().references(() => artists_default.id),
+  createdAt: timestamp41("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp41("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer29("xata_version"),
   scrobbles: integer29("scrobbles"),
-  uri: text51("uri").unique()
+  uri: text41("uri").unique()
 }, (t) => [
   index25("user_artists_user_id_idx").on(t.userId),
   index25("user_artists_artist_id_idx").on(t.artistId)
@@ -1110,68 +965,68 @@ var userArtists = pgTable51("user_artists", {
 var user_artists_default = userArtists;
 
 // ../apps/api/src/schema/user-playlists.ts
-import { sql as sql52 } from "drizzle-orm";
-import { pgTable as pgTable52, text as text52, timestamp as timestamp52 } from "drizzle-orm/pg-core";
-var userPlaylists = pgTable52("user_playlists", {
-  id: text52("xata_id").primaryKey().default(sql52`xata_id()`),
-  userId: text52("user_id").notNull().references(() => users_default.id),
-  playlistId: text52("playlist_id").notNull().references(() => playlists_default.id),
-  createdAt: timestamp52("xata_createdat").defaultNow().notNull(),
-  uri: text52("uri").unique()
+import { sql as sql42 } from "drizzle-orm";
+import { pgTable as pgTable42, text as text42, timestamp as timestamp42 } from "drizzle-orm/pg-core";
+var userPlaylists = pgTable42("user_playlists", {
+  id: text42("xata_id").primaryKey().default(sql42`xata_id()`),
+  userId: text42("user_id").notNull().references(() => users_default.id),
+  playlistId: text42("playlist_id").notNull().references(() => playlists_default.id),
+  createdAt: timestamp42("xata_createdat").defaultNow().notNull(),
+  uri: text42("uri").unique()
 });
 var user_playlists_default = userPlaylists;
 
 // ../apps/api/src/schema/user-tracks.ts
-import { sql as sql53 } from "drizzle-orm";
-import { index as index26, integer as integer30, pgTable as pgTable53, text as text53, timestamp as timestamp53 } from "drizzle-orm/pg-core";
-var userTracks = pgTable53("user_tracks", {
-  id: text53("xata_id").primaryKey().default(sql53`xata_id()`),
-  userId: text53("user_id").notNull().references(() => users_default.id),
-  trackId: text53("track_id").notNull().references(() => tracks_default.id),
-  createdAt: timestamp53("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp53("xata_updatedat").defaultNow().notNull(),
+import { sql as sql43 } from "drizzle-orm";
+import { index as index26, integer as integer30, pgTable as pgTable43, text as text43, timestamp as timestamp43 } from "drizzle-orm/pg-core";
+var userTracks = pgTable43("user_tracks", {
+  id: text43("xata_id").primaryKey().default(sql43`xata_id()`),
+  userId: text43("user_id").notNull().references(() => users_default.id),
+  trackId: text43("track_id").notNull().references(() => tracks_default.id),
+  createdAt: timestamp43("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp43("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer30("xata_version"),
-  uri: text53("uri").unique(),
+  uri: text43("uri").unique(),
   scrobbles: integer30("scrobbles")
 }, (t) => [index26("user_tracks_user_id_idx").on(t.userId)]);
 var user_tracks_default = userTracks;
 
 // ../apps/api/src/schema/user-storage-providers.ts
-import { sql as sql54 } from "drizzle-orm";
-import { index as index27, integer as integer31, pgTable as pgTable54, text as text54, timestamp as timestamp54 } from "drizzle-orm/pg-core";
-var userStorageProviders = pgTable54("user_storage_providers", {
-  id: text54("xata_id").primaryKey().default(sql54`xata_id()`),
-  userId: text54("user_id").notNull().references(() => users_default.id),
-  label: text54("label").notNull(),
-  endpoint: text54("endpoint").notNull(),
-  region: text54("region").notNull().default("auto"),
-  bucket: text54("bucket").notNull(),
-  accessKey: text54("access_key").notNull(),
-  secretKey: text54("secret_key").notNull(),
-  publicUrl: text54("public_url"),
-  verifiedAt: timestamp54("verified_at"),
-  createdAt: timestamp54("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp54("xata_updatedat").defaultNow().notNull(),
+import { sql as sql44 } from "drizzle-orm";
+import { index as index27, integer as integer31, pgTable as pgTable44, text as text44, timestamp as timestamp44 } from "drizzle-orm/pg-core";
+var userStorageProviders = pgTable44("user_storage_providers", {
+  id: text44("xata_id").primaryKey().default(sql44`xata_id()`),
+  userId: text44("user_id").notNull().references(() => users_default.id),
+  label: text44("label").notNull(),
+  endpoint: text44("endpoint").notNull(),
+  region: text44("region").notNull().default("auto"),
+  bucket: text44("bucket").notNull(),
+  accessKey: text44("access_key").notNull(),
+  secretKey: text44("secret_key").notNull(),
+  publicUrl: text44("public_url"),
+  verifiedAt: timestamp44("verified_at"),
+  createdAt: timestamp44("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp44("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer31("xata_version")
 }, (t) => [index27("user_storage_providers_user_id_idx").on(t.userId)]);
 var user_storage_providers_default = userStorageProviders;
 
 // ../apps/api/src/schema/user-uploads.ts
-import { sql as sql55 } from "drizzle-orm";
-import { index as index28, integer as integer32, pgTable as pgTable55, text as text55, timestamp as timestamp55 } from "drizzle-orm/pg-core";
-var userUploads = pgTable55("user_uploads", {
-  id: text55("xata_id").primaryKey().default(sql55`xata_id()`),
-  userId: text55("user_id").notNull().references(() => users_default.id),
-  trackId: text55("track_id").notNull().references(() => tracks_default.id),
-  r2Key: text55("r2_key").notNull(),
-  mimeType: text55("mime_type").notNull(),
+import { sql as sql45 } from "drizzle-orm";
+import { index as index28, integer as integer32, pgTable as pgTable45, text as text45, timestamp as timestamp45 } from "drizzle-orm/pg-core";
+var userUploads = pgTable45("user_uploads", {
+  id: text45("xata_id").primaryKey().default(sql45`xata_id()`),
+  userId: text45("user_id").notNull().references(() => users_default.id),
+  trackId: text45("track_id").notNull().references(() => tracks_default.id),
+  r2Key: text45("r2_key").notNull(),
+  mimeType: text45("mime_type").notNull(),
   fileSize: integer32("file_size").notNull(),
-  originalFilename: text55("original_filename").notNull(),
+  originalFilename: text45("original_filename").notNull(),
   sampleRate: integer32("sample_rate"),
-  storageProviderId: text55("storage_provider_id").references(() => user_storage_providers_default.id),
-  uploadedAt: timestamp55("uploaded_at").defaultNow().notNull(),
-  createdAt: timestamp55("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp55("xata_updatedat").defaultNow().notNull(),
+  storageProviderId: text45("storage_provider_id").references(() => user_storage_providers_default.id),
+  uploadedAt: timestamp45("uploaded_at").defaultNow().notNull(),
+  createdAt: timestamp45("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp45("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer32("xata_version")
 }, (t) => [
   index28("user_uploads_user_id_idx").on(t.userId),
@@ -1181,31 +1036,31 @@ var userUploads = pgTable55("user_uploads", {
 var user_uploads_default = userUploads;
 
 // ../apps/api/src/schema/upload-queue-state.ts
-import { sql as sql56 } from "drizzle-orm";
-import { integer as integer33, pgTable as pgTable56, text as text56, timestamp as timestamp56 } from "drizzle-orm/pg-core";
-var uploadQueueState = pgTable56("upload_queue_state", {
-  id: text56("xata_id").primaryKey().default(sql56`xata_id()`),
-  userId: text56("user_id").notNull().unique().references(() => users_default.id),
-  uploadIds: text56("upload_ids").notNull().default("[]"),
+import { sql as sql46 } from "drizzle-orm";
+import { integer as integer33, pgTable as pgTable46, text as text46, timestamp as timestamp46 } from "drizzle-orm/pg-core";
+var uploadQueueState = pgTable46("upload_queue_state", {
+  id: text46("xata_id").primaryKey().default(sql46`xata_id()`),
+  userId: text46("user_id").notNull().unique().references(() => users_default.id),
+  uploadIds: text46("upload_ids").notNull().default("[]"),
   currentIndex: integer33("current_index").notNull().default(0),
-  createdAt: timestamp56("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp56("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp46("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp46("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer33("xata_version")
 });
 var upload_queue_state_default = uploadQueueState;
 
 // ../apps/api/src/schema/webscrobblers.ts
-import { sql as sql57 } from "drizzle-orm";
-import { boolean as boolean8, pgTable as pgTable57, text as text57, timestamp as timestamp57 } from "drizzle-orm/pg-core";
-var webscrobblers = pgTable57("webscrobblers", {
-  id: text57("xata_id").primaryKey().default(sql57`xata_id()`),
-  name: text57("name").notNull(),
-  uuid: text57("uuid").notNull(),
-  description: text57("description"),
-  enabled: boolean8("enabled").default(true).notNull(),
-  userId: text57("user_id").notNull().references(() => users_default.id),
-  createdAt: timestamp57("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp57("xata_updatedat").defaultNow().notNull()
+import { sql as sql47 } from "drizzle-orm";
+import { boolean as boolean6, pgTable as pgTable47, text as text47, timestamp as timestamp47 } from "drizzle-orm/pg-core";
+var webscrobblers = pgTable47("webscrobblers", {
+  id: text47("xata_id").primaryKey().default(sql47`xata_id()`),
+  name: text47("name").notNull(),
+  uuid: text47("uuid").notNull(),
+  description: text47("description"),
+  enabled: boolean6("enabled").default(true).notNull(),
+  userId: text47("user_id").notNull().references(() => users_default.id),
+  createdAt: timestamp47("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp47("xata_updatedat").defaultNow().notNull()
 });
 var webscrobblers_default = webscrobblers;
 
@@ -1243,15 +1098,6 @@ var schema_default = {
   spotifyApps: spotify_apps_default,
   artistTracks: artist_tracks_default,
   artistAlbums: artist_albums_default,
-  dropboxAccounts: dropbox_accounts_default,
-  googleDriveAccounts: google_drive_accounts_default,
-  dropboxDirectories: dropbox_directories_default,
-  dropboxPaths: dropbox_paths_default,
-  googleDriveDirectories: google_drive_directories_default,
-  googleDrivePaths: google_drive_paths_default,
-  dropbox: dropbox_default,
-  dropboxTokens: dropbox_tokens_default,
-  googleDrive: googledrive_default,
   queueTracks: queue_tracks_default,
   feeds: feeds_default,
   follows: follows_default,
@@ -1271,7 +1117,7 @@ var schema_default = {
 
 // scripts/drizzle_schema_entry.ts
 import { getTableName } from "drizzle-orm";
-var completeSchema = { ...schema_default, googleDriveTokens: google_drive_tokens_default };
+var completeSchema = { ...schema_default };
 var tables = Object.fromEntries(Object.values(completeSchema).map((table) => [getTableName(table), table]));
 export {
   tables

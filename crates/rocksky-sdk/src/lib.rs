@@ -91,10 +91,10 @@ pub use agent::{
     ScrobbleDraft, ScrobbleMatch, ScrobbleResult, ShoutGif, SongDraft,
 };
 pub use appview::{
-    AlbumView, AppView, ArtistView, DateInterval, DropboxView, EqualizerBandView,
+    AlbumView, AppView, ArtistView, DateInterval, EqualizerBandView,
     EqualizerPresetInput, EqualizerPresetView, EventArtistView, EventExternalIds,
     EventLocationView, EventMediaView, EventUriView, EventView, EventsQuery, FeedItem, FeedView,
-    GlobalStats, GoogledriveView, NotificationActor, NotificationList, NotificationSubject,
+    GlobalStats, NotificationActor, NotificationList, NotificationSubject,
     NotificationView, ProfileView, PutRsvpResult, RsvpCounts, RsvpView, ScrobbleInput,
     ScrobbleView, SearchFederation, SearchHit, SearchResults, SongView, SpotifyUserView,
     UnreadCount, UpdateSeenResult,

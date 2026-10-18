@@ -21,18 +21,6 @@ function useBeta() {
           { email },
           { headers },
         );
-      case "google":
-        return await axios.post(
-          `${API_URL}/googledrive/join`,
-          { email },
-          { headers },
-        );
-      case "dropbox":
-        return await axios.post(
-          `${API_URL}/dropbox/join`,
-          { email },
-          { headers },
-        );
       default:
         return;
     }

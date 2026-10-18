@@ -61,7 +61,7 @@ for (const t of tables) {
     "import gleam/dynamic/decode.{type Decoder}",
     "import gleam/json.{type Json}",
     "import gleam/list",
-    needsOpt ? "import gleam/option.{type Option, None}" : null,
+    needsOpt ? "import gleam/option.{type Option, None}" : "import gleam/option.{type Option}",
     "import gleam/string",
     needsTs ? "import gleam/time/timestamp.{type Timestamp}" : null,
     "import rocksky_api/db/row",

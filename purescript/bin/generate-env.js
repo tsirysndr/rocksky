@@ -68,8 +68,8 @@ export function generateEnv(compose) {
     }],
     ['Companion services must be started separately; compose.yaml does not provide them.', {
       SUBMISSIONS_URL: 'http://127.0.0.1:8098', MATCHING_URL: 'http://127.0.0.1:8097',
-      ANALYTICS: 'http://127.0.0.1:7879', GOOGLE_DRIVE: 'http://127.0.0.1:7880',
-      DROPBOX: 'http://127.0.0.1:7881', TRACKLIST: 'http://127.0.0.1:7884',
+      ANALYTICS: 'http://127.0.0.1:7879',
+      TRACKLIST: 'http://127.0.0.1:7884',
       MUSICBRAINZ_URL: 'http://127.0.0.1:8088', DEEZER_URL: 'http://127.0.0.1:8090',
       DISCOGS_URL: 'http://127.0.0.1:8095', DISCOGS_ENRICHMENT_ENABLED: false,
       NAVIDROME_INTERNAL_URL: 'http://127.0.0.1:4533',
@@ -78,9 +78,7 @@ export function generateEnv(compose) {
     ['Optional integrations: supply your own development credentials.', {
       SPOTIFY_CLIENT_ID: '', SPOTIFY_CLIENT_SECRET: '', SPOTIFY_API_URL: 'https://api.spotify.com/v1',
       SPOTIFY_REDIRECT_URI: 'http://localhost:8000/spotify/callback',
-      DROPBOX_CLIENT_ID: '', DROPBOX_CLIENT_SECRET: '',
-      DROPBOX_REDIRECT_URI: 'http://localhost:8000/dropbox/oauth/callback',
-      GOOGLE_REDIRECT_URI: 'http://localhost:8000/googledrive/oauth/callback',
+
     }],
     ['Localhost ATProto OAuth does not require private signing keys.', {
       PRIVATE_KEY_1: '', PRIVATE_KEY_2: '', PRIVATE_KEY_3: '', PDS_HOST_OVERRIDES: '', DISABLED_TEALFM: '',

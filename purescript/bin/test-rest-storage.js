@@ -9,13 +9,9 @@ for (const [, key] of source.matchAll(/"([A-Z0-9_]+)": str required/g)) process.
 process.env.JWT_SECRET = "test-secret";
 process.env.SPOTIFY_ENCRYPTION_KEY = "ab".repeat(32);
 process.env.SPOTIFY_ENCRYPTION_IV = "cd".repeat(16);
-process.env.GOOGLE_REDIRECT_URI = "https://api.example.test/googledrive/oauth/callback";
 const { fromAff } = await import("../output/Control.Promise/index.js");
 const Web = await import("../output/Rocksky.Webscrobbler.App/index.js");
-const Drive = await import("../output/Rocksky.Googledrive.App/index.js");
 const OG = await import("../output/Rocksky.Opengraph.App/index.js");
-const { decrypt } = await import("../output/Rocksky.Lib.Crypto/index.js");
-const { Just, Nothing } = await import("../output/Data.Maybe/index.js");
 const run = aff => fromAff(aff)();
 const metrics = { requestCounter: { add() {} } };
 const user = { id: "user-1", did: "did:plc:listener", handle: "listener.test", avatar: "https://cdn/avatar/@jpeg" };
@@ -32,9 +28,9 @@ function database(responses) {
   };
   return { db, writes, done() { assert.equal(responses.length, 0); } };
 }
-for (const module of [Web, Drive]) {
+for (const module of [Web]) {
   const routes = module.app({ metrics })();
-  for (const [path, method] of module === Web ? [["/", "GET"], ["/bad", "PUT"]] : [["/login", "GET"], ["/join", "POST"], ["/files", "GET"], ["/files/id", "GET"], ["/files/id/download", "GET"]]) {
+  for (const [path, method] of [["/", "GET"], ["/bad", "PUT"]]) {
     assert.equal((await routes.request("http://localhost" + path, { method })).status, 401);
   }
 }
@@ -53,45 +49,6 @@ for (const existing of [[], [{ id: "existing" }]]) {
   const mock = database([[user]]);
   assert.equal((await Web.app({ db: mock.db })().request("http://localhost/INVALID", { method: "PUT", headers: { authorization } })).status, 400);
   mock.done();
-}
-for (const rows of [[], [{ googleDrive: { id: "drive" }, token: null }], [{ googleDrive: { id: "drive" }, token: { id: "token" } }]]) {
-  const mock = database([rows, [{ id: "token" }], []]);
-  await run(Drive.saveToken({ db: mock.db })(user.id)("refresh-secret"));
-  const write = mock.writes[0];
-  assert.equal(write.operation, rows[0]?.token ? "update" : "insert");
-  const values = Array.isArray(write.value) ? write.value[0] : write.value;
-  assert.notEqual(values.refreshToken, "refresh-secret");
-  assert.equal(decrypt(values.refreshToken)(process.env.SPOTIFY_ENCRYPTION_KEY)(), "refresh-secret");
-  assert.equal(mock.writes[1].operation, rows.length ? "update" : "insert");
-  mock.done();
-}
-for (const missing of [false, true]) {
-  const calls = [];
-  let count = 0;
-  const ctx = { googledrive: { async request(config) {
-    calls.push(config);
-    if (config.url.endsWith("getMusicDirectory")) return { data: { files: missing && count++ === 0 ? [] : [{ id: "music" }] } };
-    return { data: { files: [{ id: "song" }] } };
-  } } };
-  assert.deepEqual(await run(Drive.files(ctx)(user.did)(Nothing.value)), { files: [{ id: "song" }] });
-  assert.deepEqual(calls.map(x => x.url), missing
-    ? ["googledrive.getMusicDirectory", "googledrive.createMusicDirectory", "googledrive.getMusicDirectory", "googledrive.getFilesInParents"]
-    : ["googledrive.getMusicDirectory", "googledrive.getFilesInParents"]);
-  assert.deepEqual(calls.at(-1).data, { did: user.did, parent_id: "music" });
-  calls.length = 0;
-  await run(Drive.files(ctx)(user.did)(new Just("chosen")));
-  assert.deepEqual(calls.map(x => x.url), ["googledrive.getFilesInParents"]);
-  assert.equal(calls[0].data.parent_id, "chosen");
-}
-{
-  const cwd = process.cwd();
-  const dir = await mkdtemp(join(tmpdir(), "rocksky-drive-"));
-  try {
-    await writeFile(join(dir, "credentials.json"), JSON.stringify({ web: { client_id: "client", client_secret: "secret" } }));
-    process.chdir(dir);
-    const url = new URL(await run(Drive.authUrl(user.id)));
-    for (const [key, value] of Object.entries({ client_id: "client", state: user.id, access_type: "offline", prompt: "consent", scope: "https://www.googleapis.com/auth/drive", redirect_uri: process.env.GOOGLE_REDIRECT_URI })) assert.equal(url.searchParams.get(key), value);
-  } finally { process.chdir(cwd); await rm(dir, { recursive: true }); }
 }
 async function og(path, rows = []) {
   const mock = database([rows]);
@@ -116,7 +73,7 @@ for (const kind of ["album", "artist", "song"]) {
 const activity = await (await og("/did:plc:listener/scrobble/record", [{ users: user, tracks: { title: "Song" }, artists: { name: "Artist" }, albums: { albumArt: "cover" } }])).json();
 assert.equal(activity.title, "Scrobble: Song by Artist");
 assert.equal(activity.image, "cover");
-console.log("Verified REST auth guards, Webscrobbler updates, encrypted Drive token branches/directory creation/OAuth URL, and Open Graph response shapes.");
+console.log("Verified REST auth guards, Webscrobbler updates, Open Graph response shapes.");
 
 const Bsky = await import("../output/Rocksky.Bsky.App/index.js");
 const Ref = await import("../output/Effect.Ref/index.js");

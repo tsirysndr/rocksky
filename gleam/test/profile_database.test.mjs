@@ -12,10 +12,9 @@ test('Profile refresh preserves partial fields, creates accounts, publishes chan
   const pool=new pg.Pool({host:process.env.GLEAM_TEST_PGHOST,port:Number(process.env.GLEAM_TEST_PGPORT),database:'postgres',max:1});
   const savedFetch=globalThis.fetch; const savedAdapter=axios.defaults.adapter;
   try {
-    await createTables(pool,['users','spotify_accounts','spotify_tokens','google_drive_accounts','dropbox_accounts']);
+    await createTables(pool,['users','spotify_accounts','spotify_tokens']);
     await pool.query(`INSERT INTO users (xata_id,did,handle,display_name,avatar) VALUES ('u','did:plc:one','old.test','Original','good-avatar');
-      INSERT INTO spotify_accounts (email,user_id,is_beta_user) VALUES ('private@example.test','u',true);
-      INSERT INTO google_drive_accounts (email,user_id,is_beta_user) VALUES ('google@example.test','u',false);`);
+      INSERT INTO spotify_accounts (email,user_id,is_beta_user) VALUES ('private@example.test','u',true);`);
     let fetched={}; let handle='one.test'; const messages=[];
     axios.defaults.adapter=async config=>({data:{service:[{serviceEndpoint:'https://pds.test'}]},status:200,statusText:'OK',headers:{},config});
     globalThis.fetch=async()=>new Response(JSON.stringify({did:'did:plc:one',handle,...fetched}),{headers:{'content-type':'application/json'}});
@@ -27,7 +26,7 @@ test('Profile refresh preserves partial fields, creates accounts, publishes chan
     const first=(await call('one.test')).body;
     assert.equal(first.displayName,'Original'); assert.equal(first.avatar,'good-avatar'); assert.equal(first.handle,'one.test');
     assert.equal(first.spotifyUser.email,undefined); assert.equal(first.spotifyUser.isBetaUser,true);
-    assert.equal(first.googledrive.email,'google@example.test'); assert.deepEqual(first.dropbox,{});
+    assert.equal('googledrive' in first,false); assert.equal('dropbox' in first,false);
     assert.equal(messages.length,1); assert.equal(messages[0].data.display_name,'Original');
     await call('one.test'); assert.equal(messages.length,1);
     fetched={displayName:'Updated',avatar:'https://avatar.test/new'};

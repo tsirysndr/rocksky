@@ -160,8 +160,6 @@ Scrobbles support dotted selectors like `track.artist` and `user.handle`.
 | `app.rocksky.apikey` | `client.apikey()` | `list`, `create`, `update`, `remove` |
 | `app.rocksky.stats` | `client.stats()` | `get`, `wrapped` |
 | `app.rocksky.mirror` | `client.mirror()` | `list_sources`, `put_source` |
-| `app.rocksky.dropbox` | `client.dropbox()` | `list_files`, `metadata`, `temporary_link`, `download_file` |
-| `app.rocksky.googledrive` | `client.googledrive()` | `list_files`, `get_file`, `download_file` |
 
 For methods that aren't typed yet, drop down to the generic escape hatch:
 

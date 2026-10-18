@@ -10,8 +10,8 @@ use serde_json::Value;
 use crate::error::{Error, Result};
 use crate::http::{DEFAULT_BASE_URL, Shared, Transport};
 use crate::resources::{
-    ActorApi, AlbumApi, ApikeyApi, ArtistApi, ChartsApi, DropboxApi, EqualizerApi, EventApi,
-    FeedApi, GoogleDriveApi, GraphApi, LikeApi, MirrorApi, PlayerApi, PlaylistApi, RockboxApi,
+    ActorApi, AlbumApi, ApikeyApi, ArtistApi, ChartsApi, EqualizerApi, EventApi,
+    FeedApi, GraphApi, LikeApi, MirrorApi, PlayerApi, PlaylistApi, RockboxApi,
     ScrobbleApi, ShoutApi, SongApi, SpotifyApi, StatsApi,
 };
 
@@ -99,10 +99,6 @@ impl Client {
         ChartsApi::new(self)
     }
 
-    /// `app.rocksky.dropbox.*`
-    pub fn dropbox(&self) -> DropboxApi<'_> {
-        DropboxApi::new(self)
-    }
 
     /// `app.rocksky.equalizer.*`
     pub fn equalizer(&self) -> EqualizerApi<'_> {
@@ -119,10 +115,6 @@ impl Client {
         FeedApi::new(self)
     }
 
-    /// `app.rocksky.googledrive.*`
-    pub fn googledrive(&self) -> GoogleDriveApi<'_> {
-        GoogleDriveApi::new(self)
-    }
 
     /// `app.rocksky.graph.*`
     pub fn graph(&self) -> GraphApi<'_> {

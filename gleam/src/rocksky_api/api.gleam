@@ -9,8 +9,6 @@ import rocksky_api/opengraph/app as opengraph
 import rocksky_api/uploads/app as uploads
 
 import rocksky_api/bsky/app as bsky
-import rocksky_api/dropbox/app as dropbox
-import rocksky_api/googledrive/app as googledrive
 import rocksky_api/storage/app as storage
 import rocksky_api/webscrobbler/app as webscrobbler
 
@@ -114,8 +112,6 @@ pub fn app(ctx: Context) -> App {
   })
   |> hono.cors()
   |> hono.route("/", bsky.app(ctx))
-  |> hono.route("/dropbox", dropbox.app(ctx))
-  |> hono.route("/googledrive", googledrive.app(ctx))
   |> hono.route("/apikeys", apikeys.app(ctx))
   |> hono.route("/access-tokens", access_tokens.app(ctx))
   |> hono.route("/notifications", sse.app(ctx))

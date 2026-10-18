@@ -36,15 +36,14 @@ export function localSettings(config) {
     NATS_URL: `nats://${nats.authority}`, REDIS_URL: `redis://${redis.authority}`,
     TYPESENSE_HOST: search.host, TYPESENSE_PORT: search.port, TYPESENSE_PROTOCOL: 'http', TYPESENSE_API_KEY: key,
     ANALYTICS: 'http://127.0.0.1:7879', ANALYTICS_URL: 'http://127.0.0.1:7879',
-    GOOGLE_DRIVE: 'http://127.0.0.1:7880', DROPBOX: 'http://127.0.0.1:7881', TRACKLIST: 'http://127.0.0.1:7884',
+    TRACKLIST: 'http://127.0.0.1:7884',
     MATCHING_URL: 'http://127.0.0.1:8097', SUBMISSIONS_URL: 'http://127.0.0.1:8098',
     MUSICBRAINZ_URL: 'http://127.0.0.1:8088', DEEZER_URL: 'http://127.0.0.1:8090',
     DISCOGS_URL: 'http://127.0.0.1:8095', DISCOGS_ENRICHMENT_ENABLED: 'false',
     DRIFT_URL: 'http://127.0.0.1:8093', RIFF_API_URL: 'http://127.0.0.1:8092',
     ROCKSKY_FEEDGEN_PORT: '8002', NAVIDROME_INTERNAL_URL: 'http://127.0.0.1:4533',
     SPOTIFY_REDIRECT_URI: 'http://localhost:8000/spotify/callback',
-    DROPBOX_REDIRECT_URI: 'http://localhost:8000/dropbox/oauth/callback',
-    GOOGLE_REDIRECT_URI: 'http://localhost:8000/googledrive/oauth/callback',
+
     S3_ENDPOINT: 'http://127.0.0.1:9000', CDN_URL: 'http://127.0.0.1:9000/rocksky', MEDIA_CDN_URL: 'http://127.0.0.1:9000/rocksky-library',
   };
 }
@@ -59,8 +58,11 @@ export function generate(config, file, {force = false} = {}) {
   const local = localSettings(config);
   const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
   const previous = force ? {} : dotenv.parse(existing ?? '');
+  for (const key of Object.keys(previous)) {
+    if (/^(DROPBOX|GOOGLE_DRIVE|GOOGLE_CLIENT_|GOOGLE_REDIRECT_URI)/.test(key)) delete previous[key];
+  }
   const values = {
-    SPOTIFY_CLIENT_ID: '', SPOTIFY_CLIENT_SECRET: '', DROPBOX_CLIENT_ID: '', DROPBOX_CLIENT_SECRET: '',
+    SPOTIFY_CLIENT_ID: '', SPOTIFY_CLIENT_SECRET: '',
     ROCKSKY_BETA_TOKEN: '', S3_ACCESS_KEY_ID: '', S3_SECRET_ACCESS_KEY: '', S3_REGION: 'us-east-1',
     S3_BUCKET_NAME: 'rocksky-library', S3_COVERS_BUCKET_NAME: 'rocksky', ...previous, ...local,
   };

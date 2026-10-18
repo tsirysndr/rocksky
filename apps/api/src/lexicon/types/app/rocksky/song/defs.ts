@@ -161,11 +161,6 @@ export function validateSongViewDetailed(v: unknown): ValidationResult {
 
 /** A ranked candidate match for a song from an external metadata provider. */
 export interface SongMatchView {
-  source?: string;
-  providerId?: string;
-  mbId?: string;
-  mbReleaseId?: string;
-  mbArtists?: ResponseMbArtistsItemView[];
   /** The provider's numeric identifier for the matched track. */
   id?: number;
   /** The title of the matched track. */
@@ -194,6 +189,15 @@ export interface SongMatchView {
   explicit?: boolean;
   /** Match confidence score in the range 0-100 (higher is better). */
   score?: number;
+  /** The metadata provider for this candidate. */
+  source?: string;
+  /** The provider identifier, including non-numeric identifiers. */
+  providerId?: string;
+  /** The MusicBrainz recording identifier of this candidate. */
+  mbId?: string;
+  /** The MusicBrainz release identifier of this candidate. */
+  mbReleaseId?: string;
+  mbArtists?: ResponseMbArtistsItemView[];
   [k: string]: unknown;
 }
 

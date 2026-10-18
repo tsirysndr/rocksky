@@ -84,23 +84,6 @@ export interface ActorProfileViewDetailed {
   updatedAt?: DateTime;
   spotifyUser?: ActorResponseSpotifyUserView;
   spotifyConnected?: boolean;
-  googledrive?: ActorResponseGoogledriveView;
-  dropbox?: ActorResponseDropboxView;
-}
-
-export interface ActorResponseDropboxView {
-  createdAt?: string;
-  updatedAt?: string;
-  id?: string;
-  email?: string;
-  isBetaUser?: boolean;
-  userId?: string;
-  xataVersion?: string;
-}
-
-export interface ActorResponseGoogledriveView {
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface ActorResponseSpotifyUserView {
@@ -774,67 +757,6 @@ export interface DislikeShoutInput {
 export interface DislikeSongInput {
   /** The unique identifier of the song to dislike */
   uri?: AtUri;
-}
-
-export interface DropboxDownloadFileParams {
-  /** The unique identifier of the file to download */
-  fileId: string;
-}
-
-export interface DropboxFileListView {
-  /** A list of files in the Dropbox. */
-  files?: DropboxFileView[];
-  directory?: DropboxResponseDirectoryView;
-  parentDirectory?: DropboxResponseParentDirectoryView;
-  directories?: DropboxResponseDirectoriesItemView[];
-}
-
-export interface DropboxFileView {
-  /** The unique identifier of the file. */
-  id?: string;
-  /** The name of the file. */
-  name?: string;
-  /** The lowercased path of the file. */
-  pathLower?: string;
-  /** The display path of the file. */
-  pathDisplay?: string;
-  /** The last modified date and time of the file on the client. */
-  clientModified?: DateTime;
-  /** The last modified date and time of the file on the server. */
-  serverModified?: DateTime;
-  fileId?: string;
-  directoryId?: string;
-  trackId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface DropboxGetFilesParams {
-  /** Path to the Dropbox folder or root directory */
-  at?: string;
-}
-
-export interface DropboxResponseDirectoriesItemView {
-  id?: string;
-  name?: string;
-  fileId?: string;
-  path?: string;
-  parentId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface DropboxResponseDirectoryView {
-
-}
-
-export interface DropboxResponseParentDirectoryView {
-
-}
-
-export interface DropboxTemporaryLinkView {
-  /** The temporary link to access the file. */
-  link?: Uri;
 }
 
 export interface EqualizerPresetView {
@@ -1733,11 +1655,6 @@ export interface GetFeedSkeletonParams {
   cursor?: string;
 }
 
-export interface GetFileParams {
-  /** The unique identifier of the file to retrieve */
-  fileId: string;
-}
-
 export interface GetFollowersOutput {
   subject: ActorProfileViewBasic;
   followers: ActorProfileViewBasic[];
@@ -1860,16 +1777,6 @@ export interface GetLyricsParams {
   artist?: string;
   /** The song title. */
   title?: string;
-}
-
-export interface GetMetadataOutput {
-  /** Metadata returned by the provider; currently an empty object. */
-  metadata?: unknown;
-}
-
-export interface GetMetadataParams {
-  /** Path to the file or folder in Dropbox */
-  path: string;
 }
 
 export interface GetMirrorSourcesOutput {
@@ -2164,11 +2071,6 @@ export interface GetStreamUrlParams {
   format?: string;
 }
 
-export interface GetTemporaryLinkParams {
-  /** Path to the file in Dropbox */
-  path: string;
-}
-
 export interface GetTopArtistsOutput {
   artists?: ArtistViewBasic[];
 }
@@ -2270,52 +2172,6 @@ export interface GetWrappedParams {
   year?: number;
   /** The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year. */
   period?: string;
-}
-
-export interface GoogledriveDownloadFileParams {
-  /** The unique identifier of the file to download */
-  fileId: string;
-}
-
-export interface GoogledriveFileListView {
-  files?: GoogledriveFileView[];
-  directory?: GoogledriveResponseDirectoryView;
-  parentDirectory?: GoogledriveResponseParentDirectoryView;
-  directories?: GoogledriveResponseDirectoriesItemView[];
-}
-
-export interface GoogledriveFileView {
-  /** The unique identifier of the file. */
-  id?: string;
-  name?: string;
-  fileId?: string;
-  directoryId?: string;
-  trackId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface GoogledriveGetFilesParams {
-  /** Path to the Google Drive folder or root directory */
-  at?: string;
-}
-
-export interface GoogledriveResponseDirectoriesItemView {
-  id?: string;
-  name?: string;
-  fileId?: string;
-  path?: string;
-  parentId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface GoogledriveResponseDirectoryView {
-
-}
-
-export interface GoogledriveResponseParentDirectoryView {
-
 }
 
 /** indicates that a handle or DID could not be resolved */
@@ -4007,10 +3863,6 @@ export interface Endpoints {
   "app.rocksky.charts.getTopArtists": GetTopArtistsOutput;
   "app.rocksky.charts.getTopScrobblers": GetTopScrobblersOutput;
   "app.rocksky.charts.getTopTracks": GetTopTracksOutput;
-  "app.rocksky.dropbox.downloadFile": void;
-  "app.rocksky.dropbox.getFiles": DropboxFileListView;
-  "app.rocksky.dropbox.getMetadata": GetMetadataOutput;
-  "app.rocksky.dropbox.getTemporaryLink": DropboxTemporaryLinkView;
   "app.rocksky.equalizer.deletePreset": void;
   "app.rocksky.equalizer.listPresets": ListPresetsOutput;
   "app.rocksky.equalizer.putPreset": EqualizerPresetView;
@@ -4028,9 +3880,6 @@ export interface Endpoints {
   "app.rocksky.feed.getRecommendations": FeedRecommendationsView;
   "app.rocksky.feed.getStories": FeedStoriesView;
   "app.rocksky.feed.search": FeedSearchResultsView;
-  "app.rocksky.googledrive.downloadFile": void;
-  "app.rocksky.googledrive.getFile": GoogledriveFileView;
-  "app.rocksky.googledrive.getFiles": GoogledriveFileListView;
   "app.rocksky.graph.followAccount": FollowAccountOutput;
   "app.rocksky.graph.getFollowers": GetFollowersOutput;
   "app.rocksky.graph.getFollows": GetFollowsOutput;

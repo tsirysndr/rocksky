@@ -32,12 +32,6 @@ type Env =
   , "XATA_WRITE_POSTGRES_URL" :: String
   , "NATS_URL" :: String
   , "ANALYTICS" :: String
-  , "DROPBOX_CLIENT_ID" :: String
-  , "DROPBOX_CLIENT_SECRET" :: String
-  , "DROPBOX_REDIRECT_URI" :: String
-  , "GOOGLE_REDIRECT_URI" :: String
-  , "GOOGLE_DRIVE" :: String
-  , "DROPBOX" :: String
   , "TRACKLIST" :: String
   , "REDIS_URL" :: String
   , "MATCHING_URL" :: String
@@ -116,12 +110,6 @@ env = unsafePerformEffect do
     , "XATA_WRITE_POSTGRES_URL": str (withDefault "")
     , "NATS_URL": str (withDefault "nats://localhost:4222")
     , "ANALYTICS": str (withDefault "http://localhost:7879")
-    , "DROPBOX_CLIENT_ID": str required
-    , "DROPBOX_CLIENT_SECRET": str required
-    , "DROPBOX_REDIRECT_URI": str required
-    , "GOOGLE_REDIRECT_URI": str required
-    , "GOOGLE_DRIVE": str (withDefault "http://localhost:7880")
-    , "DROPBOX": str (withDefault "http://localhost:7881")
     , "TRACKLIST": str (withDefault "http://localhost:7884")
     , "REDIS_URL": str (withDefault "redis://localhost:6379")
     , "MATCHING_URL": str (withDefault "http://127.0.0.1:8097")

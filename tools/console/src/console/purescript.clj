@@ -31,7 +31,6 @@
    [:test-artists "test:artists"]
    [:test-basic-scripts "test:basic-scripts"]
    [:test-charts "test:charts"]
-   [:test-cloud-listings "test:cloud-listings"]
    [:test-collections-script "test:collections-script"]
    [:test-create-scrobble "test:create-scrobble"]
    [:test-create-song "test:create-song"]
@@ -214,11 +213,6 @@
   "Run bun run test:charts in purescript/. Forwards extra arguments unchanged."
   [& args]
   (apply sh/bun "purescript" "test:charts" args))
-
-(defn test-cloud-listings
-  "Run bun run test:cloud-listings in purescript/. Forwards extra arguments unchanged."
-  [& args]
-  (apply sh/bun "purescript" "test:cloud-listings" args))
 
 (defn test-collections-script
   "Run bun run test:collections-script in purescript/. Forwards extra arguments unchanged."

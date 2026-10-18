@@ -16,21 +16,11 @@ module Rocksky.Schema
   , module Rocksky.Schema.DiscogsReleases
   , module Rocksky.Schema.DiscogsSearches
   , module Rocksky.Schema.DiscogsTracks
-  , module Rocksky.Schema.DropboxAccounts
-  , module Rocksky.Schema.DropboxDirectories
-  , module Rocksky.Schema.DropboxPaths
-  , module Rocksky.Schema.DropboxTokens
-  , module Rocksky.Schema.Dropbox
   , module Rocksky.Schema.EventArtists
   , module Rocksky.Schema.EventRsvps
   , module Rocksky.Schema.Events
   , module Rocksky.Schema.Feeds
   , module Rocksky.Schema.Follows
-  , module Rocksky.Schema.GoogleDriveAccounts
-  , module Rocksky.Schema.GoogleDriveDirectories
-  , module Rocksky.Schema.GoogleDrivePaths
-  , module Rocksky.Schema.GoogleDriveTokens
-  , module Rocksky.Schema.GoogleDrive
   , module Rocksky.Schema.ImportJobs
   , module Rocksky.Schema.LovedTracks
   , module Rocksky.Schema.MirrorSources
@@ -73,21 +63,11 @@ module Rocksky.Schema
   , discogsReleasesC
   , discogsSearchesC
   , discogsTracksC
-  , dropboxAccountsC
-  , dropboxDirectoriesC
-  , dropboxPathsC
-  , dropboxTokensC
-  , dropboxC
   , eventArtistsC
   , eventRsvpsC
   , eventsC
   , feedsC
   , followsC
-  , googleDriveAccountsC
-  , googleDriveDirectoriesC
-  , googleDrivePathsC
-  , googleDriveTokensC
-  , googleDriveC
   , importJobsC
   , lovedTracksC
   , mirrorSourcesC
@@ -133,21 +113,11 @@ import Rocksky.Schema.DiscogsReleaseLabels (discogsReleaseLabels, DiscogsRelease
 import Rocksky.Schema.DiscogsReleases (discogsReleases, DiscogsReleasesCols, SelectDiscogsRelease)
 import Rocksky.Schema.DiscogsSearches (discogsSearches, DiscogsSearchesCols, SelectDiscogsSearch)
 import Rocksky.Schema.DiscogsTracks (discogsTracks, DiscogsTracksCols, SelectDiscogsTrack)
-import Rocksky.Schema.DropboxAccounts (dropboxAccounts, DropboxAccountsCols, SelectDropboxAccounts)
-import Rocksky.Schema.DropboxDirectories (dropboxDirectories, DropboxDirectoriesCols, SelectDropboxDirectories)
-import Rocksky.Schema.DropboxPaths (dropboxPaths, DropboxPathsCols, SelectDropboxPaths)
-import Rocksky.Schema.DropboxTokens (dropboxTokens, DropboxTokensCols, SelectDropboxToken)
-import Rocksky.Schema.Dropbox (dropbox, DropboxCols, SelectDropbox)
 import Rocksky.Schema.EventArtists (eventArtists, EventArtistsCols, SelectEventArtist)
 import Rocksky.Schema.EventRsvps (eventRsvps, EventRsvpsCols, SelectEventRsvp)
 import Rocksky.Schema.Events (events, EventsCols, SelectEvent)
 import Rocksky.Schema.Feeds (feeds, FeedsCols, SelectFeed)
 import Rocksky.Schema.Follows (follows, FollowsCols, SelectFollows)
-import Rocksky.Schema.GoogleDriveAccounts (googleDriveAccounts, GoogleDriveAccountsCols, SelectGoogleDriveAccounts)
-import Rocksky.Schema.GoogleDriveDirectories (googleDriveDirectories, GoogleDriveDirectoriesCols, SelectGoogleDriveDirectories)
-import Rocksky.Schema.GoogleDrivePaths (googleDrivePaths, GoogleDrivePathsCols, SelectGoogleDrivePaths)
-import Rocksky.Schema.GoogleDriveTokens (googleDriveTokens, GoogleDriveTokensCols, SelectGoogleDriveToken)
-import Rocksky.Schema.GoogleDrive (googleDrive, GoogleDriveCols, SelectGoogleDrive)
 import Rocksky.Schema.ImportJobs (importJobs, ImportJobsCols, SelectImportJob)
 import Rocksky.Schema.LovedTracks (lovedTracks, LovedTracksCols, SelectLovedTrack)
 import Rocksky.Schema.MirrorSources (mirrorSources, MirrorSourcesCols, SelectMirrorSource)
@@ -221,20 +191,10 @@ discogsSearchesC = columns discogsSearches
 discogsTracksC :: Record DiscogsTracksCols
 discogsTracksC = columns discogsTracks
 
-dropboxAccountsC :: Record DropboxAccountsCols
-dropboxAccountsC = columns dropboxAccounts
 
-dropboxDirectoriesC :: Record DropboxDirectoriesCols
-dropboxDirectoriesC = columns dropboxDirectories
 
-dropboxPathsC :: Record DropboxPathsCols
-dropboxPathsC = columns dropboxPaths
 
-dropboxTokensC :: Record DropboxTokensCols
-dropboxTokensC = columns dropboxTokens
 
-dropboxC :: Record DropboxCols
-dropboxC = columns dropbox
 
 eventArtistsC :: Record EventArtistsCols
 eventArtistsC = columns eventArtists
@@ -251,20 +211,10 @@ feedsC = columns feeds
 followsC :: Record FollowsCols
 followsC = columns follows
 
-googleDriveAccountsC :: Record GoogleDriveAccountsCols
-googleDriveAccountsC = columns googleDriveAccounts
 
-googleDriveDirectoriesC :: Record GoogleDriveDirectoriesCols
-googleDriveDirectoriesC = columns googleDriveDirectories
 
-googleDrivePathsC :: Record GoogleDrivePathsCols
-googleDrivePathsC = columns googleDrivePaths
 
-googleDriveTokensC :: Record GoogleDriveTokensCols
-googleDriveTokensC = columns googleDriveTokens
 
-googleDriveC :: Record GoogleDriveCols
-googleDriveC = columns googleDrive
 
 importJobsC :: Record ImportJobsCols
 importJobsC = columns importJobs

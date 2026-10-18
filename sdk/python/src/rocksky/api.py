@@ -149,26 +149,6 @@ class XrpcClient(XrpcTransport):
         response.raise_for_status()
         return TypeAdapter(models.GetTopTracksOutput).validate_json(response.body)
 
-    def dropbox_download_file(self, params: models.DropboxDownloadFileParams) -> bytes:
-        response = self.raw("GET", "app.rocksky.dropbox.downloadFile", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
-        response.raise_for_status()
-        return response.body
-
-    def dropbox_get_files(self, params: models.DropboxGetFilesParams) -> models.DropboxFileListView:
-        response = self.raw("GET", "app.rocksky.dropbox.getFiles", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
-        response.raise_for_status()
-        return TypeAdapter(models.DropboxFileListView).validate_json(response.body)
-
-    def dropbox_get_metadata(self, params: models.GetMetadataParams) -> models.GetMetadataOutput:
-        response = self.raw("GET", "app.rocksky.dropbox.getMetadata", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
-        response.raise_for_status()
-        return TypeAdapter(models.GetMetadataOutput).validate_json(response.body)
-
-    def dropbox_get_temporary_link(self, params: models.GetTemporaryLinkParams) -> models.DropboxTemporaryLinkView:
-        response = self.raw("GET", "app.rocksky.dropbox.getTemporaryLink", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
-        response.raise_for_status()
-        return TypeAdapter(models.DropboxTemporaryLinkView).validate_json(response.body)
-
     def equalizer_delete_preset(self, params: models.DeletePresetParams) -> None:
         response = self.raw("POST", "app.rocksky.equalizer.deletePreset", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
         response.raise_for_status()
@@ -253,21 +233,6 @@ class XrpcClient(XrpcTransport):
         response = self.raw("GET", "app.rocksky.feed.search", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
         response.raise_for_status()
         return TypeAdapter(models.FeedSearchResultsView).validate_json(response.body)
-
-    def googledrive_download_file(self, params: models.GoogledriveDownloadFileParams) -> bytes:
-        response = self.raw("GET", "app.rocksky.googledrive.downloadFile", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
-        response.raise_for_status()
-        return response.body
-
-    def googledrive_get_file(self, params: models.GetFileParams) -> models.GoogledriveFileView:
-        response = self.raw("GET", "app.rocksky.googledrive.getFile", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
-        response.raise_for_status()
-        return TypeAdapter(models.GoogledriveFileView).validate_json(response.body)
-
-    def googledrive_get_files(self, params: models.GoogledriveGetFilesParams) -> models.GoogledriveFileListView:
-        response = self.raw("GET", "app.rocksky.googledrive.getFiles", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)
-        response.raise_for_status()
-        return TypeAdapter(models.GoogledriveFileListView).validate_json(response.body)
 
     def graph_follow_account(self, params: models.FollowAccountParams) -> models.FollowAccountOutput:
         response = self.raw("POST", "app.rocksky.graph.followAccount", params=params.model_dump(by_alias=True, exclude_unset=True), body=None)

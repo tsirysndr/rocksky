@@ -1,13 +1,10 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
-import { inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/player/addItemsToQueue";
 import { transientDbRetry } from "lib/dbRetry";
-import * as R from "ramda";
-import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const addItemsToQueue = (params, auth: HandlerAuth) =>
@@ -49,36 +46,10 @@ const handleAddItemsToQueue = ({
         throw new Error("Authentication required");
       }
 
-      await ctx.db.transaction(async (tx) => {
-        // await tx.select().from(tables.queueTracks).execute();
-        // Logic to add items to the queue would go here
-        // verify items exist in googleDrivePaths
-        // items can starts with "gdrive://", "dropbox://"
-        // group items by prefix and query separately
-        const items = R.groupBy((item: string) => {
-          if (item.startsWith("gdrive://")) return "gdrive";
-          if (item.startsWith("dropbox://")) return "dropbox";
-          return "other";
-        }, params.items);
-
-        await Promise.all([
-          tx
-            .select()
-            .from(tables.googleDrivePaths)
-            .where(inArray(tables.googleDrivePaths, items.gdrive || []))
-            .execute(),
-          tx
-            .select()
-            .from(tables.dropboxPaths)
-            .where(inArray(tables.dropboxPaths, items.dropbox || []))
-            .execute(),
-        ]);
-        const track_ids = [];
         await ctx.tracklist.post("/tracklist.addTracks", {
           did,
           track_ids: params.items,
         });
-      });
     },
     catch: (err) => {
       consola.error(err);

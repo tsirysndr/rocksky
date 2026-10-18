@@ -55,6 +55,6 @@ console.log('REST entry routes: durable submissions/errors, auth order, playback
  const isolated=setup().app;
  assert.deepEqual(isolated.routes.map(r=>r.method+' '+r.path).sort(),await sourceRoutes('index.ts'));
 
- for(const prefix of ['/spotify','/storage','/dropbox','/googledrive','/apikeys','/access-tokens','/import','/notifications','/public/og','/uploads','/webscrobbler'])assert.ok(app.routes.some(r=>r.path===prefix||r.path.startsWith(prefix+'/')),prefix);
+ for(const prefix of ['/spotify','/storage','/apikeys','/access-tokens','/import','/notifications','/public/og','/uploads','/webscrobbler'])assert.ok(app.routes.some(r=>r.path===prefix||r.path.startsWith(prefix+'/')),prefix);
  console.log('REST app wiring: 37 user routes, all subapps, health/CORS/metrics/rate limits and internal-worker bypass passed');
 }

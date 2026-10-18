@@ -72,7 +72,7 @@ const originalFetch = globalThis.fetch;
 try {
   const requested = [];
   globalThis.fetch = async url => { requested.push(String(url)); return Response.json({ service: [{ serviceEndpoint: "https://pds.example.test" }] }); };
-  const m = mock([[user], [{ account: { email: "private@example.test", id: "spotify", createdAt: date, updatedAt: date } }], [{ account: { id: "token" } }], [], []]);
+  const m = mock([[user], [{ account: { email: "private@example.test", id: "spotify", createdAt: date, updatedAt: date } }], [{ account: { id: "token" } }]]);
   let resolvedCount = 0;
   const ctx = {
     ...m.ctx,
@@ -91,24 +91,11 @@ try {
   assert.equal(result.spotifyConnected, true);
   assert.equal("email" in result.spotifyUser, false);
   assert.equal(result.spotifyUser.createdAt, date.toISOString());
-  assert.deepEqual(result.googledrive, {});
-  assert.deepEqual(result.dropbox, {});
+  assert.equal("googledrive" in result, false);
+  assert.equal("dropbox" in result, false);
   assert.equal(m.writes.length, 0);
   m.done();
-  // Xata production returns numeric version metadata even for text-declared
-  // cloud account columns. The profile must remain usable after OAuth.
-  for (const version of [42, "42", null]) {
-    const account = { id: "cloud", email: "user@example.test", userId: "u", isBetaUser: true,
-      xataVersion: version, createdAt: date, updatedAt: date };
-    const linked = mock([[user], [], [], [{ account }], [{ account }]]);
-    const profile = await run(P.getProfileWith({ ...linked.ctx,
-      resolver: { resolveDidToHandle: () => aff(user.handle) }
-    })(new Just(user.did))(Nothing.value)(_did => _agent => aff({ avatar: Nothing.value, displayName: Nothing.value })));
-    assert.equal(profile.did, user.did);
-    assert.equal(profile.googledrive.xataVersion, version);
-    assert.equal(profile.dropbox.xataVersion, version);
-    linked.done();
-  }
+
 } finally { globalThis.fetch = originalFetch; }
 console.log("Verified profile actor precedence/single handle resolution, missing-actor errors, partial-fetch preservation, new-user defaults, refresh events and linked-account email omission.");
 const Compatibility = await import("../output/Rocksky.Xrpc.App.Rocksky.Actor.GetActorCompatibility/index.js");

@@ -9,7 +9,7 @@ import { Profile } from "../types/profile";
 import { rocksky } from "../lib/rocksky";
 
 // app.rocksky.actor.getProfile — the live AppView response carries the
-// spotify/googledrive/dropbox account fields on top of the lexicon view,
+// Spotify account fields on top of the lexicon view,
 // which the local Profile type describes.
 export const getProfileByDid = async (did: string): Promise<Profile> => {
   return (await rocksky().get("app.rocksky.actor.getProfile", {

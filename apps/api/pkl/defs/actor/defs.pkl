@@ -44,14 +44,6 @@ defs = new Mapping<String, BaseType> {
       ["spotifyConnected"] = new BooleanType {
         type = "boolean"
       }
-      ["googledrive"] = new Ref {
-        type = "ref"
-        ref = "app.rocksky.actor.defs#responseGoogledriveView"
-      }
-      ["dropbox"] = new Ref {
-        type = "ref"
-        ref = "app.rocksky.actor.defs#responseDropboxView"
-      }
     }
   }
   ["profileViewBasic"] = new ObjectType {
@@ -259,43 +251,5 @@ defs = new Mapping<String, BaseType> {
       }
     }
     nullable = List("xataVersion", "userId", "spotifyAppId")
-  }
-  ["responseGoogledriveView"] = new ObjectType {
-    type = "object"
-    properties = new Mapping<String, BaseType> {
-      ["createdAt"] = new StringType {
-        type = "string"
-      }
-      ["updatedAt"] = new StringType {
-        type = "string"
-      }
-    }
-  }
-  ["responseDropboxView"] = new ObjectType {
-    type = "object"
-    properties = new Mapping<String, BaseType> {
-      ["createdAt"] = new StringType {
-        type = "string"
-      }
-      ["updatedAt"] = new StringType {
-        type = "string"
-      }
-      ["id"] = new StringType {
-        type = "string"
-      }
-      ["email"] = new StringType {
-        type = "string"
-      }
-      ["isBetaUser"] = new BooleanType {
-        type = "boolean"
-      }
-      ["userId"] = new StringType {
-        type = "string"
-      }
-      ["xataVersion"] = new StringType {
-        type = "string"
-      }
-    }
-    nullable = List("userId", "xataVersion")
   }
 }

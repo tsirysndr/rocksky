@@ -15,8 +15,6 @@ import rocksky_api/drizzle/orm.{
   all, and, desc, eq, from, insert, limit, one, order_by, run, set, update,
   where,
 }
-import rocksky_api/drizzle/schema/dropbox_accounts as da
-import rocksky_api/drizzle/schema/google_drive_accounts as ga
 import rocksky_api/drizzle/schema/spotify_accounts as sa
 import rocksky_api/drizzle/schema/spotify_tokens as st
 import rocksky_api/drizzle/schema/users as u
@@ -33,8 +31,6 @@ import rocksky_api/node/hono
 import rocksky_api/node/js
 import rocksky_api/node/jwt
 import rocksky_api/node/nats
-import rocksky_api/schema/dropbox_accounts
-import rocksky_api/schema/google_drive_accounts
 import rocksky_api/schema/spotify_accounts
 import rocksky_api/schema/users as user_rows
 import rocksky_api/task
@@ -244,25 +240,13 @@ pub fn profile(
   })
   let spotify = sa.table()
   let tokens = st.table()
-  let google = ga.table()
-  let dropbox = da.table()
-  use accounts <- task.map(task.all4(
+  use accounts <- task.map(task.all2(
     from(spotify)
       |> where(
         and([eq(sa.user_id(spotify), did), eq(sa.is_beta_user(spotify), True)]),
       )
       |> one(ctx.db),
     from(tokens) |> where(eq(st.user_id(tokens), did)) |> one(ctx.db),
-    from(google)
-      |> where(
-        and([eq(ga.user_id(google), did), eq(ga.is_beta_user(google), True)]),
-      )
-      |> one(ctx.db),
-    from(dropbox)
-      |> where(
-        and([eq(da.user_id(dropbox), did), eq(da.is_beta_user(dropbox), True)]),
-      )
-      |> one(ctx.db),
   ))
   json.object(
     list.flatten([
@@ -275,12 +259,6 @@ pub fn profile(
       optional("avatar", resolved.avatar, json.string),
       optional("spotifyUser", accounts.0, fn(a) {
         spotify_accounts.to_json(a) |> helpers.deep_snake_case_keys
-      }),
-      optional("googledrive", accounts.2, fn(a) {
-        google_drive_accounts.to_json(a) |> helpers.deep_snake_case_keys
-      }),
-      optional("dropbox", accounts.3, fn(a) {
-        dropbox_accounts.to_json(a) |> helpers.deep_snake_case_keys
       }),
     ]),
   )

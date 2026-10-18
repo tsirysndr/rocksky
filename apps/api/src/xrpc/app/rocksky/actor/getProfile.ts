@@ -14,8 +14,6 @@ import { PLC_DIRECTORY_URL } from "lib/plc";
 import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
-import type { SelectDropboxAccounts } from "schema/dropbox-accounts";
-import type { SelectGoogleDriveAccounts } from "schema/google-drive-accounts";
 import type { SelectSpotifyAccount } from "schema/spotify-accounts";
 import type { SelectSpotifyToken } from "schema/spotify-tokens";
 import type { SelectUser } from "schema/users";
@@ -209,8 +207,6 @@ const retrieveProfile = ({
     string,
     SelectSpotifyAccount,
     SelectSpotifyToken,
-    SelectGoogleDriveAccounts,
-    SelectDropboxAccounts,
   ],
   Error
 > => {
@@ -245,26 +241,6 @@ const retrieveProfile = ({
           .where(eq(tables.users.did, did))
           .execute()
           .then(([result]) => result?.spotify_tokens),
-        ctx.db
-          .select()
-          .from(tables.googleDriveAccounts)
-          .leftJoin(
-            tables.users,
-            eq(tables.googleDriveAccounts.userId, tables.users.id),
-          )
-          .where(eq(tables.users.did, did))
-          .execute()
-          .then(([result]) => result?.google_drive_accounts),
-        ctx.db
-          .select()
-          .from(tables.dropboxAccounts)
-          .leftJoin(
-            tables.users,
-            eq(tables.dropboxAccounts.userId, tables.users.id),
-          )
-          .where(eq(tables.users.did, did))
-          .execute()
-          .then(([result]) => result?.dropbox_accounts),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve profile: ${error}`),
@@ -276,15 +252,11 @@ const refreshProfile = ([
   handle,
   selectSpotifyAccount,
   selectSpotifyToken,
-  selectGoogleDriveAccounts,
-  selectDropboxAccounts,
 ]: [
   Profile,
   string,
   SelectSpotifyAccount,
   SelectSpotifyToken,
-  SelectGoogleDriveAccounts,
-  SelectDropboxAccounts,
 ]) => {
   return Effect.tryPromise({
     try: async () => {
@@ -375,8 +347,6 @@ const refreshProfile = ([
         handle,
         selectSpotifyAccount,
         selectSpotifyToken,
-        selectGoogleDriveAccounts,
-        selectDropboxAccounts,
       ];
     },
     catch: (error) => new Error(`Failed to refresh profile: ${error}`),
@@ -388,15 +358,11 @@ const presentation = ([
   handle,
   spotifyUser,
   spotifyToken,
-  googledrive,
-  dropbox,
 ]: [
   Profile,
   string,
   SelectSpotifyAccount,
   SelectSpotifyToken,
-  SelectGoogleDriveAccounts,
-  SelectDropboxAccounts,
 ]): Effect.Effect<ProfileViewDetailed, never> => {
   return Effect.sync(() => ({
     id: profile.user?.id,
@@ -412,16 +378,6 @@ const presentation = ([
       updatedAt: spotifyUser?.updatedAt.toISOString(),
     },
     spotifyConnected: !!spotifyToken,
-    googledrive: {
-      ...googledrive,
-      createdAt: googledrive?.createdAt.toISOString(),
-      updatedAt: googledrive?.updatedAt.toISOString(),
-    },
-    dropbox: {
-      ...dropbox,
-      createdAt: dropbox?.createdAt.toISOString(),
-      updatedAt: dropbox?.updatedAt.toISOString(),
-    },
   }));
 };
 

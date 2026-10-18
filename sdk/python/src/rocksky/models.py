@@ -61,21 +61,6 @@ class ActorProfileViewDetailed(RockskyModel):
     updated_at: str | None = Field(default=None, alias="updatedAt")
     spotify_user: ActorResponseSpotifyUserView | None = Field(default=None, alias="spotifyUser")
     spotify_connected: bool | None = Field(default=None, alias="spotifyConnected")
-    googledrive: ActorResponseGoogledriveView | None = Field(default=None, alias="googledrive")
-    dropbox: ActorResponseDropboxView | None = Field(default=None, alias="dropbox")
-
-class ActorResponseDropboxView(RockskyModel):
-    created_at: str | None = Field(default=None, alias="createdAt")
-    updated_at: str | None = Field(default=None, alias="updatedAt")
-    id: str | None = Field(default=None, alias="id")
-    email: str | None = Field(default=None, alias="email")
-    is_beta_user: bool | None = Field(default=None, alias="isBetaUser")
-    user_id: str | None = Field(default=None, alias="userId")
-    xata_version: str | None = Field(default=None, alias="xataVersion")
-
-class ActorResponseGoogledriveView(RockskyModel):
-    created_at: str | None = Field(default=None, alias="createdAt")
-    updated_at: str | None = Field(default=None, alias="updatedAt")
 
 class ActorResponseSpotifyUserView(RockskyModel):
     created_at: str | None = Field(default=None, alias="createdAt")
@@ -464,49 +449,6 @@ class DislikeShoutInput(RockskyModel):
 
 class DislikeSongInput(RockskyModel):
     uri: str | None = Field(default=None, alias="uri")
-
-class DropboxDownloadFileParams(RockskyModel):
-    file_id: str = Field(alias="fileId")
-
-class DropboxFileListView(RockskyModel):
-    files: list[DropboxFileView] | None = Field(default=None, alias="files")
-    directory: DropboxResponseDirectoryView | None = Field(default=None, alias="directory")
-    parent_directory: DropboxResponseParentDirectoryView | None = Field(default=None, alias="parentDirectory")
-    directories: list[DropboxResponseDirectoriesItemView] | None = Field(default=None, alias="directories")
-
-class DropboxFileView(RockskyModel):
-    id: str | None = Field(default=None, alias="id")
-    name: str | None = Field(default=None, alias="name")
-    path_lower: str | None = Field(default=None, alias="pathLower")
-    path_display: str | None = Field(default=None, alias="pathDisplay")
-    client_modified: str | None = Field(default=None, alias="clientModified")
-    server_modified: str | None = Field(default=None, alias="serverModified")
-    file_id: str | None = Field(default=None, alias="fileId")
-    directory_id: str | None = Field(default=None, alias="directoryId")
-    track_id: str | None = Field(default=None, alias="trackId")
-    created_at: str | None = Field(default=None, alias="createdAt")
-    updated_at: str | None = Field(default=None, alias="updatedAt")
-
-class DropboxGetFilesParams(RockskyModel):
-    at: str | None = Field(default=None, alias="at")
-
-class DropboxResponseDirectoriesItemView(RockskyModel):
-    id: str | None = Field(default=None, alias="id")
-    name: str | None = Field(default=None, alias="name")
-    file_id: str | None = Field(default=None, alias="fileId")
-    path: str | None = Field(default=None, alias="path")
-    parent_id: str | None = Field(default=None, alias="parentId")
-    created_at: str | None = Field(default=None, alias="createdAt")
-    updated_at: str | None = Field(default=None, alias="updatedAt")
-
-class DropboxResponseDirectoryView(RockskyModel):
-    pass
-
-class DropboxResponseParentDirectoryView(RockskyModel):
-    pass
-
-class DropboxTemporaryLinkView(RockskyModel):
-    link: str | None = Field(default=None, alias="link")
 
 class EqualizerPresetView(RockskyModel):
     uri: str = Field(alias="uri")
@@ -1088,9 +1030,6 @@ class GetFeedSkeletonParams(RockskyModel):
     offset: int | None = Field(default=None, alias="offset")
     cursor: str | None = Field(default=None, alias="cursor")
 
-class GetFileParams(RockskyModel):
-    file_id: str = Field(alias="fileId")
-
 class GetFollowersOutput(RockskyModel):
     subject: ActorProfileViewBasic = Field(alias="subject")
     followers: list[ActorProfileViewBasic] = Field(alias="followers")
@@ -1183,12 +1122,6 @@ class GetLyricsOutput(RockskyModel):
 class GetLyricsParams(RockskyModel):
     artist: str | None = Field(default=None, alias="artist")
     title: str | None = Field(default=None, alias="title")
-
-class GetMetadataOutput(RockskyModel):
-    metadata: JsonValue | None = Field(default=None, alias="metadata")
-
-class GetMetadataParams(RockskyModel):
-    path: str = Field(alias="path")
 
 class GetMirrorSourcesOutput(RockskyModel):
     sources: list[MirrorSourceView] = Field(alias="sources")
@@ -1385,9 +1318,6 @@ class GetStreamUrlParams(RockskyModel):
     max_bit_rate: int | None = Field(default=None, alias="maxBitRate")
     format: str | None = Field(default=None, alias="format")
 
-class GetTemporaryLinkParams(RockskyModel):
-    path: str = Field(alias="path")
-
 class GetTopArtistsOutput(RockskyModel):
     artists: list[ArtistViewBasic] | None = Field(default=None, alias="artists")
 
@@ -1453,42 +1383,6 @@ class GetWrappedParams(RockskyModel):
     did: str = Field(alias="did")
     year: int | None = Field(default=None, alias="year")
     period: str | None = Field(default=None, alias="period")
-
-class GoogledriveDownloadFileParams(RockskyModel):
-    file_id: str = Field(alias="fileId")
-
-class GoogledriveFileListView(RockskyModel):
-    files: list[GoogledriveFileView] | None = Field(default=None, alias="files")
-    directory: GoogledriveResponseDirectoryView | None = Field(default=None, alias="directory")
-    parent_directory: GoogledriveResponseParentDirectoryView | None = Field(default=None, alias="parentDirectory")
-    directories: list[GoogledriveResponseDirectoriesItemView] | None = Field(default=None, alias="directories")
-
-class GoogledriveFileView(RockskyModel):
-    id: str | None = Field(default=None, alias="id")
-    name: str | None = Field(default=None, alias="name")
-    file_id: str | None = Field(default=None, alias="fileId")
-    directory_id: str | None = Field(default=None, alias="directoryId")
-    track_id: str | None = Field(default=None, alias="trackId")
-    created_at: str | None = Field(default=None, alias="createdAt")
-    updated_at: str | None = Field(default=None, alias="updatedAt")
-
-class GoogledriveGetFilesParams(RockskyModel):
-    at: str | None = Field(default=None, alias="at")
-
-class GoogledriveResponseDirectoriesItemView(RockskyModel):
-    id: str | None = Field(default=None, alias="id")
-    name: str | None = Field(default=None, alias="name")
-    file_id: str | None = Field(default=None, alias="fileId")
-    path: str | None = Field(default=None, alias="path")
-    parent_id: str | None = Field(default=None, alias="parentId")
-    created_at: str | None = Field(default=None, alias="createdAt")
-    updated_at: str | None = Field(default=None, alias="updatedAt")
-
-class GoogledriveResponseDirectoryView(RockskyModel):
-    pass
-
-class GoogledriveResponseParentDirectoryView(RockskyModel):
-    pass
 
 class GraphNotFoundActor(RockskyModel):
     actor: str = Field(alias="actor")
@@ -2508,8 +2402,6 @@ ActorCompatibilityViewBasic.model_rebuild()
 ActorNeighbourViewBasic.model_rebuild()
 ActorProfileViewBasic.model_rebuild()
 ActorProfileViewDetailed.model_rebuild()
-ActorResponseDropboxView.model_rebuild()
-ActorResponseGoogledriveView.model_rebuild()
 ActorResponseSpotifyUserView.model_rebuild()
 ActorTrackView.model_rebuild()
 AddDirectoryToQueueParams.model_rebuild()
@@ -2557,14 +2449,6 @@ DeleteSongOutput.model_rebuild()
 DescribeFeedGeneratorOutput.model_rebuild()
 DislikeShoutInput.model_rebuild()
 DislikeSongInput.model_rebuild()
-DropboxDownloadFileParams.model_rebuild()
-DropboxFileListView.model_rebuild()
-DropboxFileView.model_rebuild()
-DropboxGetFilesParams.model_rebuild()
-DropboxResponseDirectoriesItemView.model_rebuild()
-DropboxResponseDirectoryView.model_rebuild()
-DropboxResponseParentDirectoryView.model_rebuild()
-DropboxTemporaryLinkView.model_rebuild()
 EqualizerPresetView.model_rebuild()
 EqualizerRecord.model_rebuild()
 EventArtistView.model_rebuild()
@@ -2661,7 +2545,6 @@ GetFeedGeneratorsParams.model_rebuild()
 GetFeedParams.model_rebuild()
 GetFeedSkeletonOutput.model_rebuild()
 GetFeedSkeletonParams.model_rebuild()
-GetFileParams.model_rebuild()
 GetFollowersOutput.model_rebuild()
 GetFollowersParams.model_rebuild()
 GetFollowsOutput.model_rebuild()
@@ -2679,8 +2562,6 @@ GetLicenseOutput.model_rebuild()
 GetLicenseParams.model_rebuild()
 GetLyricsOutput.model_rebuild()
 GetLyricsParams.model_rebuild()
-GetMetadataOutput.model_rebuild()
-GetMetadataParams.model_rebuild()
 GetMirrorSourcesOutput.model_rebuild()
 GetMirrorSourcesParams.model_rebuild()
 GetMusicDirectoryOutput.model_rebuild()
@@ -2720,7 +2601,6 @@ GetStatsParams.model_rebuild()
 GetStoriesParams.model_rebuild()
 GetStreamUrlOutput.model_rebuild()
 GetStreamUrlParams.model_rebuild()
-GetTemporaryLinkParams.model_rebuild()
 GetTopArtistsOutput.model_rebuild()
 GetTopArtistsParams.model_rebuild()
 GetTopScrobblersOutput.model_rebuild()
@@ -2735,13 +2615,6 @@ GetUnreadCountOutput.model_rebuild()
 GetUserOutput.model_rebuild()
 GetUserParams.model_rebuild()
 GetWrappedParams.model_rebuild()
-GoogledriveDownloadFileParams.model_rebuild()
-GoogledriveFileListView.model_rebuild()
-GoogledriveFileView.model_rebuild()
-GoogledriveGetFilesParams.model_rebuild()
-GoogledriveResponseDirectoriesItemView.model_rebuild()
-GoogledriveResponseDirectoryView.model_rebuild()
-GoogledriveResponseParentDirectoryView.model_rebuild()
 GraphNotFoundActor.model_rebuild()
 GraphRelationship.model_rebuild()
 Hthree.model_rebuild()

@@ -9,12 +9,6 @@ export const profilesAtom = atom<{
       isBeta: boolean;
     };
     spotifyConnected: boolean;
-    googledriveUser?: {
-      isBeta: boolean;
-    };
-    dropboxUser?: {
-      isBeta: boolean;
-    };
     did: string;
     createdAt: string;
   } | null;

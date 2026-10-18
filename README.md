@@ -53,7 +53,6 @@ Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify,
 - **Upload your own music** and stream it back from anywhere
 - **Bring your own storage** — keep the files in your own S3 bucket, or use the
   managed one
-- Import from **Dropbox** and **Google Drive**
 - Browse by track, album, artist, playlist or **favorites**
 - **Playlists** mirrored to your AT Protocol repo, so they travel with your
   identity rather than living only on a server
@@ -219,7 +218,7 @@ bun run dev               # seeds local feeds/owners, builds and starts REST + X
 
 Both environment generators create private, gitignored `.env` files with local
 Docker endpoints, local secrets and `SUBMISSIONS_*` settings. They leave external
-provider credentials blank; configure Spotify, Dropbox, S3 and other integrations
+provider credentials blank; configure Spotify, S3 and other integrations
 as needed. Compose does not start S3 or the application sidecars. Neither generator
 writes the root `.env`; the Rust commands below explicitly load the chosen API's
 file so the worker and API share `SUBMISSIONS_SECRET` and database URLs.

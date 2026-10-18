@@ -16,31 +16,4 @@ export type Profile = {
     updatedAt: string;
   };
   spotifyConnected: boolean;
-  googledrive: {
-    id: string;
-    email: string;
-    isBetaUser: boolean;
-    userId: string;
-    xataVersion: number;
-    createdAt: string;
-    updatedAt: string;
-  };
-  dropbox: {
-    id: string;
-    email: string;
-    isBetaUser: boolean;
-    userId: string;
-    xataVersion: number;
-    createdAt: string;
-    updatedAt: string;
-  };
-  googleDrive: {
-    id: string;
-    email: string;
-    isBetaUser: boolean;
-    userId: string;
-    xataVersion: number;
-    createdAt: string;
-    updatedAt: string;
-  };
 };

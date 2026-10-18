@@ -13,8 +13,6 @@ import { env } from "lib/env";
 import extractPdsFromDid from "lib/extractPdsFromDid";
 import { verifyToken } from "lib/verifyToken";
 import { requestCounter } from "metrics";
-import dropboxAccounts from "schema/dropbox-accounts";
-import googleDriveAccounts from "schema/google-drive-accounts";
 import spotifyAccounts from "schema/spotify-accounts";
 import spotifyTokens from "schema/spotify-tokens";
 import users from "schema/users";
@@ -240,7 +238,7 @@ app.get("/profile", async (c) => {
     ctx.kv.set("lastUser", lastUser[0].id);
   }
 
-  const [spotifyUser, spotifyToken, googledrive, dropbox] = await Promise.all([
+  const [spotifyUser, spotifyToken] = await Promise.all([
     ctx.db
       .select()
       .from(spotifyAccounts)
@@ -258,29 +256,7 @@ app.get("/profile", async (c) => {
       .where(eq(spotifyTokens.userId, did))
       .limit(1)
       .execute(),
-    ctx.db
-      .select()
-      .from(googleDriveAccounts)
-      .where(
-        and(
-          eq(googleDriveAccounts.userId, did),
-          eq(googleDriveAccounts.isBetaUser, true),
-        ),
-      )
-      .limit(1)
-      .execute(),
-    ctx.db
-      .select()
-      .from(dropboxAccounts)
-      .where(
-        and(
-          eq(dropboxAccounts.userId, did),
-          eq(dropboxAccounts.isBetaUser, true),
-        ),
-      )
-      .limit(1)
-      .execute(),
-  ]).then(([s, t, g, d]) => deepSnakeCaseKeys([s[0], t[0], g[0], d[0]]));
+  ]).then(([s, t]) => deepSnakeCaseKeys([s[0], t[0]]));
 
   return c.json({
     handle,
@@ -288,8 +264,6 @@ app.get("/profile", async (c) => {
     avatar: resolved.avatar,
     spotifyUser,
     spotifyConnected: !!spotifyToken,
-    googledrive,
-    dropbox,
     did,
   });
 });

@@ -34,8 +34,6 @@ import { trackSchema } from "types/track";
 import accessTokensApp from "./access-tokens/app";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
-import dropbox from "./dropbox/app";
-import googledrive from "./googledrive/app";
 import importApp from "./import/app";
 import { requestCounter, requestDuration } from "./metrics";
 import notificationsSse from "./notifications/sse";
@@ -96,9 +94,7 @@ app.route("/spotify", spotify);
 
 app.route("/storage", storageApp);
 
-app.route("/dropbox", dropbox);
 
-app.route("/googledrive", googledrive);
 
 app.route("/apikeys", apikeys);
 

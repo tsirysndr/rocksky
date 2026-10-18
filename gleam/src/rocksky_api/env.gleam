@@ -32,12 +32,6 @@ pub type Env {
     xata_write_postgres_url: String,
     nats_url: String,
     analytics: String,
-    dropbox_client_id: String,
-    dropbox_client_secret: String,
-    dropbox_redirect_uri: String,
-    google_redirect_uri: String,
-    google_drive: String,
-    dropbox: String,
     tracklist: String,
     redis_url: String,
     matching_url: String,
@@ -188,12 +182,6 @@ fn read() -> Result(Env, List(String)) {
     use xata_write_postgres_url <- try_(str("XATA_WRITE_POSTGRES_URL", d("")))
     use nats_url <- try_(str("NATS_URL", d("nats://localhost:4222")))
     use analytics <- try_(str("ANALYTICS", d("http://localhost:7879")))
-    use dropbox_client_id <- try_(str("DROPBOX_CLIENT_ID", None))
-    use dropbox_client_secret <- try_(str("DROPBOX_CLIENT_SECRET", None))
-    use dropbox_redirect_uri <- try_(str("DROPBOX_REDIRECT_URI", None))
-    use google_redirect_uri <- try_(str("GOOGLE_REDIRECT_URI", None))
-    use google_drive <- try_(str("GOOGLE_DRIVE", d("http://localhost:7880")))
-    use dropbox <- try_(str("DROPBOX", d("http://localhost:7881")))
     use tracklist <- try_(str("TRACKLIST", d("http://localhost:7884")))
     use redis_url <- try_(str("REDIS_URL", d("redis://localhost:6379")))
     use matching_url <- try_(str("MATCHING_URL", d("http://127.0.0.1:8097")))
@@ -296,12 +284,6 @@ fn read() -> Result(Env, List(String)) {
       xata_write_postgres_url:,
       nats_url:,
       analytics:,
-      dropbox_client_id:,
-      dropbox_client_secret:,
-      dropbox_redirect_uri:,
-      google_redirect_uri:,
-      google_drive:,
-      dropbox:,
       tracklist:,
       redis_url:,
       matching_url:,

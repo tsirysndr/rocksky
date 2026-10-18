@@ -44,8 +44,6 @@ import Rocksky.Schema as T
 import Rocksky.Schema.Users (SelectUser)
 import Rocksky.Schema.SpotifyAccounts (SelectSpotifyAccount)
 import Rocksky.Schema.SpotifyTokens (SelectSpotifyToken)
-import Rocksky.Schema.GoogleDriveAccounts (SelectGoogleDriveAccounts)
-import Rocksky.Schema.DropboxAccounts (SelectDropboxAccounts)
 
 tokenFor :: String -> Boolean -> Effect String
 tokenFor did cli = do
@@ -100,17 +98,15 @@ profile ctx c did = do
         liftEffect (Nats.publishString ctx.nc "rocksky.user" (stringify (deepSnakeCaseKeys (toForeign records.user))))
         last <- Rest.firstRow records.lastUser
         liftEffect (Ref.modify_ (Map.insert "lastUser" last.id) ctx.kv)
-      linked <- sequential $ { spotifyUser: _, spotifyToken: _, googledrive: _, dropbox: _ }
+      linked <- sequential $ { spotifyUser: _, spotifyToken: _ }
         <$> parallel (run ctx.db (selectFrom T.spotifyAccounts # where_ (SQL.and (SQL.eq (toSQL T.spotifyAccountsC.userId) (SQL.string did)) (SQL.eq (toSQL T.spotifyAccountsC.isBetaUser) (SQL.bool true))) # limit 1) :: Aff (Array SelectSpotifyAccount))
         <*> parallel (run ctx.db (selectFrom T.spotifyTokens # where_ (SQL.eq (toSQL T.spotifyTokensC.userId) (SQL.string did)) # limit 1) :: Aff (Array SelectSpotifyToken))
-        <*> parallel (run ctx.db (selectFrom T.googleDriveAccounts # where_ (SQL.and (SQL.eq (toSQL T.googleDriveAccountsC.userId) (SQL.string did)) (SQL.eq (toSQL T.googleDriveAccountsC.isBetaUser) (SQL.bool true))) # limit 1) :: Aff (Array SelectGoogleDriveAccounts))
-        <*> parallel (run ctx.db (selectFrom T.dropboxAccounts # where_ (SQL.and (SQL.eq (toSQL T.dropboxAccountsC.userId) (SQL.string did)) (SQL.eq (toSQL T.dropboxAccountsC.isBetaUser) (SQL.bool true))) # limit 1) :: Aff (Array SelectDropboxAccounts))
       let first :: forall row. Array row -> Foreign
           first rows = deepSnakeCaseKeys (fromMaybe undefined (toForeign <$> head rows))
       Rest.json c 200 (omitNulls (toForeign
         { handle, displayName: toNullable resolved.displayName, avatar: toNullable resolved.avatar
         , spotifyUser: first linked.spotifyUser, spotifyConnected: isJust (head linked.spotifyToken)
-        , googledrive: first linked.googledrive, dropbox: first linked.dropbox, did }))
+         , did }))
 
 app :: Context -> Effect Hono.App
 app ctx = do

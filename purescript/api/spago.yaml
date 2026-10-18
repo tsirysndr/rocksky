@@ -83,8 +83,6 @@ package:
     - music-metadata
     - node-taglib-sharp
     - rocksky-analysis
-    - dropbox
-    - googleapis
     - jose
     - iron-session
     - libsodium

@@ -21,7 +21,6 @@ for path in (root / 'api/src').rglob('*.purs'):
 overrides = {
     'lib/index.ts': 'Rocksky.Lib.Common',
     'schema/index.ts': 'Rocksky.Schema',
-    'schema/googledrive.ts': 'Rocksky.Schema.GoogleDrive',
     'uploads/delete.service.ts': 'Rocksky.Uploads.DeleteService',
     'types/apikey.ts': 'Rocksky.Types.ApiKey',
     'tealfm/index.ts': 'Rocksky.Tealfm.Index',

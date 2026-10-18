@@ -7135,57 +7135,6 @@ public object FfiConverterTypeArtistView: FfiConverterRustBuffer<ArtistView> {
 
 
 /**
- * The listener's linked Dropbox (`app.rocksky.actor.defs#responseDropboxView`).
- */
-data class DropboxView (
-    var `id`: kotlin.String?, 
-    var `email`: kotlin.String?, 
-    var `userId`: kotlin.String?, 
-    var `isBetaUser`: kotlin.Boolean?, 
-    var `createdAt`: kotlin.String?, 
-    var `updatedAt`: kotlin.String?
-) {
-    
-    companion object
-}
-
-/**
- * @suppress
- */
-public object FfiConverterTypeDropboxView: FfiConverterRustBuffer<DropboxView> {
-    override fun read(buf: ByteBuffer): DropboxView {
-        return DropboxView(
-            FfiConverterOptionalString.read(buf),
-            FfiConverterOptionalString.read(buf),
-            FfiConverterOptionalString.read(buf),
-            FfiConverterOptionalBoolean.read(buf),
-            FfiConverterOptionalString.read(buf),
-            FfiConverterOptionalString.read(buf),
-        )
-    }
-
-    override fun allocationSize(value: DropboxView) = (
-            FfiConverterOptionalString.allocationSize(value.`id`) +
-            FfiConverterOptionalString.allocationSize(value.`email`) +
-            FfiConverterOptionalString.allocationSize(value.`userId`) +
-            FfiConverterOptionalBoolean.allocationSize(value.`isBetaUser`) +
-            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
-            FfiConverterOptionalString.allocationSize(value.`updatedAt`)
-    )
-
-    override fun write(value: DropboxView, buf: ByteBuffer) {
-            FfiConverterOptionalString.write(value.`id`, buf)
-            FfiConverterOptionalString.write(value.`email`, buf)
-            FfiConverterOptionalString.write(value.`userId`, buf)
-            FfiConverterOptionalBoolean.write(value.`isBetaUser`, buf)
-            FfiConverterOptionalString.write(value.`createdAt`, buf)
-            FfiConverterOptionalString.write(value.`updatedAt`, buf)
-    }
-}
-
-
-
-/**
  * One EQ band (`app.rocksky.rockbox.defs#equalizerBand`). Same units rockbox
  * uses internally: gain in tenths of dB, Q × 10.
  */
@@ -7905,41 +7854,6 @@ public object FfiConverterTypeGlobalStats: FfiConverterRustBuffer<GlobalStats> {
 
 
 /**
- * The listener's linked Google Drive (`app.rocksky.actor.defs#responseGoogledriveView`).
- */
-data class GoogledriveView (
-    var `createdAt`: kotlin.String?, 
-    var `updatedAt`: kotlin.String?
-) {
-    
-    companion object
-}
-
-/**
- * @suppress
- */
-public object FfiConverterTypeGoogledriveView: FfiConverterRustBuffer<GoogledriveView> {
-    override fun read(buf: ByteBuffer): GoogledriveView {
-        return GoogledriveView(
-            FfiConverterOptionalString.read(buf),
-            FfiConverterOptionalString.read(buf),
-        )
-    }
-
-    override fun allocationSize(value: GoogledriveView) = (
-            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
-            FfiConverterOptionalString.allocationSize(value.`updatedAt`)
-    )
-
-    override fun write(value: GoogledriveView, buf: ByteBuffer) {
-            FfiConverterOptionalString.write(value.`createdAt`, buf)
-            FfiConverterOptionalString.write(value.`updatedAt`, buf)
-    }
-}
-
-
-
-/**
  * The user who triggered a notification
  * (`app.rocksky.notification.defs#notificationActor`).
  */
@@ -8259,9 +8173,7 @@ data class ProfileView (
     var `createdAt`: kotlin.String?, 
     var `updatedAt`: kotlin.String?, 
     var `spotifyUser`: SpotifyUserView?, 
-    var `spotifyConnected`: kotlin.Boolean?, 
-    var `googledrive`: GoogledriveView?, 
-    var `dropbox`: DropboxView?
+    var `spotifyConnected`: kotlin.Boolean?
 ) {
     
     companion object
@@ -8282,8 +8194,6 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalTypeSpotifyUserView.read(buf),
             FfiConverterOptionalBoolean.read(buf),
-            FfiConverterOptionalTypeGoogledriveView.read(buf),
-            FfiConverterOptionalTypeDropboxView.read(buf),
         )
     }
 
@@ -8296,9 +8206,7 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
             FfiConverterOptionalString.allocationSize(value.`createdAt`) +
             FfiConverterOptionalString.allocationSize(value.`updatedAt`) +
             FfiConverterOptionalTypeSpotifyUserView.allocationSize(value.`spotifyUser`) +
-            FfiConverterOptionalBoolean.allocationSize(value.`spotifyConnected`) +
-            FfiConverterOptionalTypeGoogledriveView.allocationSize(value.`googledrive`) +
-            FfiConverterOptionalTypeDropboxView.allocationSize(value.`dropbox`)
+            FfiConverterOptionalBoolean.allocationSize(value.`spotifyConnected`)
     )
 
     override fun write(value: ProfileView, buf: ByteBuffer) {
@@ -8311,8 +8219,6 @@ public object FfiConverterTypeProfileView: FfiConverterRustBuffer<ProfileView> {
             FfiConverterOptionalString.write(value.`updatedAt`, buf)
             FfiConverterOptionalTypeSpotifyUserView.write(value.`spotifyUser`, buf)
             FfiConverterOptionalBoolean.write(value.`spotifyConnected`, buf)
-            FfiConverterOptionalTypeGoogledriveView.write(value.`googledrive`, buf)
-            FfiConverterOptionalTypeDropboxView.write(value.`dropbox`, buf)
     }
 }
 
@@ -10564,38 +10470,6 @@ public object FfiConverterOptionalByteArray: FfiConverterRustBuffer<kotlin.ByteA
 /**
  * @suppress
  */
-public object FfiConverterOptionalTypeDropboxView: FfiConverterRustBuffer<DropboxView?> {
-    override fun read(buf: ByteBuffer): DropboxView? {
-        if (buf.get().toInt() == 0) {
-            return null
-        }
-        return FfiConverterTypeDropboxView.read(buf)
-    }
-
-    override fun allocationSize(value: DropboxView?): ULong {
-        if (value == null) {
-            return 1UL
-        } else {
-            return 1UL + FfiConverterTypeDropboxView.allocationSize(value)
-        }
-    }
-
-    override fun write(value: DropboxView?, buf: ByteBuffer) {
-        if (value == null) {
-            buf.put(0)
-        } else {
-            buf.put(1)
-            FfiConverterTypeDropboxView.write(value, buf)
-        }
-    }
-}
-
-
-
-
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeEventExternalIds: FfiConverterRustBuffer<EventExternalIds?> {
     override fun read(buf: ByteBuffer): EventExternalIds? {
         if (buf.get().toInt() == 0) {
@@ -10618,38 +10492,6 @@ public object FfiConverterOptionalTypeEventExternalIds: FfiConverterRustBuffer<E
         } else {
             buf.put(1)
             FfiConverterTypeEventExternalIds.write(value, buf)
-        }
-    }
-}
-
-
-
-
-/**
- * @suppress
- */
-public object FfiConverterOptionalTypeGoogledriveView: FfiConverterRustBuffer<GoogledriveView?> {
-    override fun read(buf: ByteBuffer): GoogledriveView? {
-        if (buf.get().toInt() == 0) {
-            return null
-        }
-        return FfiConverterTypeGoogledriveView.read(buf)
-    }
-
-    override fun allocationSize(value: GoogledriveView?): ULong {
-        if (value == null) {
-            return 1UL
-        } else {
-            return 1UL + FfiConverterTypeGoogledriveView.allocationSize(value)
-        }
-    }
-
-    override fun write(value: GoogledriveView?, buf: ByteBuffer) {
-        if (value == null) {
-            buf.put(0)
-        } else {
-            buf.put(1)
-            FfiConverterTypeGoogledriveView.write(value, buf)
         }
     }
 }

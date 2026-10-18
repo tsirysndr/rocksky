@@ -235,9 +235,6 @@
   ps:test:charts {:doc "Run purescript: test:charts. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-charts) *command-line-args*))}
-  ps:test:cloud-listings {:doc "Run purescript: test:cloud-listings. Extra arguments pass through to Bun."
-    :task (do (require 'console.purescript)
-              (apply (resolve 'console.purescript/test-cloud-listings) *command-line-args*))}
   ps:test:collections-script {:doc "Run purescript: test:collections-script. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-collections-script) *command-line-args*))}

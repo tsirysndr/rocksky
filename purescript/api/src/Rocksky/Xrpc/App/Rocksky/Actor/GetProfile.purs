@@ -36,8 +36,6 @@ import Rocksky.Schema as T
 import Rocksky.Schema.Users (SelectUser)
 import Rocksky.Schema.SpotifyAccounts (SelectSpotifyAccount)
 import Rocksky.Schema.SpotifyTokens (SelectSpotifyToken)
-import Rocksky.Schema.GoogleDriveAccounts (SelectGoogleDriveAccounts)
-import Rocksky.Schema.DropboxAccounts (SelectDropboxAccounts)
 import Rocksky.Xrpc.Util as Util
 
 stage :: forall a. String -> Aff a -> Aff a
@@ -130,7 +128,7 @@ getProfileWith ctx actor viewer fetchProfile = do
     pure (head rows)
   details <- stage "Failed to retrieve profile" do
     fetched <- fetchProfile (Just resolved.did) agent
-    linked <- sequential $ { handle: _, spotify: _, token: _, google: _, dropbox: _ }
+    linked <- sequential $ { handle: _, spotify: _, token: _ }
       <$> parallel (ctx.resolver.resolveDidToHandle resolved.did)
       <*> parallel (run ctx.db
         (selectFieldsFrom { account: tableSQL T.spotifyAccounts } T.spotifyAccounts
@@ -140,27 +138,18 @@ getProfileWith ctx actor viewer fetchProfile = do
         (selectFieldsFrom { account: tableSQL T.spotifyTokens } T.spotifyTokens
           # leftJoin T.users (SQL.eq (toSQL T.spotifyTokensC.userId) (toSQL T.usersC.id))
           # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string resolved.did))) :: Aff (Array { account :: SelectSpotifyToken }))
-      <*> parallel (run ctx.db
-        (selectFieldsFrom { account: tableSQL T.googleDriveAccounts } T.googleDriveAccounts
-          # leftJoin T.users (SQL.eq (toSQL T.googleDriveAccountsC.userId) (toSQL T.usersC.id))
-          # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string resolved.did))) :: Aff (Array { account :: SelectGoogleDriveAccounts }))
-      <*> parallel (run ctx.db
-        (selectFieldsFrom { account: tableSQL T.dropboxAccounts } T.dropboxAccounts
-          # leftJoin T.users (SQL.eq (toSQL T.dropboxAccountsC.userId) (toSQL T.usersC.id))
-          # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string resolved.did))) :: Aff (Array { account :: SelectDropboxAccounts }))
+
     pure { fetched, linked }
   refreshed <- refreshProfile ctx resolved.did details.linked.handle details.fetched user
   liftEffect do
     createdAt <- Date.toISOString refreshed.createdAt
     updatedAt <- Date.toISOString refreshed.updatedAt
     spotify <- dated (_.account <$> head details.linked.spotify)
-    googledrive <- dated (_.account <$> head details.linked.google)
-    dropbox <- dated (_.account <$> head details.linked.dropbox)
     pure (toForeign
       { id: refreshed.id, did: resolved.did, handle: details.linked.handle, displayName: refreshed.displayName
       , avatar: if refreshed.avatar == "" then undefined else toForeign refreshed.avatar
       , createdAt, updatedAt, spotifyUser: deleteKeys ["email"] spotify
-      , spotifyConnected: isJust (head details.linked.token), googledrive, dropbox })
+      , spotifyConnected: isJust (head details.linked.token) })
 
 register :: Server -> Context -> Effect Unit
 register server ctx = Xrpc.method server "app.rocksky.actor.getProfile"

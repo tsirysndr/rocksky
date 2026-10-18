@@ -203,12 +203,12 @@ pub fn encode_actor_profile_view_basic(value: ActorProfileViewBasic) -> json.Jso
 }
 
 pub type ActorProfileViewDetailed {
-  ActorProfileViewDetailed(id: Option(String), did: Option(String), handle: Option(String), display_name: Option(String), avatar: Option(String), created_at: Option(String), updated_at: Option(String), spotify_user: Option(ActorResponseSpotifyUserView), spotify_connected: Option(Bool), googledrive: Option(ActorResponseGoogledriveView), dropbox: Option(ActorResponseDropboxView))
+  ActorProfileViewDetailed(id: Option(String), did: Option(String), handle: Option(String), display_name: Option(String), avatar: Option(String), created_at: Option(String), updated_at: Option(String), spotify_user: Option(ActorResponseSpotifyUserView), spotify_connected: Option(Bool))
 }
 
 /// Construct with required fields; optional fields default to None.
 pub fn new_actor_profile_view_detailed() -> ActorProfileViewDetailed {
-  ActorProfileViewDetailed(id: None, did: None, handle: None, display_name: None, avatar: None, created_at: None, updated_at: None, spotify_user: None, spotify_connected: None, googledrive: None, dropbox: None)
+  ActorProfileViewDetailed(id: None, did: None, handle: None, display_name: None, avatar: None, created_at: None, updated_at: None, spotify_user: None, spotify_connected: None)
 }
 
 pub fn actor_profile_view_detailed_decoder() -> decode.Decoder(ActorProfileViewDetailed) {
@@ -223,9 +223,7 @@ pub fn actor_profile_view_detailed_decoder() -> decode.Decoder(ActorProfileViewD
   use updated_at <- decode.optional_field("updatedAt", None, decode.optional(decode.string))
   use spotify_user <- decode.optional_field("spotifyUser", None, decode.optional(actor_response_spotify_user_view_decoder()))
   use spotify_connected <- decode.optional_field("spotifyConnected", None, decode.optional(decode.bool))
-  use googledrive <- decode.optional_field("googledrive", None, decode.optional(actor_response_googledrive_view_decoder()))
-  use dropbox <- decode.optional_field("dropbox", None, decode.optional(actor_response_dropbox_view_decoder()))
-  decode.success(ActorProfileViewDetailed(id: id, did: did, handle: handle, display_name: display_name, avatar: avatar, created_at: created_at, updated_at: updated_at, spotify_user: spotify_user, spotify_connected: spotify_connected, googledrive: googledrive, dropbox: dropbox))
+  decode.success(ActorProfileViewDetailed(id: id, did: did, handle: handle, display_name: display_name, avatar: avatar, created_at: created_at, updated_at: updated_at, spotify_user: spotify_user, spotify_connected: spotify_connected))
 }
 
 pub fn encode_actor_profile_view_detailed(value: ActorProfileViewDetailed) -> json.Json {
@@ -239,66 +237,6 @@ pub fn encode_actor_profile_view_detailed(value: ActorProfileViewDetailed) -> js
     case value.updated_at { Some(v) -> [#("updatedAt", json.string(v))] None -> [] },
     case value.spotify_user { Some(v) -> [#("spotifyUser", encode_actor_response_spotify_user_view(v))] None -> [] },
     case value.spotify_connected { Some(v) -> [#("spotifyConnected", json.bool(v))] None -> [] },
-    case value.googledrive { Some(v) -> [#("googledrive", encode_actor_response_googledrive_view(v))] None -> [] },
-    case value.dropbox { Some(v) -> [#("dropbox", encode_actor_response_dropbox_view(v))] None -> [] },
-  ]))
-}
-
-pub type ActorResponseDropboxView {
-  ActorResponseDropboxView(created_at: Option(String), updated_at: Option(String), id: Option(String), email: Option(String), is_beta_user: Option(Bool), user_id: Option(String), xata_version: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_actor_response_dropbox_view() -> ActorResponseDropboxView {
-  ActorResponseDropboxView(created_at: None, updated_at: None, id: None, email: None, is_beta_user: None, user_id: None, xata_version: None)
-}
-
-pub fn actor_response_dropbox_view_decoder() -> decode.Decoder(ActorResponseDropboxView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use created_at <- decode.optional_field("createdAt", None, decode.optional(decode.string))
-  use updated_at <- decode.optional_field("updatedAt", None, decode.optional(decode.string))
-  use id <- decode.optional_field("id", None, decode.optional(decode.string))
-  use email <- decode.optional_field("email", None, decode.optional(decode.string))
-  use is_beta_user <- decode.optional_field("isBetaUser", None, decode.optional(decode.bool))
-  use user_id <- decode.optional_field("userId", None, decode.optional(decode.string))
-  use xata_version <- decode.optional_field("xataVersion", None, decode.optional(decode.string))
-  decode.success(ActorResponseDropboxView(created_at: created_at, updated_at: updated_at, id: id, email: email, is_beta_user: is_beta_user, user_id: user_id, xata_version: xata_version))
-}
-
-pub fn encode_actor_response_dropbox_view(value: ActorResponseDropboxView) -> json.Json {
-  json.object(list.flatten([
-    case value.created_at { Some(v) -> [#("createdAt", json.string(v))] None -> [] },
-    case value.updated_at { Some(v) -> [#("updatedAt", json.string(v))] None -> [] },
-    case value.id { Some(v) -> [#("id", json.string(v))] None -> [] },
-    case value.email { Some(v) -> [#("email", json.string(v))] None -> [] },
-    case value.is_beta_user { Some(v) -> [#("isBetaUser", json.bool(v))] None -> [] },
-    case value.user_id { Some(v) -> [#("userId", json.string(v))] None -> [] },
-    case value.xata_version { Some(v) -> [#("xataVersion", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type ActorResponseGoogledriveView {
-  ActorResponseGoogledriveView(created_at: Option(String), updated_at: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_actor_response_googledrive_view() -> ActorResponseGoogledriveView {
-  ActorResponseGoogledriveView(created_at: None, updated_at: None)
-}
-
-pub fn actor_response_googledrive_view_decoder() -> decode.Decoder(ActorResponseGoogledriveView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use created_at <- decode.optional_field("createdAt", None, decode.optional(decode.string))
-  use updated_at <- decode.optional_field("updatedAt", None, decode.optional(decode.string))
-  decode.success(ActorResponseGoogledriveView(created_at: created_at, updated_at: updated_at))
-}
-
-pub fn encode_actor_response_googledrive_view(value: ActorResponseGoogledriveView) -> json.Json {
-  json.object(list.flatten([
-    case value.created_at { Some(v) -> [#("createdAt", json.string(v))] None -> [] },
-    case value.updated_at { Some(v) -> [#("updatedAt", json.string(v))] None -> [] },
   ]))
 }
 
@@ -1827,220 +1765,6 @@ pub fn dislike_song_input_decoder() -> decode.Decoder(DislikeSongInput) {
 pub fn encode_dislike_song_input(value: DislikeSongInput) -> json.Json {
   json.object(list.flatten([
     case value.uri { Some(v) -> [#("uri", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type DropboxDownloadFileParams {
-  DropboxDownloadFileParams(file_id: String)
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_download_file_params(file_id: String) -> DropboxDownloadFileParams {
-  DropboxDownloadFileParams(file_id: file_id)
-}
-
-pub fn dropbox_download_file_params_decoder() -> decode.Decoder(DropboxDownloadFileParams) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use file_id <- decode.field("fileId", decode.string)
-  decode.success(DropboxDownloadFileParams(file_id: file_id))
-}
-
-pub fn encode_dropbox_download_file_params(value: DropboxDownloadFileParams) -> json.Json {
-  json.object(list.flatten([
-    [#("fileId", json.string(value.file_id))],
-  ]))
-}
-
-pub type DropboxFileListView {
-  DropboxFileListView(files: Option(List(DropboxFileView)), directory: Option(DropboxResponseDirectoryView), parent_directory: Option(DropboxResponseParentDirectoryView), directories: Option(List(DropboxResponseDirectoriesItemView)))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_file_list_view() -> DropboxFileListView {
-  DropboxFileListView(files: None, directory: None, parent_directory: None, directories: None)
-}
-
-pub fn dropbox_file_list_view_decoder() -> decode.Decoder(DropboxFileListView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use files <- decode.optional_field("files", None, decode.optional(decode.list(dropbox_file_view_decoder())))
-  use directory <- decode.optional_field("directory", None, decode.optional(dropbox_response_directory_view_decoder()))
-  use parent_directory <- decode.optional_field("parentDirectory", None, decode.optional(dropbox_response_parent_directory_view_decoder()))
-  use directories <- decode.optional_field("directories", None, decode.optional(decode.list(dropbox_response_directories_item_view_decoder())))
-  decode.success(DropboxFileListView(files: files, directory: directory, parent_directory: parent_directory, directories: directories))
-}
-
-pub fn encode_dropbox_file_list_view(value: DropboxFileListView) -> json.Json {
-  json.object(list.flatten([
-    case value.files { Some(v) -> [#("files", json.array(v, fn(item) { encode_dropbox_file_view(item) }))] None -> [] },
-    case value.directory { Some(v) -> [#("directory", encode_dropbox_response_directory_view(v))] None -> [] },
-    case value.parent_directory { Some(v) -> [#("parentDirectory", encode_dropbox_response_parent_directory_view(v))] None -> [] },
-    case value.directories { Some(v) -> [#("directories", json.array(v, fn(item) { encode_dropbox_response_directories_item_view(item) }))] None -> [] },
-  ]))
-}
-
-pub type DropboxFileView {
-  DropboxFileView(id: Option(String), name: Option(String), path_lower: Option(String), path_display: Option(String), client_modified: Option(String), server_modified: Option(String), file_id: Option(String), directory_id: Option(String), track_id: Option(String), created_at: Option(String), updated_at: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_file_view() -> DropboxFileView {
-  DropboxFileView(id: None, name: None, path_lower: None, path_display: None, client_modified: None, server_modified: None, file_id: None, directory_id: None, track_id: None, created_at: None, updated_at: None)
-}
-
-pub fn dropbox_file_view_decoder() -> decode.Decoder(DropboxFileView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use id <- decode.optional_field("id", None, decode.optional(decode.string))
-  use name <- decode.optional_field("name", None, decode.optional(decode.string))
-  use path_lower <- decode.optional_field("pathLower", None, decode.optional(decode.string))
-  use path_display <- decode.optional_field("pathDisplay", None, decode.optional(decode.string))
-  use client_modified <- decode.optional_field("clientModified", None, decode.optional(decode.string))
-  use server_modified <- decode.optional_field("serverModified", None, decode.optional(decode.string))
-  use file_id <- decode.optional_field("fileId", None, decode.optional(decode.string))
-  use directory_id <- decode.optional_field("directoryId", None, decode.optional(decode.string))
-  use track_id <- decode.optional_field("trackId", None, decode.optional(decode.string))
-  use created_at <- decode.optional_field("createdAt", None, decode.optional(decode.string))
-  use updated_at <- decode.optional_field("updatedAt", None, decode.optional(decode.string))
-  decode.success(DropboxFileView(id: id, name: name, path_lower: path_lower, path_display: path_display, client_modified: client_modified, server_modified: server_modified, file_id: file_id, directory_id: directory_id, track_id: track_id, created_at: created_at, updated_at: updated_at))
-}
-
-pub fn encode_dropbox_file_view(value: DropboxFileView) -> json.Json {
-  json.object(list.flatten([
-    case value.id { Some(v) -> [#("id", json.string(v))] None -> [] },
-    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
-    case value.path_lower { Some(v) -> [#("pathLower", json.string(v))] None -> [] },
-    case value.path_display { Some(v) -> [#("pathDisplay", json.string(v))] None -> [] },
-    case value.client_modified { Some(v) -> [#("clientModified", json.string(v))] None -> [] },
-    case value.server_modified { Some(v) -> [#("serverModified", json.string(v))] None -> [] },
-    case value.file_id { Some(v) -> [#("fileId", json.string(v))] None -> [] },
-    case value.directory_id { Some(v) -> [#("directoryId", json.string(v))] None -> [] },
-    case value.track_id { Some(v) -> [#("trackId", json.string(v))] None -> [] },
-    case value.created_at { Some(v) -> [#("createdAt", json.string(v))] None -> [] },
-    case value.updated_at { Some(v) -> [#("updatedAt", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type DropboxGetFilesParams {
-  DropboxGetFilesParams(at: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_get_files_params() -> DropboxGetFilesParams {
-  DropboxGetFilesParams(at: None)
-}
-
-pub fn dropbox_get_files_params_decoder() -> decode.Decoder(DropboxGetFilesParams) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use at <- decode.optional_field("at", None, decode.optional(decode.string))
-  decode.success(DropboxGetFilesParams(at: at))
-}
-
-pub fn encode_dropbox_get_files_params(value: DropboxGetFilesParams) -> json.Json {
-  json.object(list.flatten([
-    case value.at { Some(v) -> [#("at", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type DropboxResponseDirectoriesItemView {
-  DropboxResponseDirectoriesItemView(id: Option(String), name: Option(String), file_id: Option(String), path: Option(String), parent_id: Option(String), created_at: Option(String), updated_at: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_response_directories_item_view() -> DropboxResponseDirectoriesItemView {
-  DropboxResponseDirectoriesItemView(id: None, name: None, file_id: None, path: None, parent_id: None, created_at: None, updated_at: None)
-}
-
-pub fn dropbox_response_directories_item_view_decoder() -> decode.Decoder(DropboxResponseDirectoriesItemView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use id <- decode.optional_field("id", None, decode.optional(decode.string))
-  use name <- decode.optional_field("name", None, decode.optional(decode.string))
-  use file_id <- decode.optional_field("fileId", None, decode.optional(decode.string))
-  use path <- decode.optional_field("path", None, decode.optional(decode.string))
-  use parent_id <- decode.optional_field("parentId", None, decode.optional(decode.string))
-  use created_at <- decode.optional_field("createdAt", None, decode.optional(decode.string))
-  use updated_at <- decode.optional_field("updatedAt", None, decode.optional(decode.string))
-  decode.success(DropboxResponseDirectoriesItemView(id: id, name: name, file_id: file_id, path: path, parent_id: parent_id, created_at: created_at, updated_at: updated_at))
-}
-
-pub fn encode_dropbox_response_directories_item_view(value: DropboxResponseDirectoriesItemView) -> json.Json {
-  json.object(list.flatten([
-    case value.id { Some(v) -> [#("id", json.string(v))] None -> [] },
-    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
-    case value.file_id { Some(v) -> [#("fileId", json.string(v))] None -> [] },
-    case value.path { Some(v) -> [#("path", json.string(v))] None -> [] },
-    case value.parent_id { Some(v) -> [#("parentId", json.string(v))] None -> [] },
-    case value.created_at { Some(v) -> [#("createdAt", json.string(v))] None -> [] },
-    case value.updated_at { Some(v) -> [#("updatedAt", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type DropboxResponseDirectoryView {
-  DropboxResponseDirectoryView
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_response_directory_view() -> DropboxResponseDirectoryView {
-  DropboxResponseDirectoryView
-}
-
-pub fn dropbox_response_directory_view_decoder() -> decode.Decoder(DropboxResponseDirectoryView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-
-  decode.success(DropboxResponseDirectoryView)
-}
-
-pub fn encode_dropbox_response_directory_view(_value: DropboxResponseDirectoryView) -> json.Json {
-  json.object(list.flatten([
-
-  ]))
-}
-
-pub type DropboxResponseParentDirectoryView {
-  DropboxResponseParentDirectoryView
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_response_parent_directory_view() -> DropboxResponseParentDirectoryView {
-  DropboxResponseParentDirectoryView
-}
-
-pub fn dropbox_response_parent_directory_view_decoder() -> decode.Decoder(DropboxResponseParentDirectoryView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-
-  decode.success(DropboxResponseParentDirectoryView)
-}
-
-pub fn encode_dropbox_response_parent_directory_view(_value: DropboxResponseParentDirectoryView) -> json.Json {
-  json.object(list.flatten([
-
-  ]))
-}
-
-pub type DropboxTemporaryLinkView {
-  DropboxTemporaryLinkView(link: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_dropbox_temporary_link_view() -> DropboxTemporaryLinkView {
-  DropboxTemporaryLinkView(link: None)
-}
-
-pub fn dropbox_temporary_link_view_decoder() -> decode.Decoder(DropboxTemporaryLinkView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use link <- decode.optional_field("link", None, decode.optional(decode.string))
-  decode.success(DropboxTemporaryLinkView(link: link))
-}
-
-pub fn encode_dropbox_temporary_link_view(value: DropboxTemporaryLinkView) -> json.Json {
-  json.object(list.flatten([
-    case value.link { Some(v) -> [#("link", json.string(v))] None -> [] },
   ]))
 }
 
@@ -4740,28 +4464,6 @@ pub fn encode_get_feed_skeleton_params(value: GetFeedSkeletonParams) -> json.Jso
   ]))
 }
 
-pub type GetFileParams {
-  GetFileParams(file_id: String)
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_get_file_params(file_id: String) -> GetFileParams {
-  GetFileParams(file_id: file_id)
-}
-
-pub fn get_file_params_decoder() -> decode.Decoder(GetFileParams) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use file_id <- decode.field("fileId", decode.string)
-  decode.success(GetFileParams(file_id: file_id))
-}
-
-pub fn encode_get_file_params(value: GetFileParams) -> json.Json {
-  json.object(list.flatten([
-    [#("fileId", json.string(value.file_id))],
-  ]))
-}
-
 pub type GetFollowersOutput {
   GetFollowersOutput(subject: ActorProfileViewBasic, followers: List(ActorProfileViewBasic), cursor: Option(String), count: Option(Int))
 }
@@ -5217,50 +4919,6 @@ pub fn encode_get_lyrics_params(value: GetLyricsParams) -> json.Json {
   json.object(list.flatten([
     case value.artist { Some(v) -> [#("artist", json.string(v))] None -> [] },
     case value.title { Some(v) -> [#("title", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type GetMetadataOutput {
-  GetMetadataOutput(metadata: Option(json_value.JsonValue))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_get_metadata_output() -> GetMetadataOutput {
-  GetMetadataOutput(metadata: None)
-}
-
-pub fn get_metadata_output_decoder() -> decode.Decoder(GetMetadataOutput) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use metadata <- decode.optional_field("metadata", None, decode.optional(json_value.decoder()))
-  decode.success(GetMetadataOutput(metadata: metadata))
-}
-
-pub fn encode_get_metadata_output(value: GetMetadataOutput) -> json.Json {
-  json.object(list.flatten([
-    case value.metadata { Some(v) -> [#("metadata", json_value.encode(v))] None -> [] },
-  ]))
-}
-
-pub type GetMetadataParams {
-  GetMetadataParams(path: String)
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_get_metadata_params(path: String) -> GetMetadataParams {
-  GetMetadataParams(path: path)
-}
-
-pub fn get_metadata_params_decoder() -> decode.Decoder(GetMetadataParams) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use path <- decode.field("path", decode.string)
-  decode.success(GetMetadataParams(path: path))
-}
-
-pub fn encode_get_metadata_params(value: GetMetadataParams) -> json.Json {
-  json.object(list.flatten([
-    [#("path", json.string(value.path))],
   ]))
 }
 
@@ -6278,28 +5936,6 @@ pub fn encode_get_stream_url_params(value: GetStreamUrlParams) -> json.Json {
   ]))
 }
 
-pub type GetTemporaryLinkParams {
-  GetTemporaryLinkParams(path: String)
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_get_temporary_link_params(path: String) -> GetTemporaryLinkParams {
-  GetTemporaryLinkParams(path: path)
-}
-
-pub fn get_temporary_link_params_decoder() -> decode.Decoder(GetTemporaryLinkParams) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use path <- decode.field("path", decode.string)
-  decode.success(GetTemporaryLinkParams(path: path))
-}
-
-pub fn encode_get_temporary_link_params(value: GetTemporaryLinkParams) -> json.Json {
-  json.object(list.flatten([
-    [#("path", json.string(value.path))],
-  ]))
-}
-
 pub type GetTopArtistsOutput {
   GetTopArtistsOutput(artists: Option(List(ArtistViewBasic)))
 }
@@ -6653,190 +6289,6 @@ pub fn encode_get_wrapped_params(value: GetWrappedParams) -> json.Json {
     [#("did", json.string(value.did))],
     case value.year { Some(v) -> [#("year", json.int(v))] None -> [] },
     case value.period { Some(v) -> [#("period", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type GoogledriveDownloadFileParams {
-  GoogledriveDownloadFileParams(file_id: String)
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_googledrive_download_file_params(file_id: String) -> GoogledriveDownloadFileParams {
-  GoogledriveDownloadFileParams(file_id: file_id)
-}
-
-pub fn googledrive_download_file_params_decoder() -> decode.Decoder(GoogledriveDownloadFileParams) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use file_id <- decode.field("fileId", decode.string)
-  decode.success(GoogledriveDownloadFileParams(file_id: file_id))
-}
-
-pub fn encode_googledrive_download_file_params(value: GoogledriveDownloadFileParams) -> json.Json {
-  json.object(list.flatten([
-    [#("fileId", json.string(value.file_id))],
-  ]))
-}
-
-pub type GoogledriveFileListView {
-  GoogledriveFileListView(files: Option(List(GoogledriveFileView)), directory: Option(GoogledriveResponseDirectoryView), parent_directory: Option(GoogledriveResponseParentDirectoryView), directories: Option(List(GoogledriveResponseDirectoriesItemView)))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_googledrive_file_list_view() -> GoogledriveFileListView {
-  GoogledriveFileListView(files: None, directory: None, parent_directory: None, directories: None)
-}
-
-pub fn googledrive_file_list_view_decoder() -> decode.Decoder(GoogledriveFileListView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use files <- decode.optional_field("files", None, decode.optional(decode.list(googledrive_file_view_decoder())))
-  use directory <- decode.optional_field("directory", None, decode.optional(googledrive_response_directory_view_decoder()))
-  use parent_directory <- decode.optional_field("parentDirectory", None, decode.optional(googledrive_response_parent_directory_view_decoder()))
-  use directories <- decode.optional_field("directories", None, decode.optional(decode.list(googledrive_response_directories_item_view_decoder())))
-  decode.success(GoogledriveFileListView(files: files, directory: directory, parent_directory: parent_directory, directories: directories))
-}
-
-pub fn encode_googledrive_file_list_view(value: GoogledriveFileListView) -> json.Json {
-  json.object(list.flatten([
-    case value.files { Some(v) -> [#("files", json.array(v, fn(item) { encode_googledrive_file_view(item) }))] None -> [] },
-    case value.directory { Some(v) -> [#("directory", encode_googledrive_response_directory_view(v))] None -> [] },
-    case value.parent_directory { Some(v) -> [#("parentDirectory", encode_googledrive_response_parent_directory_view(v))] None -> [] },
-    case value.directories { Some(v) -> [#("directories", json.array(v, fn(item) { encode_googledrive_response_directories_item_view(item) }))] None -> [] },
-  ]))
-}
-
-pub type GoogledriveFileView {
-  GoogledriveFileView(id: Option(String), name: Option(String), file_id: Option(String), directory_id: Option(String), track_id: Option(String), created_at: Option(String), updated_at: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_googledrive_file_view() -> GoogledriveFileView {
-  GoogledriveFileView(id: None, name: None, file_id: None, directory_id: None, track_id: None, created_at: None, updated_at: None)
-}
-
-pub fn googledrive_file_view_decoder() -> decode.Decoder(GoogledriveFileView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use id <- decode.optional_field("id", None, decode.optional(decode.string))
-  use name <- decode.optional_field("name", None, decode.optional(decode.string))
-  use file_id <- decode.optional_field("fileId", None, decode.optional(decode.string))
-  use directory_id <- decode.optional_field("directoryId", None, decode.optional(decode.string))
-  use track_id <- decode.optional_field("trackId", None, decode.optional(decode.string))
-  use created_at <- decode.optional_field("createdAt", None, decode.optional(decode.string))
-  use updated_at <- decode.optional_field("updatedAt", None, decode.optional(decode.string))
-  decode.success(GoogledriveFileView(id: id, name: name, file_id: file_id, directory_id: directory_id, track_id: track_id, created_at: created_at, updated_at: updated_at))
-}
-
-pub fn encode_googledrive_file_view(value: GoogledriveFileView) -> json.Json {
-  json.object(list.flatten([
-    case value.id { Some(v) -> [#("id", json.string(v))] None -> [] },
-    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
-    case value.file_id { Some(v) -> [#("fileId", json.string(v))] None -> [] },
-    case value.directory_id { Some(v) -> [#("directoryId", json.string(v))] None -> [] },
-    case value.track_id { Some(v) -> [#("trackId", json.string(v))] None -> [] },
-    case value.created_at { Some(v) -> [#("createdAt", json.string(v))] None -> [] },
-    case value.updated_at { Some(v) -> [#("updatedAt", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type GoogledriveGetFilesParams {
-  GoogledriveGetFilesParams(at: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_googledrive_get_files_params() -> GoogledriveGetFilesParams {
-  GoogledriveGetFilesParams(at: None)
-}
-
-pub fn googledrive_get_files_params_decoder() -> decode.Decoder(GoogledriveGetFilesParams) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use at <- decode.optional_field("at", None, decode.optional(decode.string))
-  decode.success(GoogledriveGetFilesParams(at: at))
-}
-
-pub fn encode_googledrive_get_files_params(value: GoogledriveGetFilesParams) -> json.Json {
-  json.object(list.flatten([
-    case value.at { Some(v) -> [#("at", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type GoogledriveResponseDirectoriesItemView {
-  GoogledriveResponseDirectoriesItemView(id: Option(String), name: Option(String), file_id: Option(String), path: Option(String), parent_id: Option(String), created_at: Option(String), updated_at: Option(String))
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_googledrive_response_directories_item_view() -> GoogledriveResponseDirectoriesItemView {
-  GoogledriveResponseDirectoriesItemView(id: None, name: None, file_id: None, path: None, parent_id: None, created_at: None, updated_at: None)
-}
-
-pub fn googledrive_response_directories_item_view_decoder() -> decode.Decoder(GoogledriveResponseDirectoriesItemView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-  use id <- decode.optional_field("id", None, decode.optional(decode.string))
-  use name <- decode.optional_field("name", None, decode.optional(decode.string))
-  use file_id <- decode.optional_field("fileId", None, decode.optional(decode.string))
-  use path <- decode.optional_field("path", None, decode.optional(decode.string))
-  use parent_id <- decode.optional_field("parentId", None, decode.optional(decode.string))
-  use created_at <- decode.optional_field("createdAt", None, decode.optional(decode.string))
-  use updated_at <- decode.optional_field("updatedAt", None, decode.optional(decode.string))
-  decode.success(GoogledriveResponseDirectoriesItemView(id: id, name: name, file_id: file_id, path: path, parent_id: parent_id, created_at: created_at, updated_at: updated_at))
-}
-
-pub fn encode_googledrive_response_directories_item_view(value: GoogledriveResponseDirectoriesItemView) -> json.Json {
-  json.object(list.flatten([
-    case value.id { Some(v) -> [#("id", json.string(v))] None -> [] },
-    case value.name { Some(v) -> [#("name", json.string(v))] None -> [] },
-    case value.file_id { Some(v) -> [#("fileId", json.string(v))] None -> [] },
-    case value.path { Some(v) -> [#("path", json.string(v))] None -> [] },
-    case value.parent_id { Some(v) -> [#("parentId", json.string(v))] None -> [] },
-    case value.created_at { Some(v) -> [#("createdAt", json.string(v))] None -> [] },
-    case value.updated_at { Some(v) -> [#("updatedAt", json.string(v))] None -> [] },
-  ]))
-}
-
-pub type GoogledriveResponseDirectoryView {
-  GoogledriveResponseDirectoryView
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_googledrive_response_directory_view() -> GoogledriveResponseDirectoryView {
-  GoogledriveResponseDirectoryView
-}
-
-pub fn googledrive_response_directory_view_decoder() -> decode.Decoder(GoogledriveResponseDirectoryView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-
-  decode.success(GoogledriveResponseDirectoryView)
-}
-
-pub fn encode_googledrive_response_directory_view(_value: GoogledriveResponseDirectoryView) -> json.Json {
-  json.object(list.flatten([
-
-  ]))
-}
-
-pub type GoogledriveResponseParentDirectoryView {
-  GoogledriveResponseParentDirectoryView
-}
-
-/// Construct with required fields; optional fields default to None.
-pub fn new_googledrive_response_parent_directory_view() -> GoogledriveResponseParentDirectoryView {
-  GoogledriveResponseParentDirectoryView
-}
-
-pub fn googledrive_response_parent_directory_view_decoder() -> decode.Decoder(GoogledriveResponseParentDirectoryView) {
-  use <- decode.recursive
-  use _ <- decode.then(decode.dict(decode.string, decode.dynamic))
-
-  decode.success(GoogledriveResponseParentDirectoryView)
-}
-
-pub fn encode_googledrive_response_parent_directory_view(_value: GoogledriveResponseParentDirectoryView) -> json.Json {
-  json.object(list.flatten([
-
   ]))
 }
 

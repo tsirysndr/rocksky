@@ -14,20 +14,11 @@ import discogsReleaseLabels from "./discogs-release-labels";
 import discogsReleases from "./discogs-releases";
 import discogsSearches from "./discogs-searches";
 import discogsTracks from "./discogs-tracks";
-import dropbox from "./dropbox";
 import eventArtists from "./event-artists";
 import eventRsvps from "./event-rsvps";
 import events from "./events";
-import dropboxAccounts from "./dropbox-accounts";
-import dropboxDirectories from "./dropbox-directories";
-import dropboxPaths from "./dropbox-paths";
-import dropboxTokens from "./dropbox-tokens";
 import feeds from "./feeds";
 import follows from "./follows";
-import googleDriveAccounts from "./google-drive-accounts";
-import googleDriveDirectories from "./google-drive-directories";
-import googleDrivePaths from "./google-drive-paths";
-import googleDrive from "./googledrive";
 import lovedTracks from "./loved-tracks";
 import mirrorSources from "./mirror-sources";
 import navidromePlaylistTracks from "./navidrome-playlist-tracks";
@@ -88,15 +79,6 @@ export default {
   spotifyApps,
   artistTracks,
   artistAlbums,
-  dropboxAccounts,
-  googleDriveAccounts,
-  dropboxDirectories,
-  dropboxPaths,
-  googleDriveDirectories,
-  googleDrivePaths,
-  dropbox,
-  dropboxTokens,
-  googleDrive,
   queueTracks,
   feeds,
   follows,

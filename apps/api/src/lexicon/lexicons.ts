@@ -49,14 +49,6 @@ export const schemaDict = {
           spotifyConnected: {
             type: "boolean",
           },
-          googledrive: {
-            type: "ref",
-            ref: "lex:app.rocksky.actor.defs#responseGoogledriveView",
-          },
-          dropbox: {
-            type: "ref",
-            ref: "lex:app.rocksky.actor.defs#responseDropboxView",
-          },
         },
       },
       profileViewBasic: {
@@ -263,44 +255,6 @@ export const schemaDict = {
             type: "boolean",
           },
           spotifyAppId: {
-            type: "string",
-          },
-        },
-      },
-      responseGoogledriveView: {
-        type: "object",
-        properties: {
-          createdAt: {
-            type: "string",
-          },
-          updatedAt: {
-            type: "string",
-          },
-        },
-      },
-      responseDropboxView: {
-        type: "object",
-        nullable: ["userId", "xataVersion"],
-        properties: {
-          createdAt: {
-            type: "string",
-          },
-          updatedAt: {
-            type: "string",
-          },
-          id: {
-            type: "string",
-          },
-          email: {
-            type: "string",
-          },
-          isBetaUser: {
-            type: "boolean",
-          },
-          userId: {
-            type: "string",
-          },
-          xataVersion: {
             type: "string",
           },
         },
@@ -3068,241 +3022,6 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyDropboxDefs: {
-    lexicon: 1,
-    id: "app.rocksky.dropbox.defs",
-    defs: {
-      fileView: {
-        type: "object",
-        properties: {
-          id: {
-            type: "string",
-            description: "The unique identifier of the file.",
-          },
-          name: {
-            type: "string",
-            description: "The name of the file.",
-          },
-          pathLower: {
-            type: "string",
-            description: "The lowercased path of the file.",
-          },
-          pathDisplay: {
-            type: "string",
-            description: "The display path of the file.",
-          },
-          clientModified: {
-            type: "string",
-            description:
-              "The last modified date and time of the file on the client.",
-            format: "datetime",
-          },
-          serverModified: {
-            type: "string",
-            description:
-              "The last modified date and time of the file on the server.",
-            format: "datetime",
-          },
-          fileId: {
-            type: "string",
-          },
-          directoryId: {
-            type: "string",
-          },
-          trackId: {
-            type: "string",
-          },
-          createdAt: {
-            type: "string",
-          },
-          updatedAt: {
-            type: "string",
-          },
-        },
-      },
-      fileListView: {
-        type: "object",
-        properties: {
-          files: {
-            type: "array",
-            description: "A list of files in the Dropbox.",
-            items: {
-              type: "ref",
-              ref: "lex:app.rocksky.dropbox.defs#fileView",
-            },
-          },
-          directory: {
-            type: "ref",
-            ref: "lex:app.rocksky.dropbox.defs#responseDirectoryView",
-          },
-          parentDirectory: {
-            type: "ref",
-            ref: "lex:app.rocksky.dropbox.defs#responseParentDirectoryView",
-          },
-          directories: {
-            type: "array",
-            items: {
-              type: "ref",
-              ref: "lex:app.rocksky.dropbox.defs#responseDirectoriesItemView",
-            },
-          },
-        },
-      },
-      temporaryLinkView: {
-        type: "object",
-        properties: {
-          link: {
-            type: "string",
-            description: "The temporary link to access the file.",
-            format: "uri",
-          },
-        },
-      },
-      responseDirectoryView: {
-        type: "object",
-        properties: {},
-      },
-      responseParentDirectoryView: {
-        type: "object",
-        properties: {},
-      },
-      responseDirectoriesItemView: {
-        type: "object",
-        properties: {
-          id: {
-            type: "string",
-          },
-          name: {
-            type: "string",
-          },
-          fileId: {
-            type: "string",
-          },
-          path: {
-            type: "string",
-          },
-          parentId: {
-            type: "string",
-          },
-          createdAt: {
-            type: "string",
-          },
-          updatedAt: {
-            type: "string",
-          },
-        },
-      },
-    },
-  },
-  AppRockskyDropboxDownloadFile: {
-    lexicon: 1,
-    id: "app.rocksky.dropbox.downloadFile",
-    defs: {
-      main: {
-        type: "query",
-        description: "Download a file from Dropbox by its unique identifier",
-        parameters: {
-          type: "params",
-          required: ["fileId"],
-          properties: {
-            fileId: {
-              type: "string",
-              description: "The unique identifier of the file to download",
-            },
-          },
-        },
-        output: {
-          encoding: "application/octet-stream",
-        },
-      },
-    },
-  },
-  AppRockskyDropboxGetFiles: {
-    lexicon: 1,
-    id: "app.rocksky.dropbox.getFiles",
-    defs: {
-      main: {
-        type: "query",
-        description: "Retrieve a list of files from Dropbox",
-        parameters: {
-          type: "params",
-          properties: {
-            at: {
-              type: "string",
-              description: "Path to the Dropbox folder or root directory",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "ref",
-            ref: "lex:app.rocksky.dropbox.defs#fileListView",
-          },
-        },
-      },
-    },
-  },
-  AppRockskyDropboxGetMetadata: {
-    lexicon: 1,
-    id: "app.rocksky.dropbox.getMetadata",
-    defs: {
-      main: {
-        type: "query",
-        description: "Retrieve metadata of a file or folder in Dropbox",
-        parameters: {
-          type: "params",
-          required: ["path"],
-          properties: {
-            path: {
-              type: "string",
-              description: "Path to the file or folder in Dropbox",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              metadata: {
-                type: "unknown",
-                description:
-                  "Metadata returned by the provider; currently an empty object.",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyDropboxGetTemporaryLink: {
-    lexicon: 1,
-    id: "app.rocksky.dropbox.getTemporaryLink",
-    defs: {
-      main: {
-        type: "query",
-        description: "Retrieve a temporary link to access a file in Dropbox",
-        parameters: {
-          type: "params",
-          required: ["path"],
-          properties: {
-            path: {
-              type: "string",
-              description: "Path to the file in Dropbox",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "ref",
-            ref: "lex:app.rocksky.dropbox.defs#temporaryLinkView",
-          },
-        },
-      },
-    },
-  },
   AppRockskyEqualizerDefs: {
     lexicon: 1,
     id: "app.rocksky.equalizer.defs",
@@ -4300,8 +4019,8 @@ export const schemaDict = {
             properties: {
               uri: {
                 type: "string",
-                description: "The calendar or music event URI.",
                 format: "at-uri",
+                description: "The calendar or music event URI.",
               },
               status: {
                 type: "string",
@@ -4322,8 +4041,8 @@ export const schemaDict = {
             properties: {
               uri: {
                 type: "string",
-                description: "The RSVP record URI.",
                 format: "at-uri",
+                description: "The RSVP record URI.",
               },
               status: {
                 type: "string",
@@ -5351,177 +5070,6 @@ export const schemaDict = {
           schema: {
             type: "ref",
             ref: "lex:app.rocksky.feed.defs#searchResultsView",
-          },
-        },
-      },
-    },
-  },
-  AppRockskyGoogledriveDefs: {
-    lexicon: 1,
-    id: "app.rocksky.googledrive.defs",
-    defs: {
-      fileView: {
-        type: "object",
-        properties: {
-          id: {
-            type: "string",
-            description: "The unique identifier of the file.",
-          },
-          name: {
-            type: "string",
-          },
-          fileId: {
-            type: "string",
-          },
-          directoryId: {
-            type: "string",
-          },
-          trackId: {
-            type: "string",
-          },
-          createdAt: {
-            type: "string",
-          },
-          updatedAt: {
-            type: "string",
-          },
-        },
-      },
-      fileListView: {
-        type: "object",
-        properties: {
-          files: {
-            type: "array",
-            items: {
-              type: "ref",
-              ref: "lex:app.rocksky.googledrive.defs#fileView",
-            },
-          },
-          directory: {
-            type: "ref",
-            ref: "lex:app.rocksky.googledrive.defs#responseDirectoryView",
-          },
-          parentDirectory: {
-            type: "ref",
-            ref: "lex:app.rocksky.googledrive.defs#responseParentDirectoryView",
-          },
-          directories: {
-            type: "array",
-            items: {
-              type: "ref",
-              ref: "lex:app.rocksky.googledrive.defs#responseDirectoriesItemView",
-            },
-          },
-        },
-      },
-      responseDirectoryView: {
-        type: "object",
-        properties: {},
-      },
-      responseParentDirectoryView: {
-        type: "object",
-        properties: {},
-      },
-      responseDirectoriesItemView: {
-        type: "object",
-        properties: {
-          id: {
-            type: "string",
-          },
-          name: {
-            type: "string",
-          },
-          fileId: {
-            type: "string",
-          },
-          path: {
-            type: "string",
-          },
-          parentId: {
-            type: "string",
-          },
-          createdAt: {
-            type: "string",
-          },
-          updatedAt: {
-            type: "string",
-          },
-        },
-      },
-    },
-  },
-  AppRockskyGoogledriveDownloadFile: {
-    lexicon: 1,
-    id: "app.rocksky.googledrive.downloadFile",
-    defs: {
-      main: {
-        type: "query",
-        description:
-          "Download a file from Google Drive by its unique identifier",
-        parameters: {
-          type: "params",
-          required: ["fileId"],
-          properties: {
-            fileId: {
-              type: "string",
-              description: "The unique identifier of the file to download",
-            },
-          },
-        },
-        output: {
-          encoding: "application/octet-stream",
-        },
-      },
-    },
-  },
-  AppRockskyGoogledriveGetFile: {
-    lexicon: 1,
-    id: "app.rocksky.googledrive.getFile",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get a file from Google Drive by its unique identifier",
-        parameters: {
-          type: "params",
-          required: ["fileId"],
-          properties: {
-            fileId: {
-              type: "string",
-              description: "The unique identifier of the file to retrieve",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "ref",
-            ref: "lex:app.rocksky.googledrive.defs#fileView",
-          },
-        },
-      },
-    },
-  },
-  AppRockskyGoogledriveGetFiles: {
-    lexicon: 1,
-    id: "app.rocksky.googledrive.getFiles",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get a list of files from Google Drive",
-        parameters: {
-          type: "params",
-          properties: {
-            at: {
-              type: "string",
-              description: "Path to the Google Drive folder or root directory",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "ref",
-            ref: "lex:app.rocksky.googledrive.defs#fileListView",
           },
         },
       },
@@ -11591,33 +11139,6 @@ export const schemaDict = {
         description:
           "A ranked candidate match for a song from an external metadata provider.",
         properties: {
-          source: {
-            type: "string",
-            description: "The metadata provider for this candidate.",
-          },
-          providerId: {
-            type: "string",
-            description:
-              "The provider identifier, including non-numeric identifiers.",
-          },
-          mbId: {
-            type: "string",
-            description:
-              "The MusicBrainz recording identifier of this candidate.",
-          },
-          mbReleaseId: {
-            type: "string",
-            description:
-              "The MusicBrainz release identifier of this candidate.",
-          },
-          mbArtists: {
-            type: "array",
-            items: {
-              type: "ref",
-              ref: "lex:app.rocksky.song.defs#responseMbArtistsItemView",
-            },
-          },
-
           id: {
             type: "integer",
             description:
@@ -11683,6 +11204,32 @@ export const schemaDict = {
               "Match confidence score in the range 0-100 (higher is better).",
             maximum: 100,
             minimum: 0,
+          },
+          source: {
+            type: "string",
+            description: "The metadata provider for this candidate.",
+          },
+          providerId: {
+            type: "string",
+            description:
+              "The provider identifier, including non-numeric identifiers.",
+          },
+          mbId: {
+            type: "string",
+            description:
+              "The MusicBrainz recording identifier of this candidate.",
+          },
+          mbReleaseId: {
+            type: "string",
+            description:
+              "The MusicBrainz release identifier of this candidate.",
+          },
+          mbArtists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.song.defs#responseMbArtistsItemView",
+            },
           },
         },
       },
@@ -13642,11 +13189,6 @@ export const ids = {
   CommunityLexiconLocationFsq: "community.lexicon.location.fsq",
   CommunityLexiconLocationGeo: "community.lexicon.location.geo",
   CommunityLexiconLocationHthree: "community.lexicon.location.hthree",
-  AppRockskyDropboxDefs: "app.rocksky.dropbox.defs",
-  AppRockskyDropboxDownloadFile: "app.rocksky.dropbox.downloadFile",
-  AppRockskyDropboxGetFiles: "app.rocksky.dropbox.getFiles",
-  AppRockskyDropboxGetMetadata: "app.rocksky.dropbox.getMetadata",
-  AppRockskyDropboxGetTemporaryLink: "app.rocksky.dropbox.getTemporaryLink",
   AppRockskyEqualizerDefs: "app.rocksky.equalizer.defs",
   AppRockskyEqualizerDeletePreset: "app.rocksky.equalizer.deletePreset",
   AppRockskyEqualizer: "app.rocksky.equalizer",
@@ -13672,10 +13214,6 @@ export const ids = {
   AppRockskyFeedGetRecommendations: "app.rocksky.feed.getRecommendations",
   AppRockskyFeedGetStories: "app.rocksky.feed.getStories",
   AppRockskyFeedSearch: "app.rocksky.feed.search",
-  AppRockskyGoogledriveDefs: "app.rocksky.googledrive.defs",
-  AppRockskyGoogledriveDownloadFile: "app.rocksky.googledrive.downloadFile",
-  AppRockskyGoogledriveGetFile: "app.rocksky.googledrive.getFile",
-  AppRockskyGoogledriveGetFiles: "app.rocksky.googledrive.getFiles",
   AppRockskyGraphDefs: "app.rocksky.graph.defs",
   AppRockskyGraphFollow: "app.rocksky.graph.follow",
   AppRockskyGraphFollowAccount: "app.rocksky.graph.followAccount",

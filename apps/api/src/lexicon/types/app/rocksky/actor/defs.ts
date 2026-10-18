@@ -24,8 +24,6 @@ export interface ProfileViewDetailed {
   updatedAt?: string;
   spotifyUser?: ResponseSpotifyUserView;
   spotifyConnected?: boolean;
-  googledrive?: ResponseGoogledriveView;
-  dropbox?: ResponseDropboxView;
   [k: string]: unknown;
 }
 
@@ -200,47 +198,4 @@ export function isResponseSpotifyUserView(
 
 export function validateResponseSpotifyUserView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.actor.defs#responseSpotifyUserView", v);
-}
-
-export interface ResponseGoogledriveView {
-  createdAt?: string;
-  updatedAt?: string;
-  [k: string]: unknown;
-}
-
-export function isResponseGoogledriveView(
-  v: unknown,
-): v is ResponseGoogledriveView {
-  return (
-    isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "app.rocksky.actor.defs#responseGoogledriveView"
-  );
-}
-
-export function validateResponseGoogledriveView(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.actor.defs#responseGoogledriveView", v);
-}
-
-export interface ResponseDropboxView {
-  createdAt?: string;
-  updatedAt?: string;
-  id?: string;
-  email?: string;
-  isBetaUser?: boolean;
-  userId?: string | null;
-  xataVersion?: string | null;
-  [k: string]: unknown;
-}
-
-export function isResponseDropboxView(v: unknown): v is ResponseDropboxView {
-  return (
-    isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "app.rocksky.actor.defs#responseDropboxView"
-  );
-}
-
-export function validateResponseDropboxView(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.actor.defs#responseDropboxView", v);
 }

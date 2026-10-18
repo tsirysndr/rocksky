@@ -17,9 +17,10 @@ pub mod get_actor_songs;
 pub mod get_profile;
 pub mod status;
 
+
 #[allow(unused_imports)]
 use alloc::collections::BTreeMap;
-use jacquard_common::{BosStr, CowStr, DefaultStr, FromStaticStr};
+use jacquard_common::{CowStr, BosStr, DefaultStr, FromStaticStr};
 
 #[allow(unused_imports)]
 use jacquard_common::deps::codegen::unicode_segmentation::UnicodeSegmentation;
@@ -30,17 +31,14 @@ use jacquard_derive::IntoStatic;
 use jacquard_lexicon::lexicon::LexiconDoc;
 use jacquard_lexicon::schema::LexiconSchema;
 
-use crate::app_rocksky::actor;
-use crate::app_rocksky::artist;
 #[allow(unused_imports)]
 use jacquard_lexicon::validation::{ConstraintError, ValidationPath};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize};
+use crate::app_rocksky::actor;
+use crate::app_rocksky::artist;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
+#[serde(rename_all = "camelCase", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
 pub struct ArtistViewBasic<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
@@ -58,11 +56,9 @@ pub struct ArtistViewBasic<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
+#[serde(rename_all = "camelCase", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
 pub struct CompatibilityViewBasic<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compatibility_level: Option<i64>,
@@ -80,11 +76,9 @@ pub struct CompatibilityViewBasic<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
+#[serde(rename_all = "camelCase", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
 pub struct NeighbourViewBasic<S: BosStr = DefaultStr> {
     ///The URL of the actor's avatar image.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -110,11 +104,9 @@ pub struct NeighbourViewBasic<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
+#[serde(rename_all = "camelCase", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
 pub struct ProfileViewBasic<S: BosStr = DefaultStr> {
     ///The URL of the actor's avatar image.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -141,11 +133,9 @@ pub struct ProfileViewBasic<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
+#[serde(rename_all = "camelCase", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
 pub struct ProfileViewDetailed<S: BosStr = DefaultStr> {
     ///The URL of the actor's avatar image.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -159,10 +149,6 @@ pub struct ProfileViewDetailed<S: BosStr = DefaultStr> {
     ///The display name of the actor.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub display_name: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dropbox: Option<actor::ResponseDropboxView<S>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub googledrive: Option<actor::ResponseGoogledriveView<S>>,
     ///The handle of the actor.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub handle: Option<S>,
@@ -180,49 +166,9 @@ pub struct ProfileViewDetailed<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
-pub struct ResponseDropboxView<S: BosStr = DefaultStr> {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_beta_user: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub xata_version: Option<S>,
-    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
-    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
-pub struct ResponseGoogledriveView<S: BosStr = DefaultStr> {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<S>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<S>,
-    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
-    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
+#[serde(rename_all = "camelCase", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
 pub struct ResponseSpotifyUserView<S: BosStr = DefaultStr> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<S>,
@@ -242,11 +188,9 @@ pub struct ResponseSpotifyUserView<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
-#[serde(
-    rename_all = "camelCase",
-    bound(deserialize = "S: Deserialize<'de> + BosStr")
-)]
+#[serde(rename_all = "camelCase", bound(deserialize = "S: Deserialize<'de> + BosStr"))]
 pub struct TrackView<S: BosStr = DefaultStr> {
     ///The album name.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -340,36 +284,6 @@ impl<S: BosStr> LexiconSchema for ProfileViewDetailed<S> {
     }
     fn def_name() -> &'static str {
         "profileViewDetailed"
-    }
-    fn lexicon_doc() -> LexiconDoc<'static> {
-        lexicon_doc_app_rocksky_actor_defs()
-    }
-    fn validate(&self) -> Result<(), ConstraintError> {
-        Ok(())
-    }
-}
-
-impl<S: BosStr> LexiconSchema for ResponseDropboxView<S> {
-    fn nsid() -> &'static str {
-        "app.rocksky.actor.defs"
-    }
-    fn def_name() -> &'static str {
-        "responseDropboxView"
-    }
-    fn lexicon_doc() -> LexiconDoc<'static> {
-        lexicon_doc_app_rocksky_actor_defs()
-    }
-    fn validate(&self) -> Result<(), ConstraintError> {
-        Ok(())
-    }
-}
-
-impl<S: BosStr> LexiconSchema for ResponseGoogledriveView<S> {
-    fn nsid() -> &'static str {
-        "app.rocksky.actor.defs"
-    }
-    fn def_name() -> &'static str {
-        "responseGoogledriveView"
     }
     fn lexicon_doc() -> LexiconDoc<'static> {
         lexicon_doc_app_rocksky_actor_defs()
@@ -492,10 +406,10 @@ impl<S: BosStr> LexiconSchema for TrackView<S> {
 }
 
 fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
-    use alloc::collections::BTreeMap;
     #[allow(unused_imports)]
-    use jacquard_common::{deps::smol_str::SmolStr, types::blob::MimeType, CowStr};
+    use jacquard_common::{CowStr, deps::smol_str::SmolStr, types::blob::MimeType};
     use jacquard_lexicon::lexicon::*;
+    use alloc::collections::BTreeMap;
     LexiconDoc {
         lexicon: Lexicon::Lexicon1,
         id: CowStr::new_static("app.rocksky.actor.defs"),
@@ -509,15 +423,11 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         let mut map = BTreeMap::new();
                         map.insert(
                             SmolStr::new_static("id"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("name"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("picture"),
@@ -615,29 +525,23 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("avatar"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The URL of the actor's avatar image.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The URL of the actor's avatar image."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("did"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("displayName"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("handle"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("sharedArtistsCount"),
@@ -648,9 +552,11 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("topSharedArtistNames"),
                             LexObjectProperty::Array(LexArray {
-                                description: Some(CowStr::new_static(
-                                    "The top shared artist names with the actor.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The top shared artist names with the actor.",
+                                    ),
+                                ),
                                 items: LexArrayItem::String(LexString {
                                     ..Default::default()
                                 }),
@@ -660,9 +566,11 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("topSharedArtistsDetails"),
                             LexObjectProperty::Array(LexArray {
-                                description: Some(CowStr::new_static(
-                                    "The top shared artist details with the actor.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The top shared artist details with the actor.",
+                                    ),
+                                ),
                                 items: LexArrayItem::Ref(LexRef {
                                     r#ref: CowStr::new_static(
                                         "app.rocksky.artist.defs#artistViewBasic",
@@ -674,9 +582,7 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         );
                         map.insert(
                             SmolStr::new_static("userId"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map
                     },
@@ -692,9 +598,9 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("avatar"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The URL of the actor's avatar image.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The URL of the actor's avatar image."),
+                                ),
                                 format: Some(LexStringFormat::Uri),
                                 ..Default::default()
                             }),
@@ -702,9 +608,11 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("createdAt"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The date and time when the actor was created.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The date and time when the actor was created.",
+                                    ),
+                                ),
                                 format: Some(LexStringFormat::Datetime),
                                 ..Default::default()
                             }),
@@ -712,41 +620,47 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("did"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The DID of the actor.")),
+                                description: Some(
+                                    CowStr::new_static("The DID of the actor."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("displayName"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The display name of the actor.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The display name of the actor."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("handle"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The handle of the actor.")),
+                                description: Some(
+                                    CowStr::new_static("The handle of the actor."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("id"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The unique identifier of the actor.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The unique identifier of the actor."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("updatedAt"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The date and time when the actor was last updated.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The date and time when the actor was last updated.",
+                                    ),
+                                ),
                                 format: Some(LexStringFormat::Datetime),
                                 ..Default::default()
                             }),
@@ -765,9 +679,9 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("avatar"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The URL of the actor's avatar image.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The URL of the actor's avatar image."),
+                                ),
                                 format: Some(LexStringFormat::Uri),
                                 ..Default::default()
                             }),
@@ -775,9 +689,11 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("createdAt"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The date and time when the actor was created.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The date and time when the actor was created.",
+                                    ),
+                                ),
                                 format: Some(LexStringFormat::Datetime),
                                 ..Default::default()
                             }),
@@ -785,33 +701,17 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("did"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The DID of the actor.")),
+                                description: Some(
+                                    CowStr::new_static("The DID of the actor."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("displayName"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The display name of the actor.",
-                                )),
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("dropbox"),
-                            LexObjectProperty::Ref(LexRef {
-                                r#ref: CowStr::new_static(
-                                    "app.rocksky.actor.defs#responseDropboxView",
-                                ),
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("googledrive"),
-                            LexObjectProperty::Ref(LexRef {
-                                r#ref: CowStr::new_static(
-                                    "app.rocksky.actor.defs#responseGoogledriveView",
+                                description: Some(
+                                    CowStr::new_static("The display name of the actor."),
                                 ),
                                 ..Default::default()
                             }),
@@ -819,16 +719,18 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("handle"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The handle of the actor.")),
+                                description: Some(
+                                    CowStr::new_static("The handle of the actor."),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("id"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The unique identifier of the actor.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("The unique identifier of the actor."),
+                                ),
                                 ..Default::default()
                             }),
                         );
@@ -850,86 +752,12 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("updatedAt"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "The date and time when the actor was last updated.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "The date and time when the actor was last updated.",
+                                    ),
+                                ),
                                 format: Some(LexStringFormat::Datetime),
-                                ..Default::default()
-                            }),
-                        );
-                        map
-                    },
-                    ..Default::default()
-                }),
-            );
-            map.insert(
-                SmolStr::new_static("responseDropboxView"),
-                LexUserType::Object(LexObject {
-                    properties: {
-                        #[allow(unused_mut)]
-                        let mut map = BTreeMap::new();
-                        map.insert(
-                            SmolStr::new_static("createdAt"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("email"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("id"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("isBetaUser"),
-                            LexObjectProperty::Boolean(LexBoolean {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("updatedAt"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("userId"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("xataVersion"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map
-                    },
-                    ..Default::default()
-                }),
-            );
-            map.insert(
-                SmolStr::new_static("responseGoogledriveView"),
-                LexUserType::Object(LexObject {
-                    properties: {
-                        #[allow(unused_mut)]
-                        let mut map = BTreeMap::new();
-                        map.insert(
-                            SmolStr::new_static("createdAt"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
-                        );
-                        map.insert(
-                            SmolStr::new_static("updatedAt"),
-                            LexObjectProperty::String(LexString {
                                 ..Default::default()
                             }),
                         );
@@ -946,15 +774,11 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         let mut map = BTreeMap::new();
                         map.insert(
                             SmolStr::new_static("createdAt"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("id"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("isBetaUser"),
@@ -964,21 +788,15 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         );
                         map.insert(
                             SmolStr::new_static("spotifyAppId"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("updatedAt"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("userId"),
-                            LexObjectProperty::String(LexString {
-                                ..Default::default()
-                            }),
+                            LexObjectProperty::String(LexString { ..Default::default() }),
                         );
                         map.insert(
                             SmolStr::new_static("xataVersion"),
@@ -994,10 +812,9 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
             map.insert(
                 SmolStr::new_static("trackView"),
                 LexUserType::Object(LexObject {
-                    required: Some(vec![
-                        SmolStr::new_static("name"),
-                        SmolStr::new_static("artist"),
-                    ]),
+                    required: Some(
+                        vec![SmolStr::new_static("name"), SmolStr::new_static("artist")],
+                    ),
                     properties: {
                         #[allow(unused_mut)]
                         let mut map = BTreeMap::new();
@@ -1012,9 +829,9 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("albumCoverUrl"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "URL of the album cover image.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static("URL of the album cover image."),
+                                ),
                                 format: Some(LexStringFormat::Uri),
                                 ..Default::default()
                             }),
@@ -1022,7 +839,9 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("artist"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The primary artist name.")),
+                                description: Some(
+                                    CowStr::new_static("The primary artist name."),
+                                ),
                                 min_length: Some(1usize),
                                 max_length: Some(256usize),
                                 ..Default::default()
@@ -1038,7 +857,9 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("name"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static("The name of the track.")),
+                                description: Some(
+                                    CowStr::new_static("The name of the track."),
+                                ),
                                 min_length: Some(1usize),
                                 max_length: Some(512usize),
                                 ..Default::default()
@@ -1047,18 +868,22 @@ fn lexicon_doc_app_rocksky_actor_defs() -> LexiconDoc<'static> {
                         map.insert(
                             SmolStr::new_static("recordingMbId"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "MusicBrainz recording ID, if available.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "MusicBrainz recording ID, if available.",
+                                    ),
+                                ),
                                 ..Default::default()
                             }),
                         );
                         map.insert(
                             SmolStr::new_static("source"),
                             LexObjectProperty::String(LexString {
-                                description: Some(CowStr::new_static(
-                                    "Music service source, e.g. 'spotify' or 'listenbrainz'.",
-                                )),
+                                description: Some(
+                                    CowStr::new_static(
+                                        "Music service source, e.g. 'spotify' or 'listenbrainz'.",
+                                    ),
+                                ),
                                 max_length: Some(64usize),
                                 ..Default::default()
                             }),

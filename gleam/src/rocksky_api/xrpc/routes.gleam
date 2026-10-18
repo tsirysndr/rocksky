@@ -24,12 +24,7 @@ import rocksky_api/xrpc/app/rocksky/apikey/create_apikey as apikey_create_apikey
 import rocksky_api/xrpc/app/rocksky/apikey/get_apikeys as apikey_get_apikeys
 import rocksky_api/xrpc/app/rocksky/apikey/remove_apikey as apikey_remove_apikey
 import rocksky_api/xrpc/app/rocksky/apikey/update_apikey as apikey_update_apikey
-import rocksky_api/xrpc/app/rocksky/dropbox/download_file as dropbox_download_file
-import rocksky_api/xrpc/app/rocksky/dropbox/get_metadata as dropbox_get_metadata
-import rocksky_api/xrpc/app/rocksky/dropbox/get_temporary_link as dropbox_get_temporary_link
 import rocksky_api/xrpc/app/rocksky/feed/search as feed_search
-import rocksky_api/xrpc/app/rocksky/googledrive/download_file as googledrive_download_file
-import rocksky_api/xrpc/app/rocksky/googledrive/get_file as googledrive_get_file
 import rocksky_api/xrpc/app/rocksky/player/add_items_to_queue
 import rocksky_api/xrpc/app/rocksky/player/get_currently_playing as player_get_currently_playing
 import rocksky_api/xrpc/app/rocksky/player/get_playback_queue as player_get_playback_queue
@@ -50,8 +45,6 @@ import rocksky_api/xrpc/app/rocksky/scrobble/create_scrobble
 import rocksky_api/xrpc/app/rocksky/song/match_song
 
 import rocksky_api/xrpc/app/rocksky/charts/get_top_scrobblers
-import rocksky_api/xrpc/app/rocksky/dropbox/get_files as dropbox_files
-import rocksky_api/xrpc/app/rocksky/googledrive/get_files as googledrive_files
 import rocksky_api/xrpc/app/rocksky/like/dislike_shout
 import rocksky_api/xrpc/app/rocksky/like/like_shout
 import rocksky_api/xrpc/app/rocksky/playlist/add_songs
@@ -225,8 +218,6 @@ pub fn register(server: Server, ctx: Context) -> Server {
   spotify_previous.register(server, ctx)
   spotify_seek.register(server, ctx)
   spotify_current.register(server, ctx)
-  dropbox_files.register(server, ctx)
-  googledrive_files.register(server, ctx)
   create_shout.register(server, ctx)
   reply_shout.register(server, ctx)
   remove_shout.register(server, ctx)
@@ -266,11 +257,6 @@ pub fn register(server: Server, ctx: Context) -> Server {
   playlist_insert_files.register(server, ctx)
   playlist_insert_directory.register(server, ctx)
   playlist_start_playlist.register(server, ctx)
-  dropbox_get_metadata.register(server, ctx)
-  dropbox_get_temporary_link.register(server, ctx)
-  dropbox_download_file.register(server, ctx)
-  googledrive_get_file.register(server, ctx)
-  googledrive_download_file.register(server, ctx)
   add_items_to_queue.register(server, ctx)
   get_album_recommendations.register(server, ctx)
   get_recommendations.register(server, ctx)

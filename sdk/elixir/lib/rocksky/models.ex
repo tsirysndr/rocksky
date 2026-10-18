@@ -67,31 +67,9 @@ end
 
 defmodule Rocksky.Models.ActorProfileViewDetailed do
   @enforce_keys []
-  defstruct [:id, :did, :handle, :display_name, :avatar, :created_at, :updated_at, :spotify_user, :spotify_connected, :googledrive, :dropbox]
-  @type t :: %__MODULE__{id: String.t() | nil, did: String.t() | nil, handle: String.t() | nil, display_name: String.t() | nil, avatar: String.t() | nil, created_at: String.t() | nil, updated_at: String.t() | nil, spotify_user: Rocksky.Models.ActorResponseSpotifyUserView.t() | nil, spotify_connected: boolean() | nil, googledrive: Rocksky.Models.ActorResponseGoogledriveView.t() | nil, dropbox: Rocksky.Models.ActorResponseDropboxView.t() | nil}
-  def __schema__, do: [{"id", :id, false, false, :string}, {"did", :did, false, false, :string}, {"handle", :handle, false, false, :string}, {"displayName", :display_name, false, false, :string}, {"avatar", :avatar, false, false, :string}, {"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}, {"spotifyUser", :spotify_user, false, false, {:record, Rocksky.Models.ActorResponseSpotifyUserView}}, {"spotifyConnected", :spotify_connected, false, false, :boolean}, {"googledrive", :googledrive, false, false, {:record, Rocksky.Models.ActorResponseGoogledriveView}}, {"dropbox", :dropbox, false, false, {:record, Rocksky.Models.ActorResponseDropboxView}}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.ActorResponseDropboxView do
-  @enforce_keys []
-  defstruct [:created_at, :updated_at, :id, :email, :is_beta_user, :user_id, :xata_version]
-  @type t :: %__MODULE__{created_at: String.t() | nil, updated_at: String.t() | nil, id: String.t() | nil, email: String.t() | nil, is_beta_user: boolean() | nil, user_id: String.t() | nil, xata_version: String.t() | nil}
-  def __schema__, do: [{"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}, {"id", :id, false, false, :string}, {"email", :email, false, false, :string}, {"isBetaUser", :is_beta_user, false, false, :boolean}, {"userId", :user_id, false, true, :string}, {"xataVersion", :xata_version, false, true, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.ActorResponseGoogledriveView do
-  @enforce_keys []
-  defstruct [:created_at, :updated_at]
-  @type t :: %__MODULE__{created_at: String.t() | nil, updated_at: String.t() | nil}
-  def __schema__, do: [{"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}]
+  defstruct [:id, :did, :handle, :display_name, :avatar, :created_at, :updated_at, :spotify_user, :spotify_connected]
+  @type t :: %__MODULE__{id: String.t() | nil, did: String.t() | nil, handle: String.t() | nil, display_name: String.t() | nil, avatar: String.t() | nil, created_at: String.t() | nil, updated_at: String.t() | nil, spotify_user: Rocksky.Models.ActorResponseSpotifyUserView.t() | nil, spotify_connected: boolean() | nil}
+  def __schema__, do: [{"id", :id, false, false, :string}, {"did", :did, false, false, :string}, {"handle", :handle, false, false, :string}, {"displayName", :display_name, false, false, :string}, {"avatar", :avatar, false, false, :string}, {"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}, {"spotifyUser", :spotify_user, false, false, {:record, Rocksky.Models.ActorResponseSpotifyUserView}}, {"spotifyConnected", :spotify_connected, false, false, :boolean}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()
@@ -609,94 +587,6 @@ defmodule Rocksky.Models.DislikeSongInput do
   defstruct [:uri]
   @type t :: %__MODULE__{uri: String.t() | nil}
   def __schema__, do: [{"uri", :uri, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxDownloadFileParams do
-  @enforce_keys [:file_id]
-  defstruct [:file_id]
-  @type t :: %__MODULE__{file_id: String.t()}
-  def __schema__, do: [{"fileId", :file_id, true, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxFileListView do
-  @enforce_keys []
-  defstruct [:files, :directory, :parent_directory, :directories]
-  @type t :: %__MODULE__{files: [Rocksky.Models.DropboxFileView.t()] | nil, directory: Rocksky.Models.DropboxResponseDirectoryView.t() | nil, parent_directory: Rocksky.Models.DropboxResponseParentDirectoryView.t() | nil, directories: [Rocksky.Models.DropboxResponseDirectoriesItemView.t()] | nil}
-  def __schema__, do: [{"files", :files, false, false, {:list, {:record, Rocksky.Models.DropboxFileView}}}, {"directory", :directory, false, false, {:record, Rocksky.Models.DropboxResponseDirectoryView}}, {"parentDirectory", :parent_directory, false, false, {:record, Rocksky.Models.DropboxResponseParentDirectoryView}}, {"directories", :directories, false, false, {:list, {:record, Rocksky.Models.DropboxResponseDirectoriesItemView}}}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxFileView do
-  @enforce_keys []
-  defstruct [:id, :name, :path_lower, :path_display, :client_modified, :server_modified, :file_id, :directory_id, :track_id, :created_at, :updated_at]
-  @type t :: %__MODULE__{id: String.t() | nil, name: String.t() | nil, path_lower: String.t() | nil, path_display: String.t() | nil, client_modified: String.t() | nil, server_modified: String.t() | nil, file_id: String.t() | nil, directory_id: String.t() | nil, track_id: String.t() | nil, created_at: String.t() | nil, updated_at: String.t() | nil}
-  def __schema__, do: [{"id", :id, false, false, :string}, {"name", :name, false, false, :string}, {"pathLower", :path_lower, false, false, :string}, {"pathDisplay", :path_display, false, false, :string}, {"clientModified", :client_modified, false, false, :string}, {"serverModified", :server_modified, false, false, :string}, {"fileId", :file_id, false, false, :string}, {"directoryId", :directory_id, false, false, :string}, {"trackId", :track_id, false, false, :string}, {"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxGetFilesParams do
-  @enforce_keys []
-  defstruct [:at]
-  @type t :: %__MODULE__{at: String.t() | nil}
-  def __schema__, do: [{"at", :at, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxResponseDirectoriesItemView do
-  @enforce_keys []
-  defstruct [:id, :name, :file_id, :path, :parent_id, :created_at, :updated_at]
-  @type t :: %__MODULE__{id: String.t() | nil, name: String.t() | nil, file_id: String.t() | nil, path: String.t() | nil, parent_id: String.t() | nil, created_at: String.t() | nil, updated_at: String.t() | nil}
-  def __schema__, do: [{"id", :id, false, false, :string}, {"name", :name, false, false, :string}, {"fileId", :file_id, false, false, :string}, {"path", :path, false, false, :string}, {"parentId", :parent_id, false, false, :string}, {"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxResponseDirectoryView do
-  @enforce_keys []
-  defstruct []
-  @type t :: %__MODULE__{}
-  def __schema__, do: []
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxResponseParentDirectoryView do
-  @enforce_keys []
-  defstruct []
-  @type t :: %__MODULE__{}
-  def __schema__, do: []
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.DropboxTemporaryLinkView do
-  @enforce_keys []
-  defstruct [:link]
-  @type t :: %__MODULE__{link: String.t() | nil}
-  def __schema__, do: [{"link", :link, false, false, :string}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()
@@ -1759,17 +1649,6 @@ defmodule Rocksky.Models.GetFeedSkeletonParams do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
-defmodule Rocksky.Models.GetFileParams do
-  @enforce_keys [:file_id]
-  defstruct [:file_id]
-  @type t :: %__MODULE__{file_id: String.t()}
-  def __schema__, do: [{"fileId", :file_id, true, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
 defmodule Rocksky.Models.GetFollowersOutput do
   @enforce_keys [:subject, :followers]
   defstruct [:subject, :followers, :cursor, :count]
@@ -1951,28 +1830,6 @@ defmodule Rocksky.Models.GetLyricsParams do
   defstruct [:artist, :title]
   @type t :: %__MODULE__{artist: String.t() | nil, title: String.t() | nil}
   def __schema__, do: [{"artist", :artist, false, false, :string}, {"title", :title, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GetMetadataOutput do
-  @enforce_keys []
-  defstruct [:metadata]
-  @type t :: %__MODULE__{metadata: Rocksky.Codec.json_value() | nil}
-  def __schema__, do: [{"metadata", :metadata, false, false, :json_value}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GetMetadataParams do
-  @enforce_keys [:path]
-  defstruct [:path]
-  @type t :: %__MODULE__{path: String.t()}
-  def __schema__, do: [{"path", :path, true, false, :string}]
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()
@@ -2408,17 +2265,6 @@ defmodule Rocksky.Models.GetStreamUrlParams do
   def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
 end
 
-defmodule Rocksky.Models.GetTemporaryLinkParams do
-  @enforce_keys [:path]
-  defstruct [:path]
-  @type t :: %__MODULE__{path: String.t()}
-  def __schema__, do: [{"path", :path, true, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
 defmodule Rocksky.Models.GetTopArtistsOutput do
   @enforce_keys []
   defstruct [:artists]
@@ -2567,83 +2413,6 @@ defmodule Rocksky.Models.GetWrappedParams do
   defstruct [:did, :year, :period]
   @type t :: %__MODULE__{did: String.t(), year: integer() | nil, period: String.t() | nil}
   def __schema__, do: [{"did", :did, true, false, :string}, {"year", :year, false, false, :integer}, {"period", :period, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GoogledriveDownloadFileParams do
-  @enforce_keys [:file_id]
-  defstruct [:file_id]
-  @type t :: %__MODULE__{file_id: String.t()}
-  def __schema__, do: [{"fileId", :file_id, true, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GoogledriveFileListView do
-  @enforce_keys []
-  defstruct [:files, :directory, :parent_directory, :directories]
-  @type t :: %__MODULE__{files: [Rocksky.Models.GoogledriveFileView.t()] | nil, directory: Rocksky.Models.GoogledriveResponseDirectoryView.t() | nil, parent_directory: Rocksky.Models.GoogledriveResponseParentDirectoryView.t() | nil, directories: [Rocksky.Models.GoogledriveResponseDirectoriesItemView.t()] | nil}
-  def __schema__, do: [{"files", :files, false, false, {:list, {:record, Rocksky.Models.GoogledriveFileView}}}, {"directory", :directory, false, false, {:record, Rocksky.Models.GoogledriveResponseDirectoryView}}, {"parentDirectory", :parent_directory, false, false, {:record, Rocksky.Models.GoogledriveResponseParentDirectoryView}}, {"directories", :directories, false, false, {:list, {:record, Rocksky.Models.GoogledriveResponseDirectoriesItemView}}}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GoogledriveFileView do
-  @enforce_keys []
-  defstruct [:id, :name, :file_id, :directory_id, :track_id, :created_at, :updated_at]
-  @type t :: %__MODULE__{id: String.t() | nil, name: String.t() | nil, file_id: String.t() | nil, directory_id: String.t() | nil, track_id: String.t() | nil, created_at: String.t() | nil, updated_at: String.t() | nil}
-  def __schema__, do: [{"id", :id, false, false, :string}, {"name", :name, false, false, :string}, {"fileId", :file_id, false, false, :string}, {"directoryId", :directory_id, false, false, :string}, {"trackId", :track_id, false, false, :string}, {"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GoogledriveGetFilesParams do
-  @enforce_keys []
-  defstruct [:at]
-  @type t :: %__MODULE__{at: String.t() | nil}
-  def __schema__, do: [{"at", :at, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GoogledriveResponseDirectoriesItemView do
-  @enforce_keys []
-  defstruct [:id, :name, :file_id, :path, :parent_id, :created_at, :updated_at]
-  @type t :: %__MODULE__{id: String.t() | nil, name: String.t() | nil, file_id: String.t() | nil, path: String.t() | nil, parent_id: String.t() | nil, created_at: String.t() | nil, updated_at: String.t() | nil}
-  def __schema__, do: [{"id", :id, false, false, :string}, {"name", :name, false, false, :string}, {"fileId", :file_id, false, false, :string}, {"path", :path, false, false, :string}, {"parentId", :parent_id, false, false, :string}, {"createdAt", :created_at, false, false, :string}, {"updatedAt", :updated_at, false, false, :string}]
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GoogledriveResponseDirectoryView do
-  @enforce_keys []
-  defstruct []
-  @type t :: %__MODULE__{}
-  def __schema__, do: []
-  @spec decode(map()) :: {:ok, t()} | {:error, term()}
-  def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
-  @spec encode(t()) :: map()
-  def encode(value), do: Rocksky.Codec.encode(__MODULE__, value)
-end
-
-defmodule Rocksky.Models.GoogledriveResponseParentDirectoryView do
-  @enforce_keys []
-  defstruct []
-  @type t :: %__MODULE__{}
-  def __schema__, do: []
   @spec decode(map()) :: {:ok, t()} | {:error, term()}
   def decode(value), do: Rocksky.Codec.decode(__MODULE__, value)
   @spec encode(t()) :: map()

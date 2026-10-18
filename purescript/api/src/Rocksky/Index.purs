@@ -27,8 +27,6 @@ import Rocksky.Submissions.App as Submissions
 import Rocksky.Bsky.App as Bsky
 import Rocksky.Spotify.App as Spotify
 import Rocksky.Storage.App as Storage
-import Rocksky.Dropbox.App as Dropbox
-import Rocksky.Googledrive.App as Googledrive
 import Rocksky.Apikeys.App as Apikeys
 import Rocksky.AccessTokens.App as AccessTokens
 import Rocksky.Import.App as Import
@@ -63,8 +61,6 @@ app ctx = do
   Bsky.app ctx >>= Hono.route a "/"
   Spotify.app ctx >>= Hono.route a "/spotify"
   Storage.app ctx >>= Hono.route a "/storage"
-  Dropbox.app ctx >>= Hono.route a "/dropbox"
-  Googledrive.app ctx >>= Hono.route a "/googledrive"
   Apikeys.app ctx >>= Hono.route a "/apikeys"
   AccessTokens.app ctx >>= Hono.route a "/access-tokens"
   Import.app ctx >>= Hono.route a "/import"

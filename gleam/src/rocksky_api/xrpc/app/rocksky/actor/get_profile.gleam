@@ -11,8 +11,6 @@ import rocksky_api/drizzle/orm.{
   all_columns, eq, eq_columns, field, from, inner_join, insert, one,
   returning_one, select, set, update, where,
 }
-import rocksky_api/drizzle/schema/dropbox_accounts as da
-import rocksky_api/drizzle/schema/google_drive_accounts as ga
 import rocksky_api/drizzle/schema/spotify_accounts as sa
 import rocksky_api/drizzle/schema/spotify_tokens as st
 import rocksky_api/drizzle/schema/users as u
@@ -129,9 +127,7 @@ fn retrieve(ctx: Context, requested, caller) {
   use handle <- task.then(id_resolver.resolve_did_to_handle(ctx.resolver, did))
   let spotify = sa.table()
   let tokens = st.table()
-  let google = ga.table()
-  let dropbox = da.table()
-  use accounts <- task.then(task.all4(
+  use accounts <- task.then(task.all2(
     select(spotify, all_columns(spotify))
       |> inner_join(users, eq_columns(sa.user_id(spotify), u.id(users)))
       |> where(eq(u.did(users), did))
@@ -140,17 +136,9 @@ fn retrieve(ctx: Context, requested, caller) {
       |> inner_join(users, eq_columns(st.user_id(tokens), u.id(users)))
       |> where(eq(u.did(users), did))
       |> one(ctx.db),
-    select(google, all_columns(google))
-      |> inner_join(users, eq_columns(ga.user_id(google), u.id(users)))
-      |> where(eq(u.did(users), did))
-      |> one(ctx.db),
-    select(dropbox, all_columns(dropbox))
-      |> inner_join(users, eq_columns(da.user_id(dropbox), u.id(users)))
-      |> where(eq(u.did(users), did))
-      |> one(ctx.db),
   ))
   use user <- task.map(refresh(ctx, did, handle, resolved, existing))
-  profile.Detailed(user, accounts.0, accounts.1 != None, accounts.2, accounts.3)
+  profile.Detailed(user, accounts.0, accounts.1 != None)
 }
 
 pub fn refresh(

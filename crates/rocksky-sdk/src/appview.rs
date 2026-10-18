@@ -1364,10 +1364,6 @@ pub struct ProfileView {
     pub spotify_user: Option<SpotifyUserView>,
     #[serde(default)]
     pub spotify_connected: Option<bool>,
-    #[serde(default)]
-    pub googledrive: Option<GoogledriveView>,
-    #[serde(default)]
-    pub dropbox: Option<DropboxView>,
 }
 
 /// `app.rocksky.actor.defs#responseSpotifyUserView`.
@@ -1388,36 +1384,6 @@ pub struct SpotifyUserView {
     pub updated_at: Option<String>,
     #[serde(default)]
     pub xata_version: Option<i64>,
-}
-
-/// `app.rocksky.actor.defs#responseGoogledriveView`.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GoogledriveView {
-    #[serde(default)]
-    pub created_at: Option<String>,
-    #[serde(default)]
-    pub updated_at: Option<String>,
-}
-
-/// `app.rocksky.actor.defs#responseDropboxView`.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DropboxView {
-    #[serde(default)]
-    pub id: Option<String>,
-    #[serde(default)]
-    pub email: Option<String>,
-    #[serde(default)]
-    pub user_id: Option<String>,
-    #[serde(default)]
-    pub is_beta_user: Option<bool>,
-    #[serde(default)]
-    pub created_at: Option<String>,
-    #[serde(default)]
-    pub updated_at: Option<String>,
-    #[serde(default)]
-    pub xata_version: Option<String>,
 }
 
 /// A scrobble as returned by the AppView (`app.rocksky.scrobble.defs#scrobbleViewBasic`).

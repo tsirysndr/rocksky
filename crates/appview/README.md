@@ -352,5 +352,4 @@ than fixed here.
 ## What is not implemented
 
 - The legacy REST surface, deliberately. `/xrpc/*` is the API.
-- Dropbox and Google Drive, out of scope for this crate.
 - The remaining XRPC methods listed by the coverage test above.

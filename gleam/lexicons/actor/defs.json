@@ -42,14 +42,6 @@
         },
         "spotifyConnected": {
           "type": "boolean"
-        },
-        "googledrive": {
-          "type": "ref",
-          "ref": "app.rocksky.actor.defs#responseGoogledriveView"
-        },
-        "dropbox": {
-          "type": "ref",
-          "ref": "app.rocksky.actor.defs#responseDropboxView"
         }
       }
     },
@@ -265,47 +257,6 @@
           "type": "boolean"
         },
         "spotifyAppId": {
-          "type": "string"
-        }
-      }
-    },
-    "responseGoogledriveView": {
-      "type": "object",
-      "properties": {
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      }
-    },
-    "responseDropboxView": {
-      "type": "object",
-      "nullable": [
-        "userId",
-        "xataVersion"
-      ],
-      "properties": {
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string"
-        },
-        "isBetaUser": {
-          "type": "boolean"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "xataVersion": {
           "type": "string"
         }
       }

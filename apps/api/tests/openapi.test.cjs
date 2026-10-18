@@ -18,7 +18,7 @@ test("generated OpenAPI is current", () => {
   ]);
 });
 test("documents only registered endpoints, including the uploaded library", () => {
-  assert.equal(Object.keys(spec.paths).length, 153);
+  assert.equal(Object.keys(spec.paths).length, 146);
   for (const name of [
     "library.getAlbum",
     "notification.listNotifications",
@@ -74,9 +74,8 @@ test("includes identifiers, nullable values and fractional wire fields", () => {
   );
 });
 test("does not promise successful downloads from unimplemented handlers", () => {
-  const download = operation("dropbox.downloadFile");
-  assert.equal(download["x-implementation-status"], "not-implemented");
-  assert.equal(download.responses["200"], undefined);
+  assert.equal(spec.paths["/app.rocksky.dropbox.downloadFile"], undefined);
+  assert.equal(spec.paths["/app.rocksky.googledrive.downloadFile"], undefined);
   assert.equal(
     operation("player.next", "post")["x-implementation-status"],
     "placeholder",

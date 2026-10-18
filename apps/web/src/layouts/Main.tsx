@@ -231,7 +231,6 @@ function Main(props: MainProps) {
                 </div>
               )}
               {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
-              {/* {jwt && profile && <CloudDrive />} */}
               {!jwt && (
                 <div className="mt-[40px] max-w-[770px]">
                   <LoginForm
@@ -280,7 +279,6 @@ function Main(props: MainProps) {
               </div>
             )}
             {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
-            {/* {jwt && profile && <CloudDrive />} */}
             {!jwt && (
               <div className="mt-[40px]">
                 <LoginForm

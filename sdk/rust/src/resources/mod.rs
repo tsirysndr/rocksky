@@ -19,7 +19,6 @@ pub mod shout;
 pub mod song;
 pub mod spotify;
 pub mod stats;
-pub mod storage;
 
 pub use actor::ActorApi;
 pub use album::AlbumApi;
@@ -40,4 +39,3 @@ pub use shout::ShoutApi;
 pub use song::SongApi;
 pub use spotify::SpotifyApi;
 pub use stats::StatsApi;
-pub use storage::{DropboxApi, GoogleDriveApi};

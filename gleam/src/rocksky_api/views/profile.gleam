@@ -5,8 +5,6 @@ import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{field, map, pair}
 import rocksky_api/drizzle/schema/users as u
 import rocksky_api/lexicon/models
-import rocksky_api/schema/dropbox_accounts
-import rocksky_api/schema/google_drive_accounts
 import rocksky_api/schema/spotify_accounts
 import rocksky_api/schema/users
 
@@ -64,8 +62,6 @@ pub type Detailed {
     user: users.User,
     spotify: option.Option(spotify_accounts.SpotifyAccount),
     connected: Bool,
-    google: option.Option(google_drive_accounts.GoogleDriveAccount),
-    dropbox: option.Option(dropbox_accounts.DropboxAccount),
   )
 }
 
@@ -94,14 +90,6 @@ pub fn encode_detailed(view: Detailed) {
     #("updatedAt", json.string(row.iso8601(user.updated_at))),
     #("spotifyUser", models.encode_actor_response_spotify_user_view(spotify)),
     #("spotifyConnected", json.bool(view.connected)),
-    #("googledrive", case view.google {
-      option.None -> json.object([])
-      Some(v) -> google_drive_accounts.to_json(v)
-    }),
-    #("dropbox", case view.dropbox {
-      option.None -> json.object([])
-      Some(v) -> dropbox_accounts.to_json(v)
-    }),
     ..case user.avatar {
       "" -> []
       avatar -> [#("avatar", json.string(avatar))]

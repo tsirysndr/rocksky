@@ -80,7 +80,6 @@
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.44.2",
     "express": "^5.1.0",
-    "googleapis": "^146.0.0",
     "hono": "^4.4.7",
     "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.8.1",

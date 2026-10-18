@@ -48,8 +48,6 @@ pub struct Profile {
     pub spotify_connected: Option<bool>,
     pub spotify_user: Option<Value>,
     pub spotify_token: Option<Value>,
-    pub googledrive: Option<Value>,
-    pub dropbox: Option<Value>,
 }
 
 impl std::ops::Deref for Profile {

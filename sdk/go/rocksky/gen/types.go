@@ -84,23 +84,6 @@ type ActorProfileViewDetailed struct {
 	UpdatedAt string `json:"updatedAt,omitempty"`
 	SpotifyUser *ActorResponseSpotifyUserView `json:"spotifyUser,omitempty"`
 	SpotifyConnected bool `json:"spotifyConnected,omitempty"`
-	Googledrive *ActorResponseGoogledriveView `json:"googledrive,omitempty"`
-	Dropbox *ActorResponseDropboxView `json:"dropbox,omitempty"`
-}
-
-type ActorResponseDropboxView struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	ID string `json:"id,omitempty"`
-	Email string `json:"email,omitempty"`
-	IsBetaUser bool `json:"isBetaUser,omitempty"`
-	UserID string `json:"userId,omitempty"`
-	XataVersion string `json:"xataVersion,omitempty"`
-}
-
-type ActorResponseGoogledriveView struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 type ActorResponseSpotifyUserView struct {
@@ -774,65 +757,6 @@ type DislikeShoutInput struct {
 type DislikeSongInput struct {
 	// The unique identifier of the song to dislike
 	URI string `json:"uri,omitempty"`
-}
-
-type DropboxDownloadFileParams struct {
-	// The unique identifier of the file to download
-	FileID string `json:"fileId,omitempty"`
-}
-
-type DropboxFileListView struct {
-	// A list of files in the Dropbox.
-	Files []DropboxFileView `json:"files,omitempty"`
-	Directory *DropboxResponseDirectoryView `json:"directory,omitempty"`
-	ParentDirectory *DropboxResponseParentDirectoryView `json:"parentDirectory,omitempty"`
-	Directories []DropboxResponseDirectoriesItemView `json:"directories,omitempty"`
-}
-
-type DropboxFileView struct {
-	// The unique identifier of the file.
-	ID string `json:"id,omitempty"`
-	// The name of the file.
-	Name string `json:"name,omitempty"`
-	// The lowercased path of the file.
-	PathLower string `json:"pathLower,omitempty"`
-	// The display path of the file.
-	PathDisplay string `json:"pathDisplay,omitempty"`
-	// The last modified date and time of the file on the client.
-	ClientModified string `json:"clientModified,omitempty"`
-	// The last modified date and time of the file on the server.
-	ServerModified string `json:"serverModified,omitempty"`
-	FileID string `json:"fileId,omitempty"`
-	DirectoryID string `json:"directoryId,omitempty"`
-	TrackID string `json:"trackId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type DropboxGetFilesParams struct {
-	// Path to the Dropbox folder or root directory
-	At string `json:"at,omitempty"`
-}
-
-type DropboxResponseDirectoriesItemView struct {
-	ID string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	FileID string `json:"fileId,omitempty"`
-	Path string `json:"path,omitempty"`
-	ParentID string `json:"parentId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type DropboxResponseDirectoryView struct {
-}
-
-type DropboxResponseParentDirectoryView struct {
-}
-
-type DropboxTemporaryLinkView struct {
-	// The temporary link to access the file.
-	Link string `json:"link,omitempty"`
 }
 
 type EqualizerPresetView struct {
@@ -1731,11 +1655,6 @@ type GetFeedSkeletonParams struct {
 	Cursor string `json:"cursor,omitempty"`
 }
 
-type GetFileParams struct {
-	// The unique identifier of the file to retrieve
-	FileID string `json:"fileId,omitempty"`
-}
-
 type GetFollowersOutput struct {
 	Subject *ActorProfileViewBasic `json:"subject,omitempty"`
 	Followers []ActorProfileViewBasic `json:"followers,omitempty"`
@@ -1853,16 +1772,6 @@ type GetLyricsParams struct {
 	Artist string `json:"artist,omitempty"`
 	// The song title.
 	Title string `json:"title,omitempty"`
-}
-
-type GetMetadataOutput struct {
-	// Metadata returned by the provider; currently an empty object.
-	Metadata any `json:"metadata,omitempty"`
-}
-
-type GetMetadataParams struct {
-	// Path to the file or folder in Dropbox
-	Path string `json:"path,omitempty"`
 }
 
 type GetMirrorSourcesOutput struct {
@@ -2151,11 +2060,6 @@ type GetStreamUrlParams struct {
 	Format string `json:"format,omitempty"`
 }
 
-type GetTemporaryLinkParams struct {
-	// Path to the file in Dropbox
-	Path string `json:"path,omitempty"`
-}
-
 type GetTopArtistsOutput struct {
 	Artists []ArtistViewBasic `json:"artists,omitempty"`
 }
@@ -2256,50 +2160,6 @@ type GetWrappedParams struct {
 	Year int `json:"year,omitempty"`
 	// The window to compute stats over: a calendar year (see year), or a rolling window ending now. Defaults to year.
 	Period string `json:"period,omitempty"`
-}
-
-type GoogledriveDownloadFileParams struct {
-	// The unique identifier of the file to download
-	FileID string `json:"fileId,omitempty"`
-}
-
-type GoogledriveFileListView struct {
-	Files []GoogledriveFileView `json:"files,omitempty"`
-	Directory *GoogledriveResponseDirectoryView `json:"directory,omitempty"`
-	ParentDirectory *GoogledriveResponseParentDirectoryView `json:"parentDirectory,omitempty"`
-	Directories []GoogledriveResponseDirectoriesItemView `json:"directories,omitempty"`
-}
-
-type GoogledriveFileView struct {
-	// The unique identifier of the file.
-	ID string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	FileID string `json:"fileId,omitempty"`
-	DirectoryID string `json:"directoryId,omitempty"`
-	TrackID string `json:"trackId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type GoogledriveGetFilesParams struct {
-	// Path to the Google Drive folder or root directory
-	At string `json:"at,omitempty"`
-}
-
-type GoogledriveResponseDirectoriesItemView struct {
-	ID string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	FileID string `json:"fileId,omitempty"`
-	Path string `json:"path,omitempty"`
-	ParentID string `json:"parentId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type GoogledriveResponseDirectoryView struct {
-}
-
-type GoogledriveResponseParentDirectoryView struct {
 }
 
 // GraphNotFoundActor indicates that a handle or DID could not be resolved

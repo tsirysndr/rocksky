@@ -89,7 +89,7 @@ function detectMime(buf: Buffer): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// SHA-256 — computed from metadata, matching the Dropbox/Google Drive crates:
+// SHA-256 — computed from track metadata:
 //   sha256("{title} - {artist} - {album}".to_lowercase())
 // This ensures the same track is deduplicated across all ingestion sources.
 // ---------------------------------------------------------------------------
@@ -157,7 +157,7 @@ const app = new Hono();
 //   2. Magic-byte MIME check → reject non-audio
 //   3. music-metadata parse (no primary tag → reject)
 //   4. Completeness check: title + artist + album required
-//   5. Meta-SHA256 dedup (matches Dropbox/Google Drive crate logic)
+//   5. Meta-SHA256 dedup
 //   6. Duplicate-per-user check by trackId
 //   7. Album art extraction + upload to covers/
 //   8. Upsert track row (duration in ms, discNumber defaults to 1)
@@ -357,7 +357,7 @@ app.post("/track", async (c) => {
   })();
 
   // --- Publish ATProto record + upsert track (proper at:// URI via agent) ---
-  // This mirrors what the Dropbox/Google Drive crates do: POST to /tracks,
+  // Publish the uploaded track: POST to /tracks,
   // which calls saveTrack → putSongRecord → real at://{did}/app.rocksky.song/{rkey}
   if (!existingTrack) {
     const agent = await createAgent(ctx.oauthClient, user.did);
@@ -405,7 +405,7 @@ app.post("/track", async (c) => {
     );
 
     // Respect ATProto PDS rate limits — mirrors the 3-second sleep the
-    // Dropbox/Google Drive crates use after creating a new track record.
+    // track ingestion uses after creating a new track record.
     // The frontend processes files sequentially so this delay is applied
     // per-file, effectively throttling bulk uploads to ~1 track per 3s.
     await new Promise((resolve) => setTimeout(resolve, 3000));

@@ -13,7 +13,7 @@ test('Every original XRPC registration is present exactly once in the Gleam serv
   for(const match of source.matchAll(/server\s*\.app\s*\.rocksky\s*\.(\w+)\s*\.(\w+)\s*\(/g)) expected.add(`app.rocksky.${match[1]}.${match[2]}`);
  }
  const actual=[];register({method:(name)=>actual.push(name)},{env:{}});
- assert.ok(expected.size>150);assert.equal(actual.length,new Set(actual).size);
+ assert.ok(expected.size>140);assert.equal(actual.length,new Set(actual).size);
  assert.deepEqual([...new Set(actual)].sort(),[...expected].sort());
 });
 test('Application queries use explicit Gleam ORM imports',async()=>{
