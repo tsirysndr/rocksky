@@ -44,7 +44,7 @@ impl Method {
     }
 }
 
-/// Every method, sorted by NSID. 156 of them.
+/// Every method, sorted by NSID. 149 of them.
 pub const METHODS: &[Method] = &[
     // Get albums for an actor
     Method {
@@ -270,38 +270,6 @@ pub const METHODS: &[Method] = &[
         has_input: false,
         has_output: true,
     },
-    // Download a file from Dropbox by its unique identifier
-    Method {
-        nsid: "app.rocksky.dropbox.downloadFile",
-        kind: MethodKind::Query,
-        has_parameters: true,
-        has_input: false,
-        has_output: false,
-    },
-    // Retrieve a list of files from Dropbox
-    Method {
-        nsid: "app.rocksky.dropbox.getFiles",
-        kind: MethodKind::Query,
-        has_parameters: true,
-        has_input: false,
-        has_output: true,
-    },
-    // Retrieve metadata of a file or folder in Dropbox
-    Method {
-        nsid: "app.rocksky.dropbox.getMetadata",
-        kind: MethodKind::Query,
-        has_parameters: true,
-        has_input: false,
-        has_output: true,
-    },
-    // Retrieve a temporary link to access a file in Dropbox
-    Method {
-        nsid: "app.rocksky.dropbox.getTemporaryLink",
-        kind: MethodKind::Query,
-        has_parameters: true,
-        has_input: false,
-        has_output: true,
-    },
     // Delete one of the authenticated user's equalizer presets.
     Method {
         nsid: "app.rocksky.equalizer.deletePreset",
@@ -433,30 +401,6 @@ pub const METHODS: &[Method] = &[
     // Search for content in the feed
     Method {
         nsid: "app.rocksky.feed.search",
-        kind: MethodKind::Query,
-        has_parameters: true,
-        has_input: false,
-        has_output: true,
-    },
-    // Download a file from Google Drive by its unique identifier
-    Method {
-        nsid: "app.rocksky.googledrive.downloadFile",
-        kind: MethodKind::Query,
-        has_parameters: true,
-        has_input: false,
-        has_output: false,
-    },
-    // Get a file from Google Drive by its unique identifier
-    Method {
-        nsid: "app.rocksky.googledrive.getFile",
-        kind: MethodKind::Query,
-        has_parameters: true,
-        has_input: false,
-        has_output: true,
-    },
-    // Get a list of files from Google Drive
-    Method {
-        nsid: "app.rocksky.googledrive.getFiles",
         kind: MethodKind::Query,
         has_parameters: true,
         has_input: false,

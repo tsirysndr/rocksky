@@ -117,10 +117,6 @@ pub struct ProfileViewDetailed {
     /// The display name of the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub dropbox: Option<ResponseDropboxView>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub googledrive: Option<ResponseGoogledriveView>,
     /// The handle of the actor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub handle: Option<String>,
@@ -132,36 +128,6 @@ pub struct ProfileViewDetailed {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spotify_user: Option<ResponseSpotifyUserView>,
     /// The date and time when the actor was last updated. Format: `datetime`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResponseDropboxView {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub is_beta_user: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<String>,
-    /// May be explicitly null as well as absent; both read as `None`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    /// May be explicitly null as well as absent; both read as `None`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub xata_version: Option<String>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResponseGoogledriveView {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
 }

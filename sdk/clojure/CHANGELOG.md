@@ -3,6 +3,13 @@
 All notable changes to the Rocksky Clojure SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.14.0-SNAPSHOT] - 2026-10-18
+
+### Removed
+
+- The Dropbox and Google Drive integrations were removed from the API, so
+  profile maps no longer carry the `:googledrive` and `:dropbox` keys.
+
 ## [0.13.0] - 2026-10-17
 
 ### Added

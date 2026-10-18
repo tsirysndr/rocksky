@@ -18,7 +18,7 @@ and `rocksky_nif` (raw NIF). This same NIF powers the Elixir and Gleam SDKs.
 
 ```erlang
 %% rebar.config
-{deps, [{rocksky_erl, "0.12.0"}]}.
+{deps, [{rocksky_erl, "0.13.0"}]}.
 ```
 
 ## Build

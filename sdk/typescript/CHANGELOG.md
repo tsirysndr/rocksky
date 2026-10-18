@@ -4,6 +4,28 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.19.0] - 2026-10-18
+
+The Dropbox and Google Drive integrations were removed from the API, so their
+lexicons and every generated type for them are gone.
+
+### Removed
+
+- **Dropbox types.** `DropboxDownloadFileParams`, `DropboxFileListView`,
+  `DropboxFileView`, `DropboxGetFilesParams`,
+  `DropboxResponseDirectoriesItemView`, `DropboxResponseDirectoryView`,
+  `DropboxResponseParentDirectoryView` and `DropboxTemporaryLinkView`, plus
+  the shared `GetMetadataParams`, `GetMetadataOutput` and
+  `GetTemporaryLinkParams`.
+- **Google Drive types.** `GoogledriveDownloadFileParams`,
+  `GoogledriveFileListView`, `GoogledriveFileView`,
+  `GoogledriveGetFilesParams`, `GoogledriveResponseDirectoriesItemView`,
+  `GoogledriveResponseDirectoryView`,
+  `GoogledriveResponseParentDirectoryView` and `GetFileParams`.
+- `googledrive` and `dropbox` on `profileViewDetailed`, plus the
+  `ActorResponseGoogledriveView` / `ActorResponseDropboxView` types they
+  pointed at.
+
 ## [0.18.0] - 2026-10-17
 
 Regenerated from the updated `app.rocksky.*` lexicons, plus remote-protocol

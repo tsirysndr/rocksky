@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.0
+
+- The Dropbox and Google Drive integrations were removed from the API, so
+  profiles no longer carry `googledrive` and `dropbox`.
+
 ## 0.14.0
 
 - Added `Rocksky::Event` (`events`, `event`, `rsvps`, `artist_events`,
