@@ -9,7 +9,7 @@
   "scripts": {
     "build": "spago build",
     "bundle": "spago bundle -p rocksky-api --module Rocksky.Index --outfile dist/index.js --platform node --bundler-args \"--packages=external\" && spago bundle -p rocksky-api --module Rocksky.Server --outfile dist/server.js --platform node --bundler-args \"--packages=external\"",
-    "dev": "concurrently 'node bin/run.js Rocksky.Index' 'node bin/run.js Rocksky.Server'",
+    "dev": "bun run db:seed && concurrently 'node bin/run.js Rocksky.Index' 'node bin/run.js Rocksky.Server'",
     "start": "node --enable-source-maps bin/run.js Rocksky.Index",
     "start:xrpc": "node --enable-source-maps bin/run.js Rocksky.Server",
     "prod:all": "concurrently --kill-others --kill-timeout 10000 --names rest,xrpc 'node --enable-source-maps api/dist/index.js' 'node --enable-source-maps api/dist/server.js'",

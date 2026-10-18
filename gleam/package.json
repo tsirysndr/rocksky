@@ -7,7 +7,7 @@
     "build": "gleam build",
     "db:generate-bindings": "bun scripts/generate_drizzle.ts",
     "dev": "concurrently 'bun run api' 'bun run xrpc'",
-    "api": "gleam build && node entry/api.mjs",
+    "api": "bun run db:seed && gleam build && node entry/api.mjs",
     "xrpc": "gleam build && node entry/server.mjs",
     "prod": "node entry/api.mjs",
     "prod:xrpc": "node entry/server.mjs",

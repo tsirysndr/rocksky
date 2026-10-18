@@ -42,6 +42,7 @@ values; the generator rejects `${...}` interpolation.
 ## Local feed seed
 
 After `bun run db:migrate`, run `bun run db:seed` from this package.
+`bun run dev` also runs this seed before starting the local API and XRPC server.
 It imports the shared `tools/db/seeds/feed-generators.json` snapshot into the
 root Compose `db` container, including missing feed owners. Existing users are
 matched by DID and preserved; feeds are upserted by URI, so rerunning is safe.

@@ -25,7 +25,11 @@ the previous file is still backed up.
 
 ## Local feed seed
 
-After `bun run db:migrate`, run `bun run db:seed` from this package.
+After `bun run db:migrate`, local API startup (`bun run api`, including
+`bun run dev` and the corresponding Clojure REPL commands) always runs
+`bun run db:seed` before building and starting the API. A failed seed prevents
+API startup. Production commands do not seed. You can also run `bun run db:seed`
+manually.
 It imports the shared `tools/db/seeds/feed-generators.json` snapshot into the
 root Compose `db` container, including missing feed owners. Existing users are
 matched by DID and preserved; feeds are upserted by URI, so rerunning is safe.
