@@ -3,9 +3,9 @@ import gleam/list
 import gleam/option.{None, Some}
 import rocksky_api/context.{type Context}
 import rocksky_api/drizzle/orm.{
-  aliased_field, all, all_columns, and, column, count, count_distinct, eq,
-  eq_columns, exists, field, group_by, integer, left_join, nested, nullable, one,
-  optional, pair, reference, select, subquery, text, where,
+  aliased_field, all, all_columns, column, count, count_distinct, eq, eq_columns,
+  field, group_by, in_array, integer, left_join, nested, nullable, one, optional,
+  pair, reference, select, subquery, text, where,
 }
 import rocksky_api/drizzle/schema/albums as a
 import rocksky_api/drizzle/schema/artist_albums as aa
@@ -44,23 +44,40 @@ pub fn register(server: Server, ctx: Context) -> Nil {
 }
 
 fn retrieve(ctx: Context, uri: String) {
-  let albums = a.table()
   let artists = ar.table()
-  let links = aa.table()
-  let scrobbles = sc.table()
   use artist <- task.then(
     select(artists, field("id", ar.id(artists)))
     |> where(eq(ar.uri(artists), Some(uri)))
     |> one(ctx.read_db),
   )
-  let ids =
-    select(links, field("id", aa.album_id(links)))
-    |> where(
-      and([
-        eq(nullable(aa.artist_id(links)), artist),
-        eq_columns(aa.album_id(links), a.id(albums)),
-      ]),
-    )
+  case artist {
+    None -> task.ok([])
+    Some(artist_id) -> {
+      let links = aa.table()
+      use linked_ids <- task.then(
+        select(links, field("id", nullable(aa.album_id(links))))
+        |> where(eq(aa.artist_id(links), artist_id))
+        |> all(ctx.read_db),
+      )
+      let ids =
+        list.filter_map(linked_ids, fn(id) {
+          case id {
+            Some(id) -> Ok(id)
+            None -> Error(Nil)
+          }
+        })
+        |> list.unique
+      case ids {
+        [] -> task.ok([])
+        _ -> retrieve_albums(ctx, ids)
+      }
+    }
+  }
+}
+
+fn retrieve_albums(ctx: Context, ids: List(String)) {
+  let albums = a.table()
+  let scrobbles = sc.table()
   let counts =
     select(
       scrobbles,
@@ -72,6 +89,8 @@ fn retrieve(ctx: Context, uri: String) {
         ),
       ),
     )
+    // Filter before aggregation: never count unrelated artists' scrobbles.
+    |> where(in_array(sc.album_id(scrobbles), list.map(ids, Some)))
     |> group_by([reference(sc.album_id(scrobbles))])
     |> subquery("counts")
   use rows <- task.map(
@@ -92,7 +111,7 @@ fn retrieve(ctx: Context, uri: String) {
         column(counts, "album_id", optional(text())),
       ),
     )
-    |> where(exists(ids))
+    |> where(in_array(a.id(albums), ids))
     |> all(ctx.read_db),
   )
   list.map(rows, fn(r) {
