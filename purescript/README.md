@@ -31,14 +31,142 @@ this regenerates secrets and removes manual edits. Companion services and an S3
 server must be started/configured separately. Compose settings must use literal
 values; the generator rejects `${...}` interpolation.
 
-## Database migrations
+## Updating tables and generating migrations
 
-Run `bun run db:migrate` from `purescript/` to apply the existing PostgreSQL
-migrations in `../apps/api/drizzle`. The command uses `XATA_WRITE_POSTGRES_URL`,
-falling back to `XATA_POSTGRES_URL`, and loads `.env` from this package directory.
-For the production Doppler configuration, run `doppler run -c prd -- bun run db:migrate`.
-The migration journal is shared with the TypeScript API. Migrations are explicit;
-the build and systemd startup do not apply them automatically.
+The database has one shared migration history. Drizzle Kit reads
+`apps/api/src/schema/*.ts` and writes SQL and snapshots under `apps/api/drizzle/`.
+PureScript queries use the corresponding definitions in
+`purescript/api/src/Rocksky/Schema/`. Update both representations when changing a
+table; editing a `.purs` file alone does not generate a database migration.
+Paths in this section are relative to the **repository root**.
+
+1. Edit the TypeScript table in `apps/api/src/schema/`, including column types,
+   nullability, defaults, indexes and constraints. For a new table, also add it to
+   `apps/api/src/schema/index.ts`.
+2. Update its PureScript module. For example, a change to
+   `apps/api/src/schema/tracks.ts` belongs in
+   `purescript/api/src/Rocksky/Schema/Tracks.purs`: update `TracksCols`, the
+   `tracks = table ...` column definitions, and `SelectTrack`. Keep SQL column
+   names, camelCase record fields, types and `Nullable` usage consistent.
+   For a new table, add its module and re-export it from `Rocksky.Schema`, with
+   the corresponding `<table>C = columns <table>` accessor. Update affected
+   queries, projections, inserts, decoders and response records too.
+3. Generate a migration using the TypeScript API's schema-aware configuration:
+
+   ```sh
+   # From the repository root; install workspace dependencies if needed.
+   bun install --frozen-lockfile
+   (cd apps/api && bun run db:gen-migration --name=add-track-source)
+   ```
+
+   Replace `add-track-source` with a descriptive name. This generates files; it
+   does not apply SQL to a database. Review the SQL, snapshot and
+   `apps/api/drizzle/meta/_journal.json`, especially inferred renames, drops and
+   changes to populated columns. Preserve previously applied migration files.
+4. Apply the reviewed migration to the local Compose database using the
+   PureScript package's `.env`:
+
+   ```sh
+   # From the repository root.
+   docker compose up -d db
+   (cd purescript && bun run db:migrate)
+   (cd purescript && bun run build)
+   (cd purescript && bun run test:all)
+   ```
+
+   The migration command uses `XATA_WRITE_POSTGRES_URL`, falling back to
+   `XATA_POSTGRES_URL`. It reads the same SQL directory and uses the same journal
+   table as the TypeScript API. The automated tests mostly mock database calls;
+   they complement applying the migration and exercising affected queries on a
+   local database.
+5. Commit the TypeScript schema, PureScript schema/consumer changes, generated
+   SQL, migration metadata and relevant tests together.
+
+For production, run `doppler run -c prd -- bun run db:migrate` from `purescript/`
+with the intended production configuration. Migrations are explicit: the build
+and systemd startup do not apply them automatically.
+
+The PureScript `drizzle.config.js` is configured for **applying existing SQL**;
+use `apps/api` for generation. There is currently no TypeScript-schema-to-
+PureScript generator. `tools/schemagen/gen.ts` generates Gleam models, not these
+PureScript table definitions.
+
+## Updating lexicons: PKL to the PureScript API
+
+The current pipeline is:
+
+```text
+apps/api/pkl/defs/**/*.pkl
+  -> bun run pkl:gen (from the repository root)
+apps/api/lexicons/**/*.json
+  -> Rocksky.Lexicon.loadLexicons at API startup
+PureScript XRPC validation and handlers
+```
+
+There is no generated `.purs` model layer in this pipeline. The runtime loads
+JSON lexicons directly; handler parameter/result types and business logic are
+maintained in PureScript. Lexicon changes and database migrations are separate:
+change the database schema only when the new API contract needs storage changes.
+
+1. Edit the relevant PKL definition under `apps/api/pkl/defs/`. For example,
+   `album/getAlbum.pkl` defines `app.rocksky.album.getAlbum`, while
+   `album/defs.pkl` contains its shared response definitions. Update required
+   fields, formats, references and descriptions together. The shared PKL schema
+   is under `apps/api/pkl/schema/`.
+2. With workspace dependencies installed and the `pkl` executable available,
+   generate JSON and refresh the TypeScript server bindings:
+
+   ```sh
+   # From the repository root.
+   bun run pkl:gen
+   bun run lexgen
+   ```
+
+   `pkl:gen` recursively evaluates `apps/api/pkl/defs/` into
+   `apps/api/lexicons/`. `lexgen` reads that directory plus
+   `apps/api/src/tealfm/lexicons/` and generates `apps/api/src/lexicon/`, including
+   nullable-array normalization and formatting. PureScript consumes the JSON;
+   the TypeScript generation step keeps the original API in sync. Review the
+   generated changes. If a PKL file was removed or renamed, remove its stale JSON
+   explicitly: the PKL generator does not clean old output files.
+3. Update the matching PureScript handler under
+   `purescript/api/src/Rocksky/Xrpc/App/Rocksky/<Group>/`. Adjust its parameter,
+   input and result types, validation, projections and serialized fields to match
+   the new contract. Update shared types/decoders in `Rocksky.Types` when relevant.
+   Preserve the distinction between omitted fields and explicit `null`.
+4. For a new endpoint, implement and export `register :: Server -> Context ->
+   Effect Unit`, register the exact NSID with `Xrpc.method`, and regenerate the
+   group aggregators and XRPC index:
+
+   ```sh
+   # From the repository root.
+   (cd purescript && python3 bin/register-xrpc.py)
+   ```
+
+   This command discovers existing PureScript handler modules; it does not
+   generate handlers or types from lexicons. Keep the original TypeScript handler
+   and its registration in sync as well: the parity test compares both APIs.
+5. Add or update endpoint behavior tests, then validate:
+
+   ```sh
+   # From the repository root.
+   (cd purescript && bun run test:xrpc)
+   (cd purescript && bun run test:all)
+   ```
+
+   `test:xrpc` builds and registers handlers against the real JSON lexicons.
+   When adding/removing endpoints, update its explicit expected handler count
+   (currently 153) to the reviewed total. Registration tests do not replace
+   assertions about input validation and response shapes.
+6. Commit the PKL source, generated JSON/TypeScript bindings, PureScript changes,
+   registration files and tests together. Restart the API to load changed JSON.
+   For a bundled deployment, rebuild with `bun run bundle` from `purescript/`
+   and retain the lexicon JSON directories alongside the checkout.
+
+If SDK contracts also changed, run `bun run lexgen:types` from the repository
+root and review the generated SDK changes. That generator has no PureScript
+backend. `LEXICONS_DIR` can override runtime JSON locations; ensure it points at
+these updated files when testing or deploying.
 
 ## Layout
 
