@@ -511,8 +511,28 @@ That's it — no compilation step, the REPL picks it up on next `(require … :r
 - **Repo root via marker files.** `console.shell/repo-root` walks up looking
   for `turbo.json` + `package.json`, so commands work no matter where the REPL
   was started.
-- **Foreground by default.** Daemons run with inherited stdio so Ctrl-C kills
-  them. Use `console.shell/sh*` to background a process from the REPL.
+- **Foreground by default.** Commands using `console.shell/sh` inherit stdio.
+  While a command runs, Ctrl-C stops its subprocess tree, returns exit code
+  `130`, and leaves the REPL and its variables intact. This includes
+  `(systemd/logs :gleam 200 :follow)` and
+  `(systemd/journalctl :gleam :follow)`, including explicit SSH targets.
+  Stopping the log reader does not stop the systemd service. The previous
+  Ctrl-C handler is restored after the command, including startup failures.
+  Foreground calls are serialized because signal handlers are process-wide.
+  Use `console.shell/sh*` to background a process and stop its handle explicitly
+  with `babashka.process/destroy-tree`. Capture (`sh!`) and background (`sh*`)
+  calls do not install this temporary handler.
+
+  After updating an existing REPL, load the change with
+  `(require 'console.shell :reload)`.
+
+  Run the real-terminal interrupt regression from `tools/console/`:
+
+  ```sh
+  python3 test/foreground_interrupt_test.py bb
+  python3 test/foreground_interrupt_test.py clojure
+  TERM=xterm python3 test/foreground_interrupt_test.py clojure --rebel
+  ```
 - **Codegen isolation.** Per project policy, `lexgen/types` only writes into
   each `sdk/<lang>/.../generated/` subtree. The console does not change this;
   it only invokes the existing generator.

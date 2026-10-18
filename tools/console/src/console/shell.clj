@@ -13,7 +13,8 @@
             [babashka.fs :as fs]
             [clojure.string :as str]
             [console.path :as path]
-            [console.env  :as env]))
+            [console.env  :as env])
+  (:import [sun.misc Signal SignalHandler]))
 
 (defn repo-root
   "Re-exported for callers that want the repo root."
@@ -29,17 +30,47 @@
   (-> (merge {:dir (path/repo-root) :inherit true} opts)
       with-env))
 
+;; Signal handlers are process-wide. Serialize foreground waits so overlapping
+;; evaluations cannot replace one another's handler or restore it out of order.
+(defonce ^:private foreground-lock (Object.))
+
+(defn- foreground [args opts]
+  (locking foreground-lock
+    (let [signal (Signal. "INT")
+          child (atom nil)
+          interrupted? (atom false)
+          stop! (fn [] (when-let [proc @child] (p/destroy-tree proc)))
+          previous (Signal/handle signal
+                     (reify SignalHandler
+                       (handle [_ _]
+                         (reset! interrupted? true)
+                         (stop!))))]
+      (try
+        (let [proc (p/process args opts)]
+          (reset! child proc)
+          ;; An interrupt may arrive between installing the handler and spawn.
+          (when @interrupted? (stop!))
+          (let [result @proc]
+            (if @interrupted? 130 (:exit result))))
+        (catch InterruptedException _
+          ;; Editor/nREPL interrupts can interrupt the evaluation thread directly.
+          (stop!)
+          130)
+        (finally
+          (Signal/handle signal previous))))))
+
 (defn sh
   "Run a command with inherited stdio. Returns the exit code.
-  Accepts either a vector of args or a single string (which is split)."
+  Ctrl-C stops the child process tree and returns 130 without exiting the REPL.
+  Restores the previous signal handler afterwards. Accepts a vector or string."
   ([cmd] (sh cmd {}))
   ([cmd opts]
    (let [args (cond
                 (vector? cmd) cmd
                 (string? cmd) (str/split cmd #"\s+")
                 :else (throw (ex-info "cmd must be string or vector" {:cmd cmd})))
-         proc (p/process args (in-repo opts))]
-     (:exit @proc))))
+         opts (in-repo opts)]
+     (foreground args opts))))
 
 (defn sh!
   "Like `sh` but captures stdout/stderr and throws on non-zero exit."
