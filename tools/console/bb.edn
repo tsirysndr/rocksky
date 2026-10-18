@@ -147,6 +147,243 @@
                  :task (do (require 'console.gleam)
                            (apply (resolve 'console.gleam/dev-env) *command-line-args*))}
 
+  ;; BEGIN GENERATED PURESCRIPT TASKS
+  ps:audit:port {:doc "Run purescript: audit:port. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/audit-port) *command-line-args*))}
+  ps:build {:doc "Run purescript: build. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/build) *command-line-args*))}
+  ps:bundle {:doc "Run purescript: bundle. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/bundle) *command-line-args*))}
+  ps:check:bundles {:doc "Run purescript: check:bundles. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/check-bundles) *command-line-args*))}
+  ps:db:migrate {:doc "Run purescript: db:migrate. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/db-migrate) *command-line-args*))}
+  ps:dev {:doc "Run purescript: dev. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/dev) *command-line-args*))}
+  ps:env:generate {:doc "Run purescript: env:generate. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/env-generate) *command-line-args*))}
+  ps:format {:doc "Run purescript: format. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/format) *command-line-args*))}
+  ps:prod:all {:doc "Run purescript: prod:all. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/prod-all) *command-line-args*))}
+  ps:script {:doc "Run purescript: script. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/script) *command-line-args*))}
+  ps:start {:doc "Run purescript: start. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/start) *command-line-args*))}
+  ps:start:xrpc {:doc "Run purescript: start:xrpc. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/start-xrpc) *command-line-args*))}
+  ps:test {:doc "Run purescript: test. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test) *command-line-args*))}
+  ps:test:album-recommendations {:doc "Run purescript: test:album-recommendations. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-album-recommendations) *command-line-args*))}
+  ps:test:albums {:doc "Run purescript: test:albums. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-albums) *command-line-args*))}
+  ps:test:all {:doc "Run purescript: test:all. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-all) *command-line-args*))}
+  ps:test:analysis-backfill {:doc "Run purescript: test:analysis-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-analysis-backfill) *command-line-args*))}
+  ps:test:artist-recommendations {:doc "Run purescript: test:artist-recommendations. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-artist-recommendations) *command-line-args*))}
+  ps:test:artists {:doc "Run purescript: test:artists. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-artists) *command-line-args*))}
+  ps:test:basic-scripts {:doc "Run purescript: test:basic-scripts. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-basic-scripts) *command-line-args*))}
+  ps:test:charts {:doc "Run purescript: test:charts. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-charts) *command-line-args*))}
+  ps:test:cloud-listings {:doc "Run purescript: test:cloud-listings. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-cloud-listings) *command-line-args*))}
+  ps:test:collections-script {:doc "Run purescript: test:collections-script. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-collections-script) *command-line-args*))}
+  ps:test:create-scrobble {:doc "Run purescript: test:create-scrobble. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-create-scrobble) *command-line-args*))}
+  ps:test:create-song {:doc "Run purescript: test:create-song. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-create-song) *command-line-args*))}
+  ps:test:discogs {:doc "Run purescript: test:discogs. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-discogs) *command-line-args*))}
+  ps:test:discogs-backfill {:doc "Run purescript: test:discogs-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-discogs-backfill) *command-line-args*))}
+  ps:test:event-script {:doc "Run purescript: test:event-script. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-event-script) *command-line-args*))}
+  ps:test:events {:doc "Run purescript: test:events. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-events) *command-line-args*))}
+  ps:test:feed {:doc "Run purescript: test:feed. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-feed) *command-line-args*))}
+  ps:test:feed-genres-scripts {:doc "Run purescript: test:feed-genres-scripts. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-feed-genres-scripts) *command-line-args*))}
+  ps:test:graph {:doc "Run purescript: test:graph. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-graph) *command-line-args*))}
+  ps:test:import {:doc "Run purescript: test:import. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-import) *command-line-args*))}
+  ps:test:isrc-backfill {:doc "Run purescript: test:isrc-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-isrc-backfill) *command-line-args*))}
+  ps:test:likes-backfill {:doc "Run purescript: test:likes-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-likes-backfill) *command-line-args*))}
+  ps:test:match-uris {:doc "Run purescript: test:match-uris. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-match-uris) *command-line-args*))}
+  ps:test:matching {:doc "Run purescript: test:matching. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-matching) *command-line-args*))}
+  ps:test:nowplaying {:doc "Run purescript: test:nowplaying. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-nowplaying) *command-line-args*))}
+  ps:test:oauth-client {:doc "Run purescript: test:oauth-client. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-oauth-client) *command-line-args*))}
+  ps:test:playlist-sync-script {:doc "Run purescript: test:playlist-sync-script. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-playlist-sync-script) *command-line-args*))}
+  ps:test:playlists {:doc "Run purescript: test:playlists. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-playlists) *command-line-args*))}
+  ps:test:profile {:doc "Run purescript: test:profile. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-profile) *command-line-args*))}
+  ps:test:recommendation-common {:doc "Run purescript: test:recommendation-common. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-recommendation-common) *command-line-args*))}
+  ps:test:record-dedup {:doc "Run purescript: test:record-dedup. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-record-dedup) *command-line-args*))}
+  ps:test:replaygain-backfill {:doc "Run purescript: test:replaygain-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-replaygain-backfill) *command-line-args*))}
+  ps:test:rest-entry {:doc "Run purescript: test:rest-entry. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-rest-entry) *command-line-args*))}
+  ps:test:rest-storage {:doc "Run purescript: test:rest-storage. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-rest-storage) *command-line-args*))}
+  ps:test:riff-backfill {:doc "Run purescript: test:riff-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-riff-backfill) *command-line-args*))}
+  ps:test:rsql {:doc "Run purescript: test:rsql. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-rsql) *command-line-args*))}
+  ps:test:scrobble-dedup-script {:doc "Run purescript: test:scrobble-dedup-script. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-scrobble-dedup-script) *command-line-args*))}
+  ps:test:scrobble-reads {:doc "Run purescript: test:scrobble-reads. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-scrobble-reads) *command-line-args*))}
+  ps:test:server {:doc "Run purescript: test:server. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-server) *command-line-args*))}
+  ps:test:session-maintenance {:doc "Run purescript: test:session-maintenance. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-session-maintenance) *command-line-args*))}
+  ps:test:shouts-likes {:doc "Run purescript: test:shouts-likes. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-shouts-likes) *command-line-args*))}
+  ps:test:song-catalog {:doc "Run purescript: test:song-catalog. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-song-catalog) *command-line-args*))}
+  ps:test:song-match {:doc "Run purescript: test:song-match. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-song-match) *command-line-args*))}
+  ps:test:source-placeholders {:doc "Run purescript: test:source-placeholders. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-source-placeholders) *command-line-args*))}
+  ps:test:spotify {:doc "Run purescript: test:spotify. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-spotify) *command-line-args*))}
+  ps:test:spotify-xrpc {:doc "Run purescript: test:spotify-xrpc. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-spotify-xrpc) *command-line-args*))}
+  ps:test:status {:doc "Run purescript: test:status. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-status) *command-line-args*))}
+  ps:test:submissions {:doc "Run purescript: test:submissions. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-submissions) *command-line-args*))}
+  ps:test:sync-scripts {:doc "Run purescript: test:sync-scripts. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-sync-scripts) *command-line-args*))}
+  ps:test:teal {:doc "Run purescript: test:teal. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-teal) *command-line-args*))}
+  ps:test:track-recommendations {:doc "Run purescript: test:track-recommendations. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-track-recommendations) *command-line-args*))}
+  ps:test:track-uri-backfill {:doc "Run purescript: test:track-uri-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-track-uri-backfill) *command-line-args*))}
+  ps:test:typesense {:doc "Run purescript: test:typesense. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-typesense) *command-line-args*))}
+  ps:test:typesense-import-script {:doc "Run purescript: test:typesense-import-script. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-typesense-import-script) *command-line-args*))}
+  ps:test:upload-ingest {:doc "Run purescript: test:upload-ingest. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-upload-ingest) *command-line-args*))}
+  ps:test:upload-library {:doc "Run purescript: test:upload-library. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-upload-library) *command-line-args*))}
+  ps:test:upload-metadata {:doc "Run purescript: test:upload-metadata. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-upload-metadata) *command-line-args*))}
+  ps:test:upload-stream {:doc "Run purescript: test:upload-stream. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-upload-stream) *command-line-args*))}
+  ps:test:users-details {:doc "Run purescript: test:users-details. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-users-details) *command-line-args*))}
+  ps:test:users-library {:doc "Run purescript: test:users-library. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-users-library) *command-line-args*))}
+  ps:test:users-mutations {:doc "Run purescript: test:users-mutations. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-users-mutations) *command-line-args*))}
+  ps:test:users-profile {:doc "Run purescript: test:users-profile. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-users-profile) *command-line-args*))}
+  ps:test:users-shouts {:doc "Run purescript: test:users-shouts. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-users-shouts) *command-line-args*))}
+  ps:test:wrapped {:doc "Run purescript: test:wrapped. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-wrapped) *command-line-args*))}
+  ps:test:xrpc {:doc "Run purescript: test:xrpc. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-xrpc) *command-line-args*))}
+  ;; END GENERATED PURESCRIPT TASKS
+
   ;; ── Rocksky systemd management ───────────────────────────────
   systemd:list {:doc "List loaded Rocksky services/timers, including inactive units. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)

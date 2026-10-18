@@ -54,6 +54,7 @@ tools/console/
     ├── shell.clj           # process helpers (sh, sh!, sh*, cargo, bun)
     ├── lexgen.clj          # lexicon codegen wrappers
     ├── db.clj              # migrate, gen-migration, pkl, pgpull
+    ├── purescript.clj      # every PureScript package script (generated)
     ├── gleam.clj           # every Gleam API package script
     ├── systemd.clj         # Rocksky systemd units, local or over SSH
     ├── sync.clj            # apps/api data-op scripts (12 commands)
@@ -303,6 +304,56 @@ Run `(help)` / `bb help` for the live list. Snapshot:
 |           | `show`, `get`, `reload!` | inspect / re-pull / clear                           |
 
 ---
+
+## PureScript package scripts
+
+Every script in `purescript/package.json` is available through `console.purescript`
+(preloaded as `ps` in the REPL), listed by `(help)`, and exposed as a Babashka
+`ps:<original-script-name>` task. REPL function names replace `:` with `-`.
+All wrappers run from `purescript/` and forward extra arguments as separate argv
+entries through the shared console environment/process helpers.
+
+```clojure
+(ps/build)
+(ps/env-generate)                 ;; preserves an existing .env
+(ps/db-migrate)                   ;; applies migrations to the configured database
+(ps/start-xrpc)
+(ps/script "Rocksky.Scripts.Sync" "did:plc:example")
+(ps/test-users-shouts)
+(ps/check-bundles)
+```
+
+```sh
+# From tools/console:
+bb ps:build
+bb ps:env:generate --help
+bb ps:test:all
+bb ps:script Rocksky.Scripts.Sync did:plc:example
+clojure -X console.core/dispatch :cmd :purescript/env-generate :args '["--help"]'
+```
+
+These wrappers inherit the console's loaded environment, just like other
+commands. For local database operations, load the PureScript environment with
+`(env/load! "purescript/.env")`; values already loaded into the console take
+precedence over dotenv values loaded by the child process. Commands only run
+when called; listing help or loading the namespace performs no build, migration,
+secret generation or service startup.
+
+After adding, removing or renaming a package script, regenerate the checked-in
+wrappers and Babashka tasks (from the repository root):
+
+```sh
+node tools/console/scripts/register-purescript.mjs
+node tools/console/scripts/register-purescript.mjs --check
+```
+
+Verify dispatch and argument handling without running any underlying scripts:
+
+```sh
+# From tools/console:
+bb --classpath src:test --main console.purescript-test
+clojure -Sdeps '{:paths ["src" "test"]}' -M -m console.purescript-test
+```
 
 ## Docker compose
 

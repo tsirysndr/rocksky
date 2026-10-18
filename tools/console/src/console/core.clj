@@ -9,10 +9,11 @@
       $ bb help
       $ bb sync did:plc:abc123"
   (:require [console.shell :as sh]
+            [console.purescript :as ps]
             [clojure.string :as str]))
 
 (def ^:private registry
-  "Hand-written index of every command grouped by namespace.
+  "Index of every command grouped by namespace; PureScript entries are generated.
   Keeps `(help)` cheap and discoverable — namespaces are still loaded lazily."
   [{:group "lexgen" :ns 'console.lexgen
     :cmds [[:server         "Run apps/api lex gen-server"]
@@ -64,6 +65,11 @@
            [:backfill-discogs "Run gleam/package.json script backfill:discogs"]
            [:backfill-fingerprint "Run gleam/package.json script backfill:fingerprint"]
            [:dev-env "Run gleam/package.json script dev:env"]]}
+
+   {:group "purescript" :ns 'console.purescript
+    :cmds (mapv (fn [[command script]]
+                  [command (str "bun run " script " in purescript/ (extra args forwarded)")])
+                ps/script-commands)}
 
    {:group "db" :ns 'console.db
     :cmds [[:migrate        "Apply Drizzle migrations"]
