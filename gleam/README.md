@@ -225,7 +225,9 @@ and Doppler configuration `prd`.
 
 Each start runs `gleam/deploy/build-production.sh`: `bun install --frozen-lockfile`
 at the workspace root, followed by `gleam build --target javascript`. A shared
-`flock` serializes dependency installation and compilation. A failed build prevents
+`flock` on Linux or the system `shlock` on macOS serializes native builds,
+dependency installation and compilation. Native artifacts use `.so` on Linux
+and `.dylib` on macOS. A failed build prevents
 startup. The JavaScript compiler output lives under `build/dev/javascript` even
 when running the application with `NODE_ENV=production`; the Node entrypoints use
 that compiler output directly.
