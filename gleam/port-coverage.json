@@ -1,0 +1,1391 @@
+{
+  "source_modules": 277,
+  "missing": 0,
+  "modules": [
+    {
+      "source": "access-tokens/app.ts",
+      "target": "src/rocksky_api/access_tokens/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "apikeys/app.ts",
+      "target": "src/rocksky_api/apikeys/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "auth/client.ts",
+      "target": "src/rocksky_api/auth/client.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "auth/oauth-client-auth.ts",
+      "target": "src/rocksky_api/auth/oauth_client_auth.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "auth/oauth-client.ts",
+      "target": "src/rocksky_api/auth/oauth_client.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "auth/storage.ts",
+      "target": "src/rocksky_api/auth/store.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "bsky/app.ts",
+      "target": "src/rocksky_api/bsky/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "context.ts",
+      "target": "src/rocksky_api/context.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "db.ts",
+      "target": "src/rocksky_api/db/db.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "drizzle.ts",
+      "target": "src/rocksky_api/db/db.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "dropbox/app.ts",
+      "target": "src/rocksky_api/dropbox/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "googledrive/app.ts",
+      "target": "src/rocksky_api/googledrive/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "import/app.ts",
+      "target": "src/rocksky_api/history_import/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "index.ts",
+      "target": "src/rocksky_api/api.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/agent.ts",
+      "target": "src/rocksky_api/lib/agent.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/authVerifier.ts",
+      "target": "src/rocksky_api/xrpc/auth.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/bskyProfile.ts",
+      "target": "src/rocksky_api/lib/bsky_profile.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/credits.ts",
+      "target": "src/rocksky_api/lib/helpers.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/crypto.ts",
+      "target": "src/rocksky_api/node/crypto.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/dbQuery.ts",
+      "target": "src/rocksky_api/db/db.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/dbRetry.ts",
+      "target": "src/rocksky_api/db/retry.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/didUnstorageCache.ts",
+      "target": "src/rocksky_api/lib/id_resolver.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/discogs.ts",
+      "target": "src/rocksky_api/lib/discogs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/discogsEnrichment.ts",
+      "target": "src/rocksky_api/lib/discogs_enrichment.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/discogsRelation.ts",
+      "target": "src/rocksky_api/lib/discogs_relation.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/discogsView.ts",
+      "target": "src/rocksky_api/lib/discogs_view.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/downloadImage.ts",
+      "target": "src/rocksky_api/lib/download_image.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/durableRecord.ts",
+      "target": "src/rocksky_api/lib/durable_record.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/durableSubmission.ts",
+      "target": "src/rocksky_api/lib/durable_submission.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/enrichmentBudget.ts",
+      "target": "src/rocksky_api/lib/enrichment_budget.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/env.ts",
+      "target": "src/rocksky_api/env.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/eventView.ts",
+      "target": "src/rocksky_api/lib/event_view.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/extractPdsFromDid.ts",
+      "target": "src/rocksky_api/lib/extract_pds.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/feedCache.ts",
+      "target": "src/rocksky_api/lib/feed_cache.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/filteredPage.ts",
+      "target": "src/rocksky_api/lib/filtered_page.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/idResolver.ts",
+      "target": "src/rocksky_api/lib/id_resolver.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/index.ts",
+      "target": "src/rocksky_api/lib/helpers.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/matching.ts",
+      "target": "src/rocksky_api/lib/matching.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/navidrome.ts",
+      "target": "src/rocksky_api/lib/navidrome.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/pdsProxy.ts",
+      "target": "src/rocksky_api/lib/pds_proxy.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/pgConnectionRecovery.ts",
+      "target": "src/rocksky_api/lib/pg_connection_recovery.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/plc.ts",
+      "target": "src/rocksky_api/env.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/queryCache.ts",
+      "target": "src/rocksky_api/lib/query_cache.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/recordOwnership.ts",
+      "target": "src/rocksky_api/lib/record_ownership.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/recordPosition.ts",
+      "target": "src/rocksky_api/lib/record_position.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/rsql.ts",
+      "target": "src/rocksky_api/drizzle/rsql.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/scrobbleDedup.ts",
+      "target": "src/rocksky_api/lib/scrobble_dedup.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/scrobbleGuard.ts",
+      "target": "src/rocksky_api/lib/scrobble_guard.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/spotifyGet.ts",
+      "target": "src/rocksky_api/lib/spotify_get.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/statsCache.ts",
+      "target": "src/rocksky_api/lib/stats_cache.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/storage-crypto.ts",
+      "target": "src/rocksky_api/node/crypto.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/trackLikes.ts",
+      "target": "src/rocksky_api/lib/track_likes.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/verifyToken.ts",
+      "target": "src/rocksky_api/lib/verify_token.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lib/xrpcTelemetry.ts",
+      "target": "src/rocksky_api/telemetry/xrpc_telemetry.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "library/playlist-mirror.ts",
+      "target": "src/rocksky_api/library/playlist_mirror.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "lovedtracks/lovedtracks.service.ts",
+      "target": "src/rocksky_api/lovedtracks/service.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "metrics.ts",
+      "target": "src/rocksky_api/telemetry/metrics.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "notifications/notifications.service.ts",
+      "target": "src/rocksky_api/notifications/service.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "notifications/sse.ts",
+      "target": "src/rocksky_api/notifications/sse.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "nowplaying/nowplaying.service.ts",
+      "target": "src/rocksky_api/nowplaying/service.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "opengraph/app.ts",
+      "target": "src/rocksky_api/opengraph/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "otel.ts",
+      "target": "src/rocksky_api/node/otel.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "playlists/playlists.service.ts",
+      "target": "src/rocksky_api/playlists/service.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "profiling.ts",
+      "target": "src/rocksky_api/node/pyroscope.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "ratelimiter.ts",
+      "target": "src/rocksky_api/rest/ratelimiter.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/avatar.ts",
+      "target": "src/rocksky_api/scripts/avatar.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/backfill-analysis.ts",
+      "target": "src/rocksky_api/scripts/backfill_analysis.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/backfill-discogs.ts",
+      "target": "src/rocksky_api/scripts/backfill_discogs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/backfill-isrc-mbid.ts",
+      "target": "src/rocksky_api/scripts/backfill_isrc_mbid.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/backfill-likes.ts",
+      "target": "src/rocksky_api/scripts/backfill_likes.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/backfill-replaygain.ts",
+      "target": "src/rocksky_api/scripts/backfill_replaygain.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/backfill-riff.ts",
+      "target": "src/rocksky_api/scripts/backfill_riff.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/backfill-track-uri.ts",
+      "target": "src/rocksky_api/scripts/backfill_track_uri.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/collections.ts",
+      "target": "src/rocksky_api/scripts/collections.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/dedup-records.ts",
+      "target": "src/rocksky_api/scripts/dedup_records.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/dedup.ts",
+      "target": "src/rocksky_api/scripts/dedup.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/event.ts",
+      "target": "src/rocksky_api/scripts/event.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/exp.ts",
+      "target": "src/rocksky_api/scripts/exp.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/feed.ts",
+      "target": "src/rocksky_api/scripts/feed.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/genres.ts",
+      "target": "src/rocksky_api/scripts/genres.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/likes.ts",
+      "target": "src/rocksky_api/scripts/likes.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/seed-feed.ts",
+      "target": "src/rocksky_api/scripts/seed_feed.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/spotify.ts",
+      "target": "src/rocksky_api/scripts/spotify.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/sync-library-playlist.ts",
+      "target": "src/rocksky_api/scripts/sync_library_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/sync-library.ts",
+      "target": "src/rocksky_api/scripts/sync_library.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/sync.ts",
+      "target": "src/rocksky_api/scripts/sync.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "scripts/typesense-import.ts",
+      "target": "src/rocksky_api/scripts/typesense_import.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "server.ts",
+      "target": "src/rocksky_api/server.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "shouts/shouts.service.ts",
+      "target": "src/rocksky_api/shouts/service.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "spotify/app.ts",
+      "target": "src/rocksky_api/spotify/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "sqliteKv.ts",
+      "target": "src/rocksky_api/kv.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "storage/app.ts",
+      "target": "src/rocksky_api/storage/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "submissions/app.ts",
+      "target": "src/rocksky_api/submissions/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "subscribers/index.ts",
+      "target": "src/rocksky_api/subscribers/index.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "subscribers/playback.ts",
+      "target": "src/rocksky_api/subscribers/playback.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "subscribers/playlist.ts",
+      "target": "src/rocksky_api/subscribers/playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "subscribers/scrobble.ts",
+      "target": "src/rocksky_api/subscribers/scrobble.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "subscribers/status.ts",
+      "target": "src/rocksky_api/subscribers/status.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "subscribers/track.ts",
+      "target": "src/rocksky_api/subscribers/track.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "subscribers/user.ts",
+      "target": "src/rocksky_api/subscribers/user.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "tealfm/index.ts",
+      "target": "src/rocksky_api/tealfm/index.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "tealfm/publication.ts",
+      "target": "src/rocksky_api/tealfm/publication.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "tealfm/pushEnabled.ts",
+      "target": "src/rocksky_api/tealfm/push_enabled.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "tracks/tracks.service.ts",
+      "target": "src/rocksky_api/tracks/service.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "typesense/client.ts",
+      "target": "src/rocksky_api/node/typesense.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "typesense/library.ts",
+      "target": "src/rocksky_api/typesense/library.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "typesense/retry.ts",
+      "target": "src/rocksky_api/typesense/retry.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "typesense/schema.ts",
+      "target": "src/rocksky_api/typesense/schema.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "typesense/search.ts",
+      "target": "src/rocksky_api/typesense/search.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "uploads/analysis.ts",
+      "target": "src/rocksky_api/uploads/analysis.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "uploads/app.ts",
+      "target": "src/rocksky_api/uploads/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "uploads/delete.service.ts",
+      "target": "src/rocksky_api/uploads/delete_service.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "uploads/replaygain.ts",
+      "target": "src/rocksky_api/uploads/replaygain.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "users/app.ts",
+      "target": "src/rocksky_api/users/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "users/utils.ts",
+      "target": "src/rocksky_api/views/song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "webscrobbler/app.ts",
+      "target": "src/rocksky_api/webscrobbler/app.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorAlbums.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_albums.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorArtists.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_artists.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorCompatibility.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_compatibility.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorLovedSongs.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_loved_songs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorNeighbours.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_neighbours.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorPlaylists.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_playlists.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorScrobbles.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_scrobbles.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getActorSongs.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_actor_songs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/getProfile.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/get_profile.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/actor/neighboursQuery.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/actor/neighbours_query.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/album/getAlbum.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/album/get_album.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/album/getAlbumTracks.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/album/get_album_tracks.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/album/getAlbums.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/album/get_albums.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/apikey/createApikey.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/apikey/create_apikey.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/apikey/getApikeys.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/apikey/get_apikeys.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/apikey/removeApikey.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/apikey/remove_apikey.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/apikey/updateApikey.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/apikey/update_apikey.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/artist/getArtist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/artist/get_artist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/artist/getArtistAlbums.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/artist/get_artist_albums.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/artist/getArtistEvents.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/artist/get_artist_events.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/artist/getArtistListeners.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/artist/get_artist_listeners.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/artist/getArtistRecentListeners.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/artist/get_artist_recent_listeners.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/artist/getArtistTracks.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/artist/get_artist_tracks.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/artist/getArtists.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/artist/get_artists.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/charts/getDecades.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/charts/get_decades.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/charts/getScrobblesChart.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/charts/get_scrobbles_chart.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/charts/getTopArtists.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/charts/get_top_artists.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/charts/getTopScrobblers.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/charts/get_top_scrobblers.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/charts/getTopTracks.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/charts/get_top_tracks.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/dropbox/downloadFile.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/dropbox/download_file.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/dropbox/getFiles.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/dropbox/get_files.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/dropbox/getMetadata.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/dropbox/get_metadata.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/dropbox/getTemporaryLink.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/dropbox/get_temporary_link.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/equalizer/deletePreset.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/equalizer/delete_preset.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/equalizer/listPresets.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/equalizer/list_presets.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/equalizer/putPreset.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/equalizer/put_preset.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/equalizer/slug.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/equalizer/slug.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/event/getEvent.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/event/get_event.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/event/getEventRsvps.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/event/get_event_rsvps.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/event/getEvents.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/event/get_events.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/event/putRsvp.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/event/put_rsvp.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/getAlbumRecommendations.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/get_album_recommendations.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/getArtistRecommendations.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/get_artist_recommendations.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/getFeed.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/get_feed.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/getFeedGenerator.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/get_feed_generator.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/getFeedGenerators.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/get_feed_generators.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/getRecommendations.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/get_recommendations.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/getStories.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/get_stories.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/feed/search.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/feed/search.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/googledrive/downloadFile.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/googledrive/download_file.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/googledrive/getFile.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/googledrive/get_file.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/googledrive/getFiles.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/googledrive/get_files.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/graph/followAccount.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/graph/follow_account.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/graph/getFollowers.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/graph/get_followers.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/graph/getFollows.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/graph/get_follows.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/graph/getKnownFollowers.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/graph/get_known_followers.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/graph/unfollowAccount.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/graph/unfollow_account.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/createPlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/create_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/deleteAlbum.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/delete_album.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/deletePlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/delete_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/deleteSong.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/delete_song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getAlbum.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_album.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getAlbumInfo.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_album_info.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getAlbumList.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_album_list.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getArtist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_artist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getArtistInfo.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_artist_info.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getArtists.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_artists.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getCoverArtUrl.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_cover_art_url.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getDownloadUrl.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_download_url.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getGenres.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_genres.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getIndexes.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_indexes.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getInternetRadioStations.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_internet_radio_stations.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getLicense.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_license.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getLyrics.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_lyrics.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getMusicDirectory.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_music_directory.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getMusicFolders.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_music_folders.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getNowPlaying.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_now_playing.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getPlayQueue.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_play_queue.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getPlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getPlaylists.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_playlists.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getRandomSongs.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_random_songs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getScanStatus.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_scan_status.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getSimilarSongs.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_similar_songs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getSong.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getSongsByGenre.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_songs_by_genre.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getStarred.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_starred.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getStreamUrl.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_stream_url.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getTopSongs.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_top_songs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/getUser.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/get_user.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/index.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/routes.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/ping.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/ping.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/savePlayQueue.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/save_play_queue.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/scrobble.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/scrobble.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/search.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/search.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/star.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/star.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/startScan.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/start_scan.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/unstar.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/unstar.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/updateNowPlaying.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/update_now_playing.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/library/updatePlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/library/update_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/like/dislikeShout.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/like/dislike_shout.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/like/dislikeSong.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/like/dislike_song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/like/likeShout.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/like/like_shout.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/like/likeSong.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/like/like_song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/mirror/getMirrorSources.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/mirror/get_mirror_sources.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/mirror/putMirrorSource.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/mirror/put_mirror_source.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/notification/getUnreadCount.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/notification/get_unread_count.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/notification/listNotifications.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/notification/list_notifications.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/notification/updateSeen.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/notification/update_seen.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/addDirectoryToQueue.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/add_directory_to_queue.gleam",
+      "status": "source-empty"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/addItemsToQueue.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/add_items_to_queue.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/getCurrentlyPlaying.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/get_currently_playing.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/getPlaybackQueue.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/get_playback_queue.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/next.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/next.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/pause.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/pause.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/play.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/play.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/playDirectory.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/play_directory.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/playFile.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/play_file.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/previous.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/previous.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/player/seek.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/player/seek.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/addSongs.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/add_songs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/createPlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/create_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/getPlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/get_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/getPlaylists.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/get_playlists.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/insertDirectory.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/insert_directory.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/insertFiles.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/insert_files.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/removePlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/remove_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/removeTrack.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/remove_track.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/startPlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/start_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/playlist/updatePlaylist.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/playlist/update_playlist.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/rockbox/getAudioSettings.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/rockbox/get_audio_settings.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/rockbox/putAudioSettings.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/rockbox/put_audio_settings.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/scrobble/createScrobble.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/scrobble/create_scrobble.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/scrobble/getScrobble.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/scrobble/get_scrobble.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/scrobble/getScrobbles.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/scrobble/get_scrobbles.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/createShout.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/create_shout.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/getAlbumShouts.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/get_album_shouts.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/getArtistShouts.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/get_artist_shouts.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/getProfileShouts.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/get_profile_shouts.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/getShoutReplies.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/get_shout_replies.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/getTrackShouts.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/get_track_shouts.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/removeShout.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/remove_shout.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/replyShout.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/reply_shout.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/shout/reportShout.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/shout/report_shout.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/song/createSong.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/song/create_song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/song/getSong.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/song/get_song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/song/getSongRecentListeners.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/song/get_song_recent_listeners.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/song/getSongs.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/song/get_songs.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/song/matchSong.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/song/match_song.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/song/matchSongUris.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/song/match_song_uris.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/song/types.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/song/types.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/spotify/getCurrentlyPlaying.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/spotify/get_currently_playing.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/spotify/next.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/spotify/next.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/spotify/pause.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/spotify/pause.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/spotify/play.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/spotify/play.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/spotify/previous.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/spotify/previous.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/spotify/seek.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/spotify/seek.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/stats/getGlobalStats.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/stats/get_global_stats.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/stats/getStats.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/stats/get_stats.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/stats/getWrapped.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/stats/get_wrapped.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/app/rocksky/stats/wrappedQuery.ts",
+      "target": "src/rocksky_api/xrpc/app/rocksky/stats/wrapped_query.gleam",
+      "status": "present-needs-parity-review"
+    },
+    {
+      "source": "xrpc/index.ts",
+      "target": "src/rocksky_api/xrpc/routes.gleam",
+      "status": "present-needs-parity-review"
+    }
+  ]
+}
