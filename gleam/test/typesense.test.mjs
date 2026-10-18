@@ -39,3 +39,25 @@ test('Library search scopes user, paginates and preserves nullable metadata',asy
  assert.ok(await library.index_library_track(client,document) instanceof Ok);assert.deepEqual(upsert,doc);
  assert.ok(await library.remove_library_track(client,'u') instanceof Ok);
 });
+test('Missing search collections are created before retrying a user import',async()=>{
+ const {None}=await import('../build/dev/javascript/gleam_stdlib/gleam/option.mjs');
+ const {User}=await import('../build/dev/javascript/rocksky_api/rocksky_api/schema/users.mjs');
+ const {from_unix_seconds}=await import('../build/dev/javascript/gleam_time/gleam/time/timestamp.mjs');
+ const none=new None(),time=from_unix_seconds(0),user=new User('u','did:u','User','u.test','',false,none,none,time,time,none);
+ const existing=new Set(),created=[];let imports=0;
+ const client={collections:name=>name?{
+  retrieve:async()=>{if(!existing.has(name))throw {httpStatus:404};return {};},
+  documents:()=>({import:async()=>{imports++;if(!existing.has(name))throw {httpStatus:404};return [{success:true}];}})
+ }:{create:async s=>{created.push(s.name);existing.add(s.name);return s;}}};
+ assert.ok(await search.index_users(client,toList([user])) instanceof Ok);
+ assert.equal(imports,2);assert.deepEqual(created,['albums','artists','tracks','users','playlists']);
+ assert.ok(await search.index_users(client,toList([user])) instanceof Ok);assert.equal(created.length,5);
+});
+test('Collection setup preserves authentication failures and tolerates concurrent creation',async()=>{
+ let creates=0;
+ const unauthorized={collections:name=>name?{retrieve:async()=>{throw {httpStatus:401};}}:{create:async()=>{creates++;}}};
+ assert.ok(await schema.ensure_search_collections(unauthorized) instanceof GError);assert.equal(creates,0);
+ const seen=new Set();
+ const racing={collections:name=>name?{retrieve:async()=>{if(!seen.has(name)){seen.add(name);throw {httpStatus:404};}return {};}}:{create:async()=>{throw {httpStatus:409};}}};
+ assert.ok(await schema.ensure_search_collections(racing) instanceof Ok);
+});

@@ -15,7 +15,10 @@ const clean = (p) => {
 };
 
 export const collectionExistsImpl = (c) => (name) => () =>
-  c.collections(name).retrieve().then(() => true, () => false);
+  c.collections(name).retrieve().then(() => true, (error) => {
+    if (error?.httpStatus === 404 || error?.name === "ObjectNotFound") return false;
+    throw error;
+  });
 export const createCollectionImpl = (c) => (schema) => () => c.collections().create(schema).then(() => undefined);
 export const deleteCollectionImpl = (c) => (name) => () => c.collections(name).delete().then(() => undefined);
 export const importDocumentsImpl = (c) => (name) => (docs) => (action) => () =>

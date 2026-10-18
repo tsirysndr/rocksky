@@ -14,6 +14,7 @@ import rocksky_api/schema/tracks
 import rocksky_api/schema/users
 import rocksky_api/task
 import rocksky_api/typesense/retry
+import rocksky_api/typesense/schema
 
 pub const collections = [
   #("albums", "title,artist"),
@@ -61,6 +62,26 @@ fn upsert_many(
         )
         |> task.attempt_result
         |> task.map(fn(_) { Nil })
+      })
+      |> task.rescue(fn(e) {
+        case e {
+          error.Js(exception) ->
+            case typesense.is_not_found(exception) {
+              True -> {
+                use _ <- task.then(schema.ensure_search_collections(client))
+                typesense.import_documents(
+                  client,
+                  collection,
+                  json.array(rows, encode),
+                  "upsert",
+                )
+                |> task.attempt_result
+                |> task.map(fn(_) { Nil })
+              }
+              False -> task.fail(e)
+            }
+          _ -> task.fail(e)
+        }
       })
   }
 }

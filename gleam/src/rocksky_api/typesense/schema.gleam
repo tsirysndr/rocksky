@@ -116,8 +116,29 @@ pub fn search_schemas() {
 fn ensure(client: Client, name: String, schema: json.Json) {
   typesense.retrieve_collection(client, name)
   |> task.attempt_result
-  |> task.rescue(fn(_) {
-    typesense.create_collection(client, schema) |> task.attempt_result
+  |> task.rescue(fn(e) {
+    case e {
+      error.Js(exception) ->
+        case typesense.is_not_found(exception) {
+          True ->
+            typesense.create_collection(client, schema)
+            |> task.attempt_result
+            |> task.rescue(fn(create_error) {
+              case create_error {
+                error.Js(exception) ->
+                  case typesense.is_already_exists(exception) {
+                    True ->
+                      typesense.retrieve_collection(client, name)
+                      |> task.attempt_result
+                    False -> task.fail(create_error)
+                  }
+                _ -> task.fail(create_error)
+              }
+            })
+          False -> task.fail(e)
+        }
+      _ -> task.fail(e)
+    }
   })
   |> task.map(fn(_) { Nil })
 }

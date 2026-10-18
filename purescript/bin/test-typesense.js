@@ -41,3 +41,27 @@ assert.equal(rows[0].track.year, null);
 assert.equal(rows[0].albumReleaseDate, null);
 assert.equal(rows[0].track.albumArtist, "Album Artist");
 console.log("Verified federated-search grouping/error handling and uploaded-library pagination/response shape.");
+
+const { indexUsers } = await import("../output/Rocksky.Typesense.Search/index.js");
+const { ensureSearchCollections } = await import("../output/Rocksky.Typesense.Schema/index.js");
+const existing = new Set(), created = [];
+let imports = 0;
+const fresh = {typesense: {collections(name) {
+  return name ? {
+    async retrieve() { if (!existing.has(name)) throw Object.assign(new Error("missing"), {httpStatus:404}); return {}; },
+    documents() { return {async import() { imports++; if (!existing.has(name)) throw Object.assign(new Error("missing"), {httpStatus:404}); return []; }}; }
+  } : {async create(schema) {created.push(schema.name); existing.add(schema.name); return schema;}};
+}}};
+await fromAff(indexUsers(fresh)([{id:"user",handle:"user.test"}]))();
+assert.equal(imports,2);
+assert.deepEqual(created,["albums","artists","tracks","users","playlists"]);
+await fromAff(indexUsers(fresh)([{id:"user",handle:"user.test"}]))();
+assert.equal(created.length,5);
+let attemptedCreate = false;
+const denied = {typesense: {collections(name) {return name ? {async retrieve() {throw Object.assign(new Error("denied"),{httpStatus:401});}} : {async create() {attemptedCreate=true;}};}}};
+await assert.rejects(fromAff(ensureSearchCollections(denied))(), /denied/);
+assert.equal(attemptedCreate,false);
+const raced = new Set();
+const race = {typesense: {collections(name) {return name ? {async retrieve() {if(!raced.has(name)){raced.add(name);throw Object.assign(new Error("missing"),{httpStatus:404});}return {};}} : {async create(){throw Object.assign(new Error("exists"),{httpStatus:409});}};}}};
+await fromAff(ensureSearchCollections(race))();
+console.log("Verified missing collection recovery, authentication failures, and concurrent creation.");

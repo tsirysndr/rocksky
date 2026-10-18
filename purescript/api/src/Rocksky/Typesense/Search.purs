@@ -5,7 +5,10 @@ import Data.Array (concat, foldl, mapWithIndex)
 import Data.JSDate (getTime, now)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Nullable (notNull)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, attempt, throwError)
+import Data.Either (Either(..))
+import Rocksky.Lib.Error (errorToForeign)
+import Rocksky.Typesense.Schema (ensureSearchCollections)
 import Effect.Class (liftEffect)
 import Foreign (Foreign)
 import Rocksky.Context (Context)
@@ -24,7 +27,16 @@ searchCollections = [ "albums", "artists", "tracks", "users", "playlists" ]
 
 upsertMany :: Context -> String -> Array Foreign -> Aff Unit
 upsertMany _ _ [] = pure unit
-upsertMany ctx collection docs = void $ withTypesenseRetry $ Typesense.importDocuments ctx.typesense collection docs "upsert"
+upsertMany ctx collection docs = do
+  result <- attempt importDocs
+  case result of
+    Left err | readIntAt "httpStatus" (errorToForeign err) == Just 404 -> do
+      ensureSearchCollections ctx
+      importDocs
+    Left err -> throwError err
+    Right _ -> pure unit
+  where
+  importDocs = void $ withTypesenseRetry $ Typesense.importDocuments ctx.typesense collection docs "upsert"
 
 indexAlbums :: Context -> Array SelectAlbum -> Aff Unit
 indexAlbums ctx = upsertMany ctx "albums" <<< map toForeign

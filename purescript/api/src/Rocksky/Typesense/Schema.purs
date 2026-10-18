@@ -80,15 +80,25 @@ searchSchemas =
   where
   schema name fields = { name, schema: toForeign { name, enable_nested_fields: true, fields: [ field "id" "string" ] <> fields <> [ field ".*" "auto" ] } }
 
+createIfMissing :: Context -> String -> Foreign -> Aff Unit
+createIfMissing ctx name schema = do
+  result <- attempt (Typesense.createCollection ctx.typesense schema)
+  case result of
+    Left err | readIntAt "httpStatus" (errorToForeign err) == Just 409 -> do
+      exists <- Typesense.collectionExists ctx.typesense name
+      unless exists (throwError err)
+    Left err -> throwError err
+    Right _ -> pure unit
+
 ensureCollection :: Context -> Aff Unit
 ensureCollection ctx = do
   exists <- Typesense.collectionExists ctx.typesense libraryTracksCollection
-  unless exists (Typesense.createCollection ctx.typesense librarySchema)
+  unless exists (createIfMissing ctx libraryTracksCollection librarySchema)
 
 ensureSearchCollections :: Context -> Aff Unit
 ensureSearchCollections ctx = for_ searchSchemas \{ name, schema } -> do
   exists <- Typesense.collectionExists ctx.typesense name
-  unless exists (Typesense.createCollection ctx.typesense schema)
+  unless exists (createIfMissing ctx name schema)
 
 recreateSearchCollections :: Context -> Aff Unit
 recreateSearchCollections ctx = for_ searchSchemas \{ name, schema } -> do
