@@ -1,0 +1,26 @@
+[Unit]
+Description=Rocksky Gleam XRPC API
+After=network-online.target rocksky-matching.service
+Wants=network-online.target rocksky-matching.service
+Conflicts=rocksky-xrpc.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/gleam
+ExecStartPre=/bin/bash -ic 'exec /bin/bash deploy/build-production.sh'
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- env NODE_ENV=production node entry/server.mjs'
+TimeoutStartSec=15min
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-gleam-xrpc
+Environment=HOME=/root
+Environment=USER=root
+Environment=NODE_ENV=production
+Environment=MATCHING_URL=http://127.0.0.1:8097
+EnvironmentFile=-/etc/default/rocksky-gleam
+
+[Install]
+WantedBy=multi-user.target

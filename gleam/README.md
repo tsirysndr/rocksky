@@ -73,3 +73,40 @@ The original TypeScript API already has unfinished player/API-key/cloud XRPC
 methods. `xrpc/legacy.gleam` preserves those responses. Implementing those new
 features is separate from porting the existing API. Live production integration
 and deployment are not part of the local test suite.
+
+## Production systemd services
+
+`systemd/rocksky-gleam.service` and `systemd/rocksky-gleam-xrpc.service` at the
+repository root build and run the REST and XRPC processes respectively. They
+follow the existing deployment convention: root user, checkout at
+`/root/github/rocksky`, tools available through the Bash interactive environment,
+and Doppler configuration `prd`.
+
+Each start runs `gleam/deploy/build-production.sh`: `bun install --frozen-lockfile`
+at the workspace root, followed by `gleam build --target javascript`. A shared
+`flock` serializes dependency installation and compilation. A failed build prevents
+startup. The JavaScript compiler output lives under `build/dev/javascript` even
+when running the application with `NODE_ENV=production`; the Node entrypoints use
+that compiler output directly.
+
+The deployment host needs Bun, Gleam, Node.js, Doppler and `flock`, plus the native
+build dependencies required by the workspace. Configure Doppler for the Gleam
+working directory. Supply production API settings through Doppler, including
+**absolute paths** for `DB_PATH` and `KV_DB_PATH` pointing to the existing SQLite
+stores when replacing the TypeScript services. Optional systemd environment
+settings can be placed in `/etc/default/rocksky-gleam`.
+
+On the deployment host, from the repository root:
+
+```sh
+sudo install -m 644 systemd/rocksky-gleam.service systemd/rocksky-gleam-xrpc.service /etc/systemd/system/
+sudo systemd-analyze verify /etc/systemd/system/rocksky-gleam.service /etc/systemd/system/rocksky-gleam-xrpc.service
+sudo systemctl daemon-reload
+sudo systemctl disable --now rocksky.service rocksky-xrpc.service
+sudo systemctl enable --now rocksky-gleam.service rocksky-gleam-xrpc.service
+journalctl -u rocksky-gleam -u rocksky-gleam-xrpc -f
+```
+
+The units conflict with their TypeScript equivalents to avoid competing listeners.
+After updating the checkout, restart both Gleam services to rebuild and load the
+new code. These units do not run database migrations automatically.
