@@ -155,51 +155,209 @@ Linux `.deb`, `.rpm` and `.AppImage` bundles are attached to each
 ## 🚀 Self-Hosting / Development
 
 ### Prerequisites
-- Node.js (v22+)
-- Bun
-- Docker + Docker Compose
-- Rust (for some crates)
-- Deno, Go, Turbo, Wasm Pack (see full docs)
 
-### Getting Started
+- Node.js 22.15+ and Bun for the APIs and web app.
+- Docker with Docker Compose for PostgreSQL, Dragonfly (Redis), NATS and Typesense.
+- Rust/Cargo and a native C/C++ build toolchain for Jetstream, submissions and native addons.
+- PureScript/Spago (installed by `bun install` inside `purescript/`) or Gleam for your chosen API implementation.
+- FFmpeg for audio processing; Go and Deno for optional companion services.
 
-```bash
-# 1. Clone the repo
+The root Nix flake provides a development shell, including PureScript, Spago and
+Gleam: run `nix develop` if you use Nix. The commands below also work with tools
+installed directly on your host.
+
+### Install and start local infrastructure
+
+Run from the repository root:
+
+```sh
 git clone https://github.com/tsirysndr/rocksky.git
 cd rocksky
-
-# 2. Install dependencies
-npm install -g turbo
 bun install
-
-# 3. Environment variables
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
-cp apps/feeds/.env.example apps/feeds/.env
-cp .env.example .env
-# Edit the .env files as needed
+docker compose up -d --wait
 ```
 
-```bash
-# 4. Start services
-docker compose up -d
+Compose runs infrastructure only; start the API, Jetstream, submissions and web
+app separately. The current host endpoints are:
 
-# 5. Database migrations
-turbo db:migrate --filter=@rocksky/api
+| Service | Local endpoint |
+| --- | --- |
+| PostgreSQL | `127.0.0.1:15432` (database/user `rocksky`/`postgres`) |
+| Dragonfly / Redis | `127.0.0.1:6379` |
+| NATS | `127.0.0.1:4224` |
+| Typesense | `http://127.0.0.1:8109` |
 
-# 6. Spotify integration (optional but recommended)
-# Set SPOTIFY_ENCRYPTION_KEY and SPOTIFY_ENCRYPTION_IV first
-bun run spotify <your_client_id> <your_client_secret>
+PostgreSQL uses port **15432**, so local clients do not accidentally connect to
+Homebrew PostgreSQL on 5432. Environment generators read the actual published
+ports and credentials from `compose.yaml`.
+
+### Generate a local environment and choose an API
+
+Run **one** implementation at a time: both provide REST on **8000** and XRPC on
+**3004** and use the same database. Each package loads its own `.env` from its
+working directory.
+
+For **PureScript**, from the repository root:
+
+```sh
+cd purescript
+bun install
+bun run env:generate       # writes purescript/.env
+bun run db:migrate
+bun run build
+bun run dev               # seeds local feeds/owners, starts REST + XRPC
 ```
 
-Then run the dev servers:
+For **Gleam**, from the repository root (workspace dependencies were installed above):
 
-```bash
-bun run dev:jetstream
-bun run mb
-bun run feeds
-turbo dev --filter=@rocksky/api --filter=@rocksky/web
+```sh
+cd gleam
+bun run dev:env            # writes gleam/.env
+bun run db:migrate
+bun run dev               # seeds local feeds/owners, builds and starts REST + XRPC
 ```
+
+Both environment generators create private, gitignored `.env` files with local
+Docker endpoints, local secrets and `SUBMISSIONS_*` settings. They leave external
+provider credentials blank; configure Spotify, Dropbox, S3 and other integrations
+as needed. Compose does not start S3 or the application sidecars. Neither generator
+writes the root `.env`; the Rust commands below explicitly load the chosen API's
+file so the worker and API share `SUBMISSIONS_SECRET` and database URLs.
+
+PureScript preserves an existing file by refusing to overwrite it. Use
+`bun run env:generate --force` only when you intend to replace settings and
+regenerate secrets. Gleam's `bun run dev:env` can be rerun after Compose port
+changes: it refreshes local endpoints, preserves credentials/secrets and backs up
+the previous file. `bun run dev:env --force` resets those values too. Restart the
+API and Rust services together after changing their shared secret. Already
+exported shell variables can override dotenv values; clear stale production
+settings before starting local services.
+
+Run migrations once for the shared local database using either implementation.
+`bun run db:seed` is also available in both packages; it always targets the root
+Compose PostgreSQL container and imports feed generators plus their owner
+profiles. Local `dev` startup runs it automatically; production startup does not.
+
+See the [PureScript README](purescript/README.md) and
+[Gleam README](gleam/README.md) for table/migration changes, lexicon generation
+from Pkl, tests and maintenance scripts.
+
+### Start submissions and Jetstream
+
+Use separate terminals, each at the **repository root**. These examples select
+PureScript's environment; replace `purescript/.env` with `gleam/.env` for Gleam.
+
+```sh
+# Terminal 1: durable scrobble acceptance, retries and API publication callbacks
+bun --env-file=purescript/.env run dev:submissions
+```
+
+```sh
+# Terminal 2: live AT Protocol ingestion and queued Jetstream indexing
+bun --env-file=purescript/.env run dev:jetstream
+```
+
+Both require `SUBMISSIONS_DATABASE_URL`; the generated local configuration points
+it at Docker PostgreSQL. Queue tables initialize on service startup. Submissions
+calls the REST API at `http://127.0.0.1:8000/internal/submissions/process` using the
+shared `SUBMISSIONS_SECRET`. Keep both the API and worker running for scrobble
+publication. The worker also cleans up completed queue jobs, including Jetstream
+jobs.
+
+The submissions dashboard is at **http://127.0.0.1:8098/dashboard/**
+(`SUBMISSIONS_BIND` controls the listener). Jetstream defaults to live v1;
+set `JETSTREAM_VERSION=v2` or `both` in the selected `.env` to change protocols.
+See [Jetstream configuration](crates/jetstream/README.md) for source URLs and
+cursor rules, and [submissions configuration](crates/submissions/README.md) for
+retry, concurrency and dashboard settings.
+
+### Optional archive backfill and artist pictures
+
+Start Jetstream first to initialize and process its durable queue. The v2 archive
+scripts enqueue historical `app.rocksky.*` records; they are separate from live
+ingestion. Configure `JETSTREAM_API_KEY` in the chosen API's `.env` for the hosted
+archive service (see the package README for account setup). From that package:
+
+```sh
+# PureScript (build first)
+bun run backfill:jetstream --dry-run --limit 100
+# Gleam equivalent
+bun run backfill:jetstream-v2 --dry-run --limit 100
+```
+
+Remove `--dry-run` to enqueue records; remove `--limit` for a full backfill.
+These scripts save resumable archive checkpoints separately from live cursors.
+After indexing, either package can repair missing artist pictures from Rocksky:
+
+```sh
+bun run repair:artist-pictures --dry-run --limit 100
+bun run repair:artist-pictures
+```
+
+Picture repair preserves existing pictures and handles API rate limits with
+paced requests and retries.
+
+### Start the web app and optional companions
+
+From the repository root, create `apps/web/.env` from its example if it does not
+already exist, then run the web app:
+
+```sh
+cp -n apps/web/.env.example apps/web/.env
+cd apps/web
+bun run dev
+```
+
+Set `VITE_API_URL=http://localhost:3004` in `apps/web/.env`. The browser uses the
+XRPC server on **3004**, which also proxies REST requests to **8000**; keep both
+API processes running. Open **http://localhost:5174**. The example's
+`VITE_WS_URL=ws://localhost:8002` requires the separate WebSocket service for
+features that use it.
+
+Optional root scripts include `bun run mb` (MusicBrainz) and
+`bun run dev:feeds` (feed service; configure `apps/feeds/.env` from its example).
+Set the corresponding provider credentials and encryption keys before enabling
+integrations. The original TypeScript API remains in `apps/api`; do not start it
+alongside another implementation on the same ports.
+
+### Production / self-hosting
+
+Use production secrets, persistent database/storage paths and a reverse proxy
+with HTTPS. The generated local environments and Docker feed seed are for local
+development. Review and apply any required database migrations explicitly;
+production API startup does not apply them automatically.
+
+The repository includes these systemd units:
+
+| Component | Unit(s) |
+| --- | --- |
+| PureScript REST + XRPC | `systemd/rocksky-purescript.service` |
+| Gleam REST + XRPC | `systemd/rocksky-gleam.service`, `systemd/rocksky-gleam-xrpc.service` |
+| Jetstream | `systemd/rocksky-jetstream.service` |
+| Submissions | `systemd/rocksky-submissions.service` |
+
+The units assume `/root/github/rocksky`, host-installed tools and Doppler-managed
+secrets. Adapt those settings for your host. Choose one API implementation and
+stop any previous REST/XRPC units before switching. Both API implementations
+have build-on-start services; PureScript runs directly on host tools without
+`nix develop`. Follow the [PureScript deployment instructions](purescript/README.md#production-service)
+or [Gleam deployment instructions](gleam/README.md#production-systemd-services),
+including absolute `DB_PATH` and `KV_DB_PATH` paths to preserve existing stores.
+
+Build and install the Rust services on the deployment host, from the repository
+root, after configuring their environment and the API:
+
+```sh
+cargo build --release -p rockskyd -p rocksky-submissions
+sudo install -m 644 systemd/rocksky-jetstream.service systemd/rocksky-submissions.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now rocksky-jetstream.service rocksky-submissions.service
+sudo journalctl -u rocksky-jetstream -u rocksky-submissions -f
+```
+
+Configure the same `SUBMISSIONS_DATABASE_URL` for Jetstream and submissions,
+and the same `SUBMISSIONS_SECRET` for submissions and both API processes.
+Keep the submissions listener private; expose the public API through your proxy.
 
 ### Operations console (Clojure REPL)
 
