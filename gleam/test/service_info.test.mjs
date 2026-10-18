@@ -12,7 +12,7 @@ test('root serves an ASCII AppView banner and project links as plain text', asyn
   assert.match(res.headers.get('content-type'),/^text\/plain/);
   const body=await res.text();
   assert.match(body,/Rocksky AppView/);
-  assert.ok(body.includes('| _ \\'));
+  assert.ok(body.includes("    ____             __        __            ___              _    ___\n   / __ \\____  _____/ /_______/ /____  __   /   |  ____  ____| |  / (_)__ _      __\n  / /_/ / __ \\/ ___/ //_/ ___/ //_/ / / /  / /| | / __ \\/ __ \\ | / / / _ \\ | /| / /\n / _, _/ /_/ / /__/ ,< (__  ) ,< / /_/ /  / ___ |/ /_/ / /_/ / |/ / /  __/ |/ |/ /\n/_/ |_|\\____/\\___/_/|_/____/_/|_|\\__, /  /_/  |_/ .___/ .___/|___/_/\\___/|__/|__/\n                                /____/         /_/   /_/"));
   assert.ok(body.includes('https://docs.rocksky.app'));
   assert.ok(body.includes('https://tangled.org/rocksky.app/rocksky'));
 });

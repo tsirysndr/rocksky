@@ -124,7 +124,7 @@ app.get("/proxy-image", async (c) => {
 // `remote-ws` service; Caddy routes /ws there. See remote-ws/README.md.
 
 app.get("/", async (c) => {
-  return c.text("\n ___         _       _            _           __   ___\n| _ \\___  __| |__ __| |___  _    /_\\  _ __ _ _\\ \\ / (_)_____ __ __\n|   / _ \\/ _| / /(_-< / / || |  / _ \\| '_ \\ '_ \\ V /| / -_) V  V /\n|_|_\\___/\\__|_\\_\\/__/_\\_\\\\_, | /_/ \\_\\ .__/ .__/\\_/ |_\\___|\\_/\\_/\n                         |__/        |_|  |_|\n\nRocksky AppView\n\nDocs: https://docs.rocksky.app\nSource: https://tangled.org/rocksky.app/rocksky\n");
+  return c.text("\n    ____             __        __            ___              _    ___\n   / __ \\____  _____/ /_______/ /____  __   /   |  ____  ____| |  / (_)__ _      __\n  / /_/ / __ \\/ ___/ //_/ ___/ //_/ / / /  / /| | / __ \\/ __ \\ | / / / _ \\ | /| / /\n / _, _/ /_/ / /__/ ,< (__  ) ,< / /_/ /  / ___ |/ /_/ / /_/ / |/ / /  __/ |/ |/ /\n/_/ |_|\\____/\\___/_/|_/____/_/|_|\\__, /  /_/  |_/ .___/ .___/|___/_/\\___/|__/|__/\n                                /____/         /_/   /_/\n\nRocksky AppView\n\nDocs: https://docs.rocksky.app\nSource: https://tangled.org/rocksky.app/rocksky\n");
 });
 
 app.post("/now-playing", async (c) => {
