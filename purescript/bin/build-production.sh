@@ -4,11 +4,17 @@ set -euo pipefail
 port_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 repo_dir="$(cd -- "$port_dir/.." && pwd)"
 
+case "$(uname -s)" in
+  Darwin) native_library="librocksky_analysis_node.dylib" ;;
+  Linux) native_library="librocksky_analysis_node.so" ;;
+  *) echo "Unsupported operating system: $(uname -s). Expected Linux or macOS." >&2; exit 1 ;;
+esac
+
 # The file: dependency must contain its native library before Bun installs it.
 # Use an explicit target directory so CARGO_TARGET_DIR cannot change the copy path.
 cargo build --manifest-path "$repo_dir/Cargo.toml" --locked --release \
   -p rocksky-analysis-node --target-dir "$repo_dir/target"
-install -m 755 "$repo_dir/target/release/librocksky_analysis_node.so" \
+install -m 755 "$repo_dir/target/release/$native_library" \
   "$repo_dir/crates/analysis-node/index.node"
 
 cd -- "$port_dir"
