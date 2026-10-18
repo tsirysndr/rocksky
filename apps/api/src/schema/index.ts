@@ -2,7 +2,6 @@ import accessTokens from "./access-tokens";
 import albumTracks from "./album-tracks";
 import albums from "./albums";
 import apiKeys from "./api-keys";
-import importJobs from "./import-jobs";
 import artistAlbums from "./artist-albums";
 import artistTracks from "./artist-tracks";
 import artists from "./artists";
@@ -47,7 +46,6 @@ import users from "./users";
 import webscrobblers from "./webscrobblers";
 
 export default {
-  importJobs,
   notifications,
   profileShouts,
   shoutLikes,

@@ -34,7 +34,6 @@ import { trackSchema } from "types/track";
 import accessTokensApp from "./access-tokens/app";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
-import importApp from "./import/app";
 import { requestCounter, requestDuration } from "./metrics";
 import notificationsSse from "./notifications/sse";
 import storageApp from "./storage/app";
@@ -100,7 +99,6 @@ app.route("/apikeys", apikeys);
 
 app.route("/access-tokens", accessTokensApp);
 
-app.route("/import", importApp);
 
 app.route("/notifications", notificationsSse);
 

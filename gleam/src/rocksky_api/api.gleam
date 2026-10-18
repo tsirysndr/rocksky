@@ -2,7 +2,6 @@
 
 import rocksky_api/users/app as users
 
-import rocksky_api/history_import/app as history_import
 import rocksky_api/spotify/app as spotify
 
 import rocksky_api/opengraph/app as opengraph
@@ -119,7 +118,6 @@ pub fn app(ctx: Context) -> App {
   |> hono.route("/webscrobbler", webscrobbler.app(ctx))
   |> hono.route("/public/og", opengraph.app(ctx))
   |> hono.route("/uploads", uploads.app(ctx))
-  |> hono.route("/import", history_import.app(ctx))
   |> hono.route("/spotify", spotify.app(ctx))
   |> hono.route("/users", users.app(ctx))
   |> root_routes(ctx)

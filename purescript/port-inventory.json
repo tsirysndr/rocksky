@@ -60,12 +60,6 @@
     "status": "mapped"
   },
   {
-    "source": "import/app.ts",
-    "module": "Rocksky.Import.App",
-    "target": "api/src/Rocksky/Import/App.purs",
-    "status": "mapped"
-  },
-  {
     "source": "index.ts",
     "module": "Rocksky.Index",
     "target": "api/src/Rocksky/Index.purs",
@@ -495,12 +489,6 @@
     "source": "schema/follows.ts",
     "module": "Rocksky.Schema.Follows",
     "target": "api/src/Rocksky/Schema/Follows.purs",
-    "status": "mapped"
-  },
-  {
-    "source": "schema/import-jobs.ts",
-    "module": "Rocksky.Schema.ImportJobs",
-    "target": "api/src/Rocksky/Schema/ImportJobs.purs",
     "status": "mapped"
   },
   {

@@ -46,7 +46,6 @@ Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify,
 - **Pano Scrobbler** (Android/Linux/Windows), **WebScrobbler** (browser)
 - **Rocksky Connect** — scrobble from MPD, Mopidy, VLC, Kodi, and any MPRIS player
 - Automatic **Last.fm mirroring** of new scrobbles
-- Import your history from Last.fm or ListenBrainz
 
 ### 📚 Your library
 

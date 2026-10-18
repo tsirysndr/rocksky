@@ -265,9 +265,6 @@
   ps:test:graph {:doc "Run purescript: test:graph. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-graph) *command-line-args*))}
-  ps:test:import {:doc "Run purescript: test:import. Extra arguments pass through to Bun."
-    :task (do (require 'console.purescript)
-              (apply (resolve 'console.purescript/test-import) *command-line-args*))}
   ps:test:isrc-backfill {:doc "Run purescript: test:isrc-backfill. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-isrc-backfill) *command-line-args*))}

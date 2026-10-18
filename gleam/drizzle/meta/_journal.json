@@ -398,6 +398,13 @@
       "when": 1792314855469,
       "tag": "0052_remove_cloud_integrations",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792314855470,
+      "tag": "0053_remove_history_import",
+      "breakpoints": true
     }
   ]
 }

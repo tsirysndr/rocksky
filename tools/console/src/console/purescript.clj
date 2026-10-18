@@ -41,7 +41,6 @@
    [:test-feed "test:feed"]
    [:test-feed-genres-scripts "test:feed-genres-scripts"]
    [:test-graph "test:graph"]
-   [:test-import "test:import"]
    [:test-isrc-backfill "test:isrc-backfill"]
    [:test-jetstream-backfill "test:jetstream-backfill"]
    [:test-likes-backfill "test:likes-backfill"]
@@ -263,11 +262,6 @@
   "Run bun run test:graph in purescript/. Forwards extra arguments unchanged."
   [& args]
   (apply sh/bun "purescript" "test:graph" args))
-
-(defn test-import
-  "Run bun run test:import in purescript/. Forwards extra arguments unchanged."
-  [& args]
-  (apply sh/bun "purescript" "test:import" args))
 
 (defn test-isrc-backfill
   "Run bun run test:isrc-backfill in purescript/. Forwards extra arguments unchanged."

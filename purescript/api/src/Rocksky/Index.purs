@@ -29,7 +29,6 @@ import Rocksky.Spotify.App as Spotify
 import Rocksky.Storage.App as Storage
 import Rocksky.Apikeys.App as Apikeys
 import Rocksky.AccessTokens.App as AccessTokens
-import Rocksky.Import.App as Import
 import Rocksky.Notifications.Sse as Notifications
 import Rocksky.Opengraph.App as Opengraph
 import Rocksky.Uploads.App as Uploads
@@ -63,7 +62,6 @@ app ctx = do
   Storage.app ctx >>= Hono.route a "/storage"
   Apikeys.app ctx >>= Hono.route a "/apikeys"
   AccessTokens.app ctx >>= Hono.route a "/access-tokens"
-  Import.app ctx >>= Hono.route a "/import"
   Notifications.app ctx >>= Hono.route a "/notifications"
   Opengraph.app ctx >>= Hono.route a "/public/og"
   Reads.register ctx a

@@ -30,6 +30,7 @@ test('Every original REST method is mounted in the Gleam app',async()=>{
  const imports=new Map([...index.matchAll(/import\s+(\w+)\s+from\s+"(\.\/[^";]+)"/g)].map(m=>[m[1],m[2]]));
  const sources=[['',index]];
  for(const m of index.matchAll(/app\.route\("([^"]+)",\s*(\w+)\)/g))sources.push([m[1],await readFile(`../apps/api/src/${imports.get(m[2])}.ts`,'utf8')]);
+ assert.ok(![...actual].some(route=>/ \/import(?:\/|$)/.test(route)), 'History import routes are retired');
  let count=0;
  for(const [prefix,source] of sources)for(const m of source.matchAll(/app\.(get|post|put|patch|delete|options)\(\s*"([^"]+)"/g)) {
   const path=(prefix+'/'+m[2]).replaceAll(/\/+/g,'/').replace(/\/$/,'')||'/';

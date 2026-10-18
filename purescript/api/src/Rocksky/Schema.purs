@@ -21,7 +21,6 @@ module Rocksky.Schema
   , module Rocksky.Schema.Events
   , module Rocksky.Schema.Feeds
   , module Rocksky.Schema.Follows
-  , module Rocksky.Schema.ImportJobs
   , module Rocksky.Schema.LovedTracks
   , module Rocksky.Schema.MirrorSources
   , module Rocksky.Schema.NavidromePlaylistTracks
@@ -68,7 +67,6 @@ module Rocksky.Schema
   , eventsC
   , feedsC
   , followsC
-  , importJobsC
   , lovedTracksC
   , mirrorSourcesC
   , navidromePlaylistTracksC
@@ -118,7 +116,6 @@ import Rocksky.Schema.EventRsvps (eventRsvps, EventRsvpsCols, SelectEventRsvp)
 import Rocksky.Schema.Events (events, EventsCols, SelectEvent)
 import Rocksky.Schema.Feeds (feeds, FeedsCols, SelectFeed)
 import Rocksky.Schema.Follows (follows, FollowsCols, SelectFollows)
-import Rocksky.Schema.ImportJobs (importJobs, ImportJobsCols, SelectImportJob)
 import Rocksky.Schema.LovedTracks (lovedTracks, LovedTracksCols, SelectLovedTrack)
 import Rocksky.Schema.MirrorSources (mirrorSources, MirrorSourcesCols, SelectMirrorSource)
 import Rocksky.Schema.NavidromePlaylistTracks (navidromePlaylistTracks, NavidromePlaylistTracksCols, SelectNavidromePlaylistTrack)
@@ -216,8 +213,6 @@ followsC = columns follows
 
 
 
-importJobsC :: Record ImportJobsCols
-importJobsC = columns importJobs
 
 lovedTracksC :: Record LovedTracksCols
 lovedTracksC = columns lovedTracks

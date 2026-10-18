@@ -2,7 +2,6 @@ import {
   IconBroadcast,
   IconChartBar,
   IconCloudUpload,
-  IconFileImport,
   IconKey,
   IconUsersGroup,
   type IconProps,
@@ -31,15 +30,6 @@ export const GET_STARTED_STEPS: OnboardingStep[] = [
     cta: "Connect a service",
     to: "/mirrors",
     accent: "#ff2876",
-  },
-  {
-    icon: IconFileImport,
-    title: "Import your history",
-    description: "Bring years of listens from a Last.fm or CSV/JSON export.",
-    cta: "Import history",
-    to: "https://docs.rocksky.app/cli/import",
-    external: true,
-    accent: "#00b3ff",
   },
   {
     icon: IconKey,

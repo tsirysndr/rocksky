@@ -34,7 +34,6 @@
     "test:graph": "spago build -p rocksky-api && node bin/test-graph.js",
     "test:profile": "spago build -p rocksky-api && node bin/test-profile.js",
     "test:spotify": "spago build -p rocksky-api && node bin/test-spotify.js",
-    "test:import": "bun run build && node bin/test-import.js",
     "test:charts": "bun run build && node bin/test-charts.js",
     "test:spotify-xrpc": "bun run build && node bin/test-spotify-xrpc.js",
     "test:playlists": "bun run build && node bin/test-playlists.js",

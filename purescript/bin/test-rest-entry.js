@@ -50,11 +50,12 @@ console.log('REST entry routes: durable submissions/errors, auth order, playback
  const r=await app.request('/');assert.deepEqual(await r.json(),{status:'ok'});assert.equal(r.headers.get('access-control-allow-origin'),'*');assert.equal(r.headers.get('x-ratelimit-limit'),'1000');assert.equal(metrics.length,1);assert.equal(redis.length,1);
  const internal=await app.request('/internal/submissions/process',{method:'POST'});assert.equal(internal.status,401);assert.equal(redis.length,1,'internal submissions bypass public rate limiter');assert.equal(metrics.length,1);
  const usersRoutes=app.routes.filter(r=>r.path.startsWith('/users/'));assert.equal(usersRoutes.length,37);
+ assert.ok(!app.routes.some(r=>r.path==='/import'||r.path.startsWith('/import/')), 'History import routes are retired');
  const sourceRoutes=async file=>[...(await readFile(new URL('../../apps/api/src/'+file,import.meta.url),'utf8')).matchAll(/app\.(get|post|put|patch|delete|options)\("([^"]+)"/g)].map(([,method,path])=>method.toUpperCase()+' '+path).sort();
  assert.deepEqual(usersRoutes.map(r=>r.method+' '+r.path.slice('/users'.length)).sort(),await sourceRoutes('users/app.ts'));
  const isolated=setup().app;
  assert.deepEqual(isolated.routes.map(r=>r.method+' '+r.path).sort(),await sourceRoutes('index.ts'));
 
- for(const prefix of ['/spotify','/storage','/apikeys','/access-tokens','/import','/notifications','/public/og','/uploads','/webscrobbler'])assert.ok(app.routes.some(r=>r.path===prefix||r.path.startsWith(prefix+'/')),prefix);
+ for(const prefix of ['/spotify','/storage','/apikeys','/access-tokens','/notifications','/public/og','/uploads','/webscrobbler'])assert.ok(app.routes.some(r=>r.path===prefix||r.path.startsWith(prefix+'/')),prefix);
  console.log('REST app wiring: 37 user routes, all subapps, health/CORS/metrics/rate limits and internal-worker bypass passed');
 }
