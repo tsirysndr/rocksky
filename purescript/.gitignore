@@ -3,9 +3,17 @@ output/
 output-*/
 .spago/
 dist/
-*.sqlite
 
 # Local editor, REPL and test state
 .psc-ide-port
 .purs-repl
 .spec-results
+
+
+*.sqlite
+*.ddb
+*.ddb.wal
+*.bak
+
+*.sqlite-shm
+*.sqlite-wal
