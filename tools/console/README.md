@@ -595,3 +595,18 @@ Connect to the running Dragonfly service with `(docker/redis)` or
 published Redis port from resolved Compose configuration and connects to the
 local, unauthenticated Dragonfly service. Start it with `(docker/up :dragonfly)`
 and exit the client with `quit`.
+
+To delete and recreate the Compose PostgreSQL database and then apply migrations:
+
+```clojure
+(docker/postgres-reset :force)             ;; Gleam migrations (default)
+(docker/postgres-reset :force :purescript) ;; shared API migrations
+```
+
+CLI: `bb docker:postgres-reset --force [gleam|purescript]`.
+Stop the API processes first and ensure Compose `db` is running. This command
+terminates connections and deletes all data in the configured `POSTGRES_DB`.
+It preserves other databases and Compose volumes. `:force` is mandatory.
+Migration connection variables are set from Compose, overriding any loaded REPL
+credentials. If the reset fails, migrations do not run; if migration fails, its
+nonzero exit code is returned so the error can be fixed before retrying migrations.

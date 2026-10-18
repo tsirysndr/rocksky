@@ -163,6 +163,7 @@
            [:pull            "Pull latest images"]
            [:exec            "Run a command inside a service. Args: svc cmd [args...]"]
            [:redis           "Connect to Compose Dragonfly with redis-cli"]
+           [:postgres-reset  "Delete Compose database and migrate. Requires :force; optional :gleam or :purescript"]
            [:postgres        "Connect to Compose PostgreSQL with pgcli or psql"]
            [:compose         "Escape hatch: any `docker compose` subcommand"]]}
 

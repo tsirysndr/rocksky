@@ -19,6 +19,7 @@
   (:refer-clojure :exclude [name])
   (:require [console.shell :as sh]
             [clojure.core :as core]
+            [clojure.string :as str]
             [babashka.fs :as fs]
             [cheshire.core :as json]))
 
@@ -156,3 +157,37 @@
       (sh/sh [(str client) "-h" host "-p" port]
              {:extra-env {"REDISCLI_AUTH" ""}}))
     (throw (ex-info "redis-cli is required; install the Redis command-line tools" {}))))
+
+(defn postgres-reset
+  "Delete the Compose database and apply migrations. Requires :force.
+  Defaults to Gleam; pass :purescript to use the shared API migration history.
+  Stop API processes first. Other databases and Compose volumes are preserved."
+  [& options]
+  (let [options (map #(if (keyword? %) (core/name %) (str %)) options)
+        allowed #{"force" "--force" "gleam" "purescript"}]
+    (when-not (and (some #{"force" "--force"} options)
+                   (every? allowed options)
+                   (not (and (some #{"gleam"} options) (some #{"purescript"} options))))
+      (throw (ex-info "Use (docker/postgres-reset :force [:gleam | :purescript]); this deletes the Compose database" {})))
+    (let [{:keys [config host port]} (local-connection :db 5432)
+          user (or (get-in config [:environment :POSTGRES_USER]) "postgres")
+          database (or (get-in config [:environment :POSTGRES_DB]) user)
+          password (get-in config [:environment :POSTGRES_PASSWORD])
+          project (if (some #{"purescript"} options) "purescript" "gleam")
+          encode #(str/replace (java.net.URLEncoder/encode (str %) "UTF-8") "+" "%20")]
+      (when (or (contains? #{"postgres" "template0" "template1" ""} database)
+                (not (string? password)))
+        (throw (ex-info "Reset requires a non-maintenance POSTGRES_DB and POSTGRES_PASSWORD in Compose" {})))
+      (when-not (contains? #{"localhost" "127.0.0.1" "::1"} host)
+        (throw (ex-info "Reset migrations require a local Compose PostgreSQL endpoint" {})))
+      (let [url (str "postgresql://" (encode user) ":" (encode password) "@"
+                     (if (= host "::1") "[::1]" host) ":" port "/" (encode database) "?sslmode=disable")
+            exit (sh/sh ["docker" "compose" "exec" "-T" "db" "sh" "-c"
+                         "export PGPASSWORD=\"$POSTGRES_PASSWORD\"; dropdb -h 127.0.0.1 -U \"$1\" --maintenance-db=postgres --if-exists --force -- \"$2\" && createdb -h 127.0.0.1 -U \"$1\" -- \"$2\""
+                         "reset-postgres" user database])]
+        (if (zero? exit)
+          (sh/sh ["env" "-u" "PGSERVICE" "-u" "PGSERVICEFILE" "bun" "run" "db:migrate"]
+                 {:dir (str (fs/path (sh/repo-root) project))
+                  :extra-env {"XATA_WRITE_POSTGRES_URL" url "XATA_READ_POSTGRES_URL" url
+                              "XATA_POSTGRES_URL" url "POSTGRES_URL" url "DATABASE_URL" url}})
+          exit)))))

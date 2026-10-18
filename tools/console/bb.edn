@@ -563,6 +563,9 @@
   docker:redis {:doc "Connect to Compose Dragonfly with redis-cli"
                 :task (do (require 'console.docker)
                           ((resolve 'console.docker/redis)))}
+  docker:postgres-reset {:doc "Delete Compose database and migrate. Usage: bb docker:postgres-reset --force [gleam|purescript]"
+                         :task (do (require 'console.docker)
+                                   (apply (resolve 'console.docker/postgres-reset) *command-line-args*))}
   docker:postgres {:doc "Connect to Compose PostgreSQL with pgcli or psql"
                    :task (do (require 'console.docker)
                              ((resolve 'console.docker/postgres)))}
