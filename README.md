@@ -188,7 +188,7 @@ app separately. The current host endpoints are:
 | Typesense | `http://127.0.0.1:8109` |
 
 PostgreSQL uses port **15432**, so local clients do not accidentally connect to
-Homebrew PostgreSQL on 5432. Environment generators read the actual published
+default PostgreSQL on 5432. Environment generators read the actual published
 ports and credentials from `compose.yaml`.
 
 ### Generate a local environment and choose an API
