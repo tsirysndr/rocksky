@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import pg from 'pg';
+import axios from 'axios';
+import { createHash } from 'node:crypto';
+import { createTables } from './helpers/postgres.mjs';
+import { Ok } from '../build/dev/javascript/rocksky_api/gleam.mjs';
+import { Some, None } from '../build/dev/javascript/gleam_stdlib/gleam/option.mjs';
+import { parse } from '../build/dev/javascript/rocksky_api/rocksky_api/lib/track.mjs';
+import { Submission,scrobble_track } from '../build/dev/javascript/rocksky_api/rocksky_api/nowplaying/service.mjs';
+import { publish_scrobble } from '../build/dev/javascript/rocksky_api/rocksky_api/nowplaying/publish.mjs';
+const did='did:plc:abcdefghijklmnopqrstuvwx';
+const hash=s=>createHash('sha256').update(s.toLowerCase()).digest('hex');
+test('Scrobble pipeline preserves submitted identity, durable recovery, reservations and legacy publication', {skip:!process.env.GLEAM_TEST_PGHOST},async()=>{
+ const pool=new pg.Pool({host:process.env.GLEAM_TEST_PGHOST,port:Number(process.env.GLEAM_TEST_PGPORT),database:'postgres',max:1});
+ try {
+  await createTables(pool,['users','tracks','albums','artists','user_tracks','user_albums','user_artists','scrobbles','album_tracks','artist_tracks','artist_albums','feeds']);
+  const song=`at://${did}/app.rocksky.song/song`,album=`at://${did}/app.rocksky.album/album`,artist=`at://${did}/app.rocksky.artist/artist`;
+  await pool.query("INSERT INTO users (xata_id,did,handle,display_name,avatar) VALUES ('u',$1,'u.test','User','')",[did]);
+  await pool.query("INSERT INTO tracks (xata_id,title,artist,album_artist,album,duration,sha256,uri,album_uri,artist_uri,lyrics) VALUES ('t','Song','Artist','Artist','Album',200000,$1,$2,$3,$4,'catalog lyrics')",[hash('song - artist - album'),song,album,artist]);
+  await pool.query("INSERT INTO albums (xata_id,title,artist,sha256,uri,artist_uri) VALUES ('al','Album','Artist',$1,$2,$3)",[hash('album - artist'),album,artist]);
+  await pool.query("INSERT INTO artists (xata_id,name,sha256,uri) VALUES ('ar','Artist',$1,$2)",[hash('artist'),artist]);
+  await pool.query("INSERT INTO user_tracks (user_id,track_id,uri) VALUES ('u','t',$1)",[song]);
+  await pool.query("INSERT INTO user_albums (user_id,album_id,uri) VALUES ('u','al',$1)",[album]);
+  await pool.query("INSERT INTO user_artists (user_id,artist_id,uri) VALUES ('u','ar',$1)",[artist]);
+  await pool.query("INSERT INTO album_tracks (album_id,track_id) VALUES ('al','t'); INSERT INTO artist_tracks (artist_id,track_id) VALUES ('ar','t'); INSERT INTO artist_albums (artist_id,album_id) VALUES ('ar','al')");
+  const writes=[],stored=new Map(),messages=[];let reserve=1,requests=0;
+  const mock={did,com:{atproto:{repo:{getRecord:async p=>{const value=stored.get(p.rkey);if(!value)throw Object.assign(new Error('missing'),{error:'RecordNotFound'});return {data:value};},putRecord:async p=>{writes.push(p);const data={uri:`at://${did}/${p.collection}/${p.rkey}`,cid:'cid',value:p.record};stored.set(p.rkey,data);return {data};}}}}};
+  const candidate={source:'spotify',id:'provider',title:'Song',artists:['Artist'],album:'Album',albumArtist:'Artist',durationMs:200000,identifiers:{isrc:'ISRC'},albumArt:'https://provider.test/art'};
+  const ctx={db:{pool},read_db:{pool},env:{scrobble_abuse_max:0},redis:{eval:async(script,options)=>{assert.ok(script.includes('ZCOUNT'));assert.equal(options.arguments[2],'job');return reserve;},incr:async()=>1,keys:async()=>[],del:async()=>1},matching:axios.create({adapter:async config=>{requests++;return {status:200,headers:{},config,data:{policyVersion:'1',status:'matched',track:candidate}};}}),nc:{publish:(topic,data)=>messages.push({topic,data:Buffer.from(data).toString()})}};
+  const track=parse({title:'Song',artist:'Artist',album:'Album',albumArtist:'Artist',duration:100000,timestamp:1700000000})[0];
+  const submission=new Some(new Submission('job','3mv234567abcd',true));
+  const call=job=>scrobble_track(ctx,track,mock,did,false,new None(),job??submission);
+  const result=await call();assert.ok(result instanceof Ok,JSON.stringify(result));assert.equal(writes.length,1);assert.equal(writes[0].collection,'app.rocksky.scrobble');assert.equal(writes[0].record.duration,100000);assert.equal(writes[0].record.lyrics,undefined);assert.equal(writes[0].record.albumArtUrl,candidate.albumArt);assert.equal(writes[0].swapRecord,null);
+  assert.ok((await call()) instanceof Ok);assert.equal(writes.length,1);assert.equal(requests,1);
+  reserve=0;assert.ok(!((await call(new Some(new Submission('job','3mv234567abce',true)))) instanceof Ok));assert.equal(writes.length,1);
+  await pool.query("INSERT INTO scrobbles (xata_id,user_id,track_id,album_id,artist_id,timestamp,uri) VALUES ('s','u','t','al','ar','2023-11-14T22:13:25',$1)",[writes[0].record.uri??'at://scrobble']);
+  const before=requests;assert.ok((await call(new Some(new Submission('job','3mv234567abcf',true)))) instanceof Ok);assert.equal(requests,before);
+  const published=await publish_scrobble(ctx,'s');assert.ok(published instanceof Ok,JSON.stringify(published));
+  const payload=JSON.parse(messages.find(m=>m.topic==='rocksky.scrobble').data);assert.equal(payload.scrobble.track_id.xata_id,'t');assert.equal(payload.user_track.user_id.xata_id,'u');assert.ok(messages.some(m=>m.topic==='rocksky.track'));
+  await new Promise(resolve=>setTimeout(resolve,20));
+ } finally {await pool.end();}
+});

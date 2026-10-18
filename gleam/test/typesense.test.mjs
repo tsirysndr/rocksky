@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { toList, Ok, Error as GError } from '../build/dev/javascript/rocksky_api/gleam.mjs';
+import * as search from '../build/dev/javascript/rocksky_api/rocksky_api/typesense/search.mjs';
+import * as schema from '../build/dev/javascript/rocksky_api/rocksky_api/typesense/schema.mjs';
+import * as retry from '../build/dev/javascript/rocksky_api/rocksky_api/typesense/retry.mjs';
+import * as library from '../build/dev/javascript/rocksky_api/rocksky_api/typesense/library.mjs';
+import { Js } from '../build/dev/javascript/rocksky_api/rocksky_api/error.mjs';
+import { register } from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/feed/search.mjs';
+test('Federated search preserves collection order, open documents and partial failures', async()=>{
+ let sent;
+ const client={multiSearch:{perform:async p=>{sent=p;return {results:[{found:9,hits:[{document:{id:'a',extra:{x:1},_federation:'old'}}]},{error:'offline'}, {found:2,hits:[{document:{id:'t'}}]}, {found:0}, {found:1,hits:[{document:{id:'p'}}]}]};}}};
+ const response=await search.federated_search(client,'hello',7);assert.ok(response instanceof Ok);
+ const body=search.encode(response[0]);assert.equal(body.estimatedTotalHits,12);assert.equal(body.limit,35);
+ assert.deepEqual(body.hits.map(x=>x._federation.indexUid),['albums','tracks','playlists']);assert.deepEqual(body.hits[0].extra,{x:1});
+ assert.equal(sent.searches[2].query_by,'title,artist,albumArtist,album,composer');assert.equal(sent.searches[0].per_page,7);
+ const methods=new Map();register({method:(n,c)=>methods.set(n,c)},{typesense:client});
+ await methods.get('app.rocksky.feed.search').handler({params:{query:'x',size:500}});assert.equal(sent.searches[0].per_page,100);
+ await methods.get('app.rocksky.feed.search').handler({params:{query:'x',size:0}});assert.equal(sent.searches[0].per_page,20);
+});
+test('Typesense retries only transient failures and collection creation preserves schemas',async()=>{
+ assert.equal(retry.is_transient({cause:{code:'ECONNRESET'}}),true);assert.equal(retry.is_transient({httpStatus:503}),true);assert.equal(retry.is_transient({httpStatus:429}),false);
+ let calls=0;
+ let result=await retry.with_options(async()=>++calls<3?new GError(new Js({code:'ETIMEDOUT'})):new Ok(42),3,0);assert.ok(result instanceof Ok);assert.equal(calls,3);
+ calls=0;result=await retry.with_options(async()=>{calls++;return new GError(new Js({httpStatus:400}));},3,0);assert.ok(result instanceof GError);assert.equal(calls,1);
+ const created=[],deleted=[];
+ const client={collections:name=>name?{retrieve:async()=>{throw {httpStatus:404};},delete:async()=>{deleted.push(name);throw {httpStatus:404};}}:{create:async s=>{created.push(s);return s;}}};
+ assert.ok(await schema.ensure_collection(client) instanceof Ok);assert.equal(created[0].default_sorting_field,'uploaded_at');assert.equal(created[0].fields.find(x=>x.name==='user_id').facet,true);
+ assert.ok(await schema.ensure_search_collections(client) instanceof Ok);assert.equal(created.length,6);
+ assert.ok(await schema.recreate_search_collections(client) instanceof Ok);assert.deepEqual(deleted,['albums','artists','tracks','users','playlists']);
+});
+test('Library search scopes user, paginates and preserves nullable metadata',async()=>{
+ let sent,upsert;
+ const doc={id:'u',user_id:'owner',track_id:'t',title:'Song',artist:'Artist',album:'Album',album_artist:'Artist',duration:100,r2_key:'r',mime_type:'audio/flac',file_size:99,uploaded_at:1700000000000};
+ const client={collections:name=>({documents:id=>({search:async p=>{sent=p;return {hits:[{document:doc}]};},upsert:async d=>{upsert=d;return d;},delete:async()=>{throw {httpStatus:404};}})})};
+ const result=await library.search_library_tracks(client,'','owner',500,400);assert.ok(result instanceof Ok);
+ assert.equal(sent.per_page,200);assert.equal(sent.page,3);assert.equal(sent.filter_by,'user_id:=owner');assert.equal(sent.q,'*');
+ const document=[...result[0]][0],hit=library.encode_hit(document);assert.equal(hit.track.genre,null);assert.equal(hit.upload.uploadedAt,'2023-11-14T22:13:20.000Z');
+ assert.ok(await library.index_library_track(client,document) instanceof Ok);assert.deepEqual(upsert,doc);
+ assert.ok(await library.remove_library_track(client,'u') instanceof Ok);
+});

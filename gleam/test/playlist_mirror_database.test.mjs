@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import pg from 'pg';
+import { Credentials } from '../build/dev/javascript/rocksky_api/rocksky_api/node/xrpc_server.mjs';
+import { createTables } from './helpers/postgres.mjs';
+import { Ok } from '../build/dev/javascript/rocksky_api/gleam.mjs';
+import { Some, None } from '../build/dev/javascript/gleam_stdlib/gleam/option.mjs';
+import * as mirror from '../build/dev/javascript/rocksky_api/rocksky_api/library/playlist_mirror.mjs';
+import { register } from '../build/dev/javascript/rocksky_api/rocksky_api/library/playlist_routes.mjs';
+const did='did:plc:abcdefghijklmnopqrstuvwx',other='did:plc:zyxwvutsrqponmlkjihgfedcb',cid='bafyreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku';
+test('Library playlist mirrors retain ownership, remove one duplicate, and report failures after library success', {skip:!process.env.GLEAM_TEST_PGHOST},async()=>{
+ const pool=new pg.Pool({host:process.env.GLEAM_TEST_PGHOST,port:Number(process.env.GLEAM_TEST_PGPORT),database:'postgres',max:1});const original=globalThis.fetch;
+ try {
+ await createTables(pool,['users','navidrome_playlists','navidrome_playlist_tracks','playlists','playlist_tracks','tracks']);
+ await pool.query("INSERT INTO users(xata_id,did,handle,display_name,avatar) VALUES ('u',$1,'u.test','User',''),('v',$2,'v.test','Other','')",[did,other]);
+ await pool.query("INSERT INTO navidrome_playlists(xata_id,user_id,name) VALUES ('n','u','Library'),('foreign','v','Other')");
+ const writes=[],deletes=[];let record;
+ const mock={did,com:{atproto:{repo:{createRecord:async p=>{writes.push(p);record={...p.record};return {data:{uri:`at://${did}/${p.collection}/p`,cid}};},putRecord:async p=>{writes.push(p);record=p.record;return {data:{uri:`at://${did}/${p.collection}/p`,cid}};},getRecord:async()=>({data:{uri:`at://${did}/app.rocksky.playlist/p`,cid,value:record}}),deleteRecord:async p=>{deletes.push(p);return {};}}}}};
+ const ctx={db:{pool}};
+ let result=await mirror.ensure_playlist_record(ctx,mock,did,'n');assert.ok(result instanceof Ok);assert.equal(result[0][1],true);const uri=result[0][0];
+ result=await mirror.ensure_playlist_record(ctx,mock,did,'n');assert.equal(result[0][1],false);assert.equal(writes.length,1);
+ assert.ok(!((await mirror.ensure_playlist_record(ctx,mock,did,'foreign')) instanceof Ok));
+ await mirror.update_with_agent(ctx,mock,did,'n',new mirror.UpdateChanges(new Some('Renamed'),new None(),new None(),new None()));assert.equal(writes[1].record.name,'Renamed');
+ const song=`at://${did}/app.rocksky.song/t`;
+ await pool.query("INSERT INTO tracks(xata_id,title,artist,album_artist,album,duration,sha256,uri) VALUES ('t','Song','Artist','Artist','Album',1,'sha',$1)",[song]);
+ await pool.query("INSERT INTO navidrome_playlist_tracks(playlist_id,track_id) VALUES ('n','t')");
+ assert.equal((await mirror.song_uri_at_index(ctx,'n',0))[0][0],song);
+ await pool.query("INSERT INTO playlists(xata_id,name,uri,created_by) VALUES ('p','Playlist',$1,'u')",[uri]);
+ await pool.query("INSERT INTO playlist_tracks(playlist_id,track_id,uri) VALUES ('p','t',$1),('p','t',$2),('p','t',$3)",[`at://${other}/app.rocksky.playlist.song/foreign`,`at://${did}/app.rocksky.playlist.song/one`,`at://${did}/app.rocksky.playlist.song/two`]);
+ await mirror.remove_one_entry(ctx,mock,did,uri,song);assert.deepEqual(deletes.map(x=>x.rkey),['one']);assert.ok(!((await mirror.remove_one_entry(ctx,mock,did,uri,'at://absent')) instanceof Ok));
+ const methods=new Map();register({method:(n,c)=>methods.set(n,c)},{...ctx,env:{navidrome_internal_url:'http://library.test',navidrome_internal_secret:'secret'},oauth_client:{restore:async()=>{throw Object.assign(new Error('expired'),{name:'AuthMethodUnsatisfiableError'});}},sqlite:{db:{prepare:()=>({all:()=>[]})}}},'createPlaylist');
+ globalThis.fetch=async()=>Response.json({'subsonic-response':{status:'ok',playlist:{name:'Library'},custom:{kept:true}}});
+ const call=()=>methods.get('app.rocksky.library.createPlaylist').handler({auth:{credentials:new Credentials(new Some(did),new None(),new None())},input:{body:{name:'Library'}}});
+ const response=await call();assert.equal(response.body.status,'ok');assert.deepEqual(response.body.custom,{kept:true});
+ globalThis.fetch=async()=>Response.json({'subsonic-response':{status:'ok',playlist:{id:'n',name:'Library'}}});
+ const failedMirror=await call();assert.equal(failedMirror.body.status,'ok');assert.match(failedMirror.body.atprotoError,/session.*expired/);
+ const {Error:GError}=await import('../build/dev/javascript/rocksky_api/gleam.mjs');const {Message}=await import('../build/dev/javascript/rocksky_api/rocksky_api/error.mjs');
+ const report=await mirror.report_mirror('updatePlaylist',Promise.resolve(new GError(new Message('PDS unavailable'))));assert.equal(report[0],'PDS unavailable');
+ } finally {globalThis.fetch=original;await pool.end();}
+});

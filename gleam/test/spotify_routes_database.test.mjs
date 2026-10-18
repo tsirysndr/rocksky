@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import pg from 'pg';
+import jwt from 'jsonwebtoken';
+import {createHash,createCipheriv,createDecipheriv} from 'node:crypto';
+import {createTables} from './helpers/postgres.mjs';
+import {app} from '../build/dev/javascript/rocksky_api/rocksky_api/spotify/app.mjs';
+test('Spotify REST login, callback, encrypted tokens, current track and volume', {skip:!process.env.GLEAM_TEST_PGHOST},async()=>{
+ const pool=new pg.Pool({host:process.env.GLEAM_TEST_PGHOST,port:Number(process.env.GLEAM_TEST_PGPORT),database:'postgres',max:1});const original=globalThis.fetch;const calls=[],messages=[];let tokenStatus=200,playbackStatus=200;
+ const key='ab'.repeat(32),iv='cd'.repeat(16);const encrypt=value=>{const cipher=createCipheriv('aes-256-ctr',Buffer.from(key,'hex'),Buffer.from(iv,'hex'));return Buffer.concat([cipher.update(value),cipher.final()]).toString('hex');};const decrypt=value=>{const cipher=createDecipheriv('aes-256-ctr',Buffer.from(key,'hex'),Buffer.from(iv,'hex'));return Buffer.concat([cipher.update(Buffer.from(value,'hex')),cipher.final()]).toString();};
+ globalThis.fetch=async(url,options={})=>{calls.push({url:String(url),options});if(String(url).includes('/api/token'))return Response.json({access_token:'access',refresh_token:'refresh'},{status:tokenStatus});if(String(url).endsWith('/me/player'))return playbackStatus===204?new Response(null,{status:204}):Response.json({device:{volume_percent:42,supports_volume:true,is_restricted:false}},{status:playbackStatus});if(String(url).includes('/me/player/'))return new Response(null,{status:204});return Response.json({});};
+ try{
+ await createTables(pool,['users','spotify_apps','spotify_accounts','spotify_tokens','tracks','loved_tracks']);await pool.query("INSERT INTO users(xata_id,did,handle,display_name,avatar) VALUES ('u','did:u','u.test','U',''),('v','did:v','v.test','V','')");await pool.query("INSERT INTO spotify_apps(xata_id,spotify_app_id,spotify_secret) VALUES ('app','client',$1)",[encrypt('secret')]);await pool.query("INSERT INTO spotify_accounts(user_id,email,is_beta_user,spotify_app_id) VALUES ('u','user@test.com',true,'client')");
+ const current={item:{name:'Song',artists:[{name:'Artist'}],album:{name:'Album'}}};const sha=createHash('sha256').update('song - artist - album').digest('hex');await pool.query("INSERT INTO tracks(xata_id,title,artist,album,album_artist,sha256,duration,uri) VALUES ('t','Song','Artist','Album','Artist',$1,1000,'at://song')",[sha]);await pool.query("INSERT INTO loved_tracks(user_id,track_id) VALUES ('u','t')");
+ const ctx={db:{pool},env:{jwt_secret:'test',spotify_redirect_uri:'https://api.test/spotify/callback',frontend_url:'https://frontend.test',spotify_encryption_key:key,spotify_encryption_iv:iv,spotify_api_url:'https://api.spotify.test',rocksky_beta_token:'beta'},kv:new Map(),redis:{eval:async()=>1,get:async()=>JSON.stringify(current)},nc:{publish:(subject,body)=>messages.push({subject,body:Buffer.from(body).toString()})}};
+ const api=app(ctx),token=jwt.sign({did:'did:u'},'test');const call=(path,method='GET',body)=>api.request(path,{method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+ let r=await call('/login');assert.equal(r.status,200);const url=new URL((await r.json()).redirectUrl);assert.equal(url.searchParams.get('client_id'),'client');const state=url.searchParams.get('state');assert.equal(ctx.kv.get(state),'did:u');assert.match(r.headers.get('set-cookie'),/HttpOnly/);
+ r=await call('/callback?code=code&state='+state);assert.equal(r.status,302);assert.equal(ctx.kv.has(state),false);let stored=(await pool.query('SELECT * FROM spotify_tokens')).rows[0];assert.equal(decrypt(stored.access_token),'access');assert.equal(decrypt(stored.refresh_token),'refresh');assert.equal(messages[0].subject,'rocksky.spotify.user');assert.equal(new URLSearchParams(calls[0].options.body).get('client_secret'),'secret');
+ r=await call('/currently-playing?did=u.test');assert.equal(r.status,200);const playing=await r.json();assert.equal(playing.sha256,sha);assert.equal(playing.liked,true);assert.equal(playing.songUri,'at://song');
+ r=await call('/volume');assert.deepEqual(await r.json(),{volume:42,supported:true});assert.equal((await call('/volume?volume_percent=101','PUT')).status,400);assert.equal((await call('/volume?volume_percent=30','PUT')).status,204);assert.match(calls.at(-1).url,/volume_percent=30/);
+ playbackStatus=204;assert.deepEqual(await (await call('/volume')).json(),{volume:null,supported:false});assert.equal((await call('/play','PUT')).status,204);assert.equal((await call('/next','POST')).status,204);
+ tokenStatus=401;r=await call('/volume');assert.equal(r.status,401);assert.equal((await r.json()).error,'Spotify authorization failed');
+ }finally{globalThis.fetch=original;await pool.end();}
+});
