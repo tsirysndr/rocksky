@@ -63,7 +63,7 @@
   (let [group (first (filter #(= "systemd" (:group %)) (var-get (ns-resolve 'console.core 'registry))))
         tasks (:tasks (read-string (slurp "bb.edn")))
         no-units #{:list :list-files :daemon-reload}]
-    (is (= 19 (count (:cmds group))))
+    (is (= 20 (count (:cmds group))))
     (is (str/includes? (with-out-str (core/ls)) "console.systemd"))
     (doseq [[command _] (:cmds group)]
       (testing command
@@ -119,6 +119,46 @@
       (is (= [["ssh" "--" "ops@linux.test"
                "'journalctl' '--no-pager' '--unit' 'rocksky-gleam.service' '--lines=100'"]]
              (capture #(systemd/cli :journalctl "--host" "ops@linux.test" "gleam")))))))
+
+(deftest switch-api-variants
+  (let [all-units ["rocksky.service" "rocksky-xrpc.service" "rocksky-gleam.service"
+                   "rocksky-gleam-xrpc.service" "rocksky-purescript.service"]
+        prefix ["systemctl" "--no-pager" "--full"]]
+    (doseq [[variant selected] [[:typescript ["rocksky.service" "rocksky-xrpc.service"]]
+                               [:purescript ["rocksky-purescript.service"]]
+                               [:gleam ["rocksky-gleam.service" "rocksky-gleam-xrpc.service"]]]]
+      (let [calls (atom [])]
+        (with-redefs [sh/sh (fn [args] (swap! calls conj args) 0)]
+          (is (= 0 (systemd/switch variant))))
+        (is (= [(into (conj prefix "stop") all-units)
+                (into (conj prefix "start") selected)] @calls))))
+    (doseq [exit [1 5 130 255]]
+      (let [calls (atom [])]
+        (with-redefs [sh/sh (fn [args] (swap! calls conj args) exit)]
+          (is (= exit (systemd/switch :gleam))))
+        (is (= [(into (conj prefix "stop") all-units)] @calls))))
+    (let [calls (atom [])]
+      (with-redefs [sh/sh (fn [args] (swap! calls conj args)
+                           (if (= "start" (nth args 3)) 7 0))]
+        (is (= 7 (systemd/switch "typescript"))))
+      (is (= 2 (count @calls))))
+    (let [calls (atom [])]
+      (with-redefs [sh/sh #(swap! calls conj %)]
+        (doseq [value [nil :unknown :other/gleam "gleam; reboot" "--all" 1]]
+          (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Select"
+                (systemd/switch value)))))
+      (is (empty? @calls)))))
+
+(deftest switch-remote-target-and-sudo
+  (let [calls (atom [])]
+    (with-redefs [systemd/current-os (constantly "Mac OS X")
+                  sh/sh (fn [args] (swap! calls conj args) 0)]
+      (is (= 0 (systemd/cli :switch "--host" "ops@linux.test" "--sudo" "purescript"))))
+    (is (= [["ssh" "--" "ops@linux.test"
+             "'sudo' '-n' 'systemctl' '--no-pager' '--full' 'stop' 'rocksky.service' 'rocksky-xrpc.service' 'rocksky-gleam.service' 'rocksky-gleam-xrpc.service' 'rocksky-purescript.service'"]
+            ["ssh" "--" "ops@linux.test"
+             "'sudo' '-n' 'systemctl' '--no-pager' '--full' 'start' 'rocksky-purescript.service'"]]
+           @calls))))
 
 (let [{:keys [fail error]} (run-tests 'console.systemd-test)]
   (System/exit (if (zero? (+ fail error)) 0 1)))

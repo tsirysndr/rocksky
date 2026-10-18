@@ -68,6 +68,27 @@
 
 (defn start "Start one or more named Rocksky units." [& services] (change "start" [] services))
 (defn stop "Stop one or more named Rocksky units." [& services] (change "stop" [] services))
+(def ^:private api-variants
+  {:typescript ["rocksky.service" "rocksky-xrpc.service"]
+   :purescript ["rocksky-purescript.service"]
+   :gleam ["rocksky-gleam.service" "rocksky-gleam-xrpc.service"]})
+
+(defn switch
+  "Stop all five API units, then start :typescript, :purescript or :gleam.
+  Also accepts CLI strings. Returns the systemctl exit code; never starts after
+  a failed/interrupted stop. Uses *host* and *sudo*, without changing enablement."
+  [variant]
+  (let [variant (if (string? variant) (keyword variant) variant)
+        selected (get api-variants variant)]
+    (when-not selected
+      (throw (ex-info "Select :typescript, :purescript or :gleam" {:variant variant})))
+    (let [stopped (apply stop (mapcat api-variants [:typescript :gleam :purescript]))]
+      (if (zero? stopped)
+        (apply start selected)
+        (do
+          (println "API switch aborted: stopping the existing services failed; no services were started.")
+          stopped)))))
+
 (defn restart "Restart one or more named Rocksky units." [& services] (change "restart" [] services))
 (defn reload "Reload named units (requires their ExecReload support)." [& services] (change "reload" [] services))
 (defn enable "Enable named units at boot; does not start them." [& services] (change "enable" [] services))
@@ -137,7 +158,7 @@
   --sudo enables non-interactive sudo. Remaining arguments go to the action."
   [action & args]
   (let [commands {"list" list "list-files" list-files "status" status
-                  "start" start "stop" stop "restart" restart "reload" reload
+                  "start" start "stop" stop "switch" switch "restart" restart "reload" reload
                   "enable" enable "disable" disable "enable-now" enable-now
                   "disable-now" disable-now "is-active" is-active "is-enabled" is-enabled
                   "show" show "cat" cat "reset-failed" reset-failed
