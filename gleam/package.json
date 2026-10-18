@@ -38,7 +38,9 @@
     "backfill:discogs": "gleam run -m rocksky_api/scripts/backfill_discogs",
     "backfill:fingerprint": "BACKFILL_ONLY=fingerprint gleam run -m rocksky_api/scripts/backfill_analysis",
     "dev:env": "node scripts/generate_dev_env.mjs",
-    "db:seed": "node ../tools/db/seed-local.mjs"
+    "db:seed": "node ../tools/db/seed-local.mjs",
+    "repair:artist-pictures": "gleam run -m rocksky_api/scripts/repair_artist_pictures --",
+    "test:artist-pictures": "node --test ../tools/db/artist-pictures.test.mjs"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",

@@ -326,3 +326,32 @@ statement outside a transaction for concurrent indexes; other files run in a
 transaction. Use `bun run db:migrate` rather than `drizzle-kit migrate` to apply
 this history. A failed concurrent migration can leave completed statements;
 these index migrations use `IF NOT EXISTS` / `IF EXISTS` for retries.
+
+## Repair missing artist pictures
+
+After Jetstream backfill, run `bun run repair:artist-pictures --dry-run --limit 100`
+to preview matching pictures, then `bun run repair:artist-pictures` to fill them.
+PureScript needs `bun run build` first. Both ports use the same repair logic.
+
+The script reads the target database from this package's `.env`
+(`XATA_WRITE_POSTGRES_URL`, falling back to `XATA_POSTGRES_URL`). It requests
+`app.rocksky.artist.getArtists` from `https://api.rocksky.app` using exact artist
+SHA-256 filters, so local and production row IDs or URIs need not match. Only
+null/blank pictures are filled, including an update-time guard against concurrent
+changes. Existing pictures, other artist metadata, and PDS records are preserved.
+Artists without a picture in Rocksky remain unchanged. No API key is needed.
+
+Options: `--dry-run`, `--limit N` (0/all by default), `--batch-size N` (1–30,
+default 30), `--delay-ms N` (minimum 100, default 500), and `--api-url URL`
+(or `ROCKSKY_PICTURE_API_URL`). There is one request at a time. HTTP 429 honors
+`Retry-After` seconds or HTTP dates; exhausted rate-limit headers delay the next
+request. Network errors, 408 and 5xx responses retry with exponential backoff and
+jitter, with six attempts maximum. Exhausted retries stop the command. Rerun to
+process pictures still missing. Keyset pagination avoids skipping rows as updates
+remove them from the missing-picture set; each run has a fixed upper artist ID.
+
+REPL: `(ps/repair-artist-pictures :dry-run :limit 100)` or
+`(gleam/repair-artist-pictures :dry-run :limit 100)`.
+Run `bun run test:artist-pictures` for shared regression tests. Set
+`ARTIST_PICTURE_TEST_URL` to local PostgreSQL to include the temporary-table
+update tests.

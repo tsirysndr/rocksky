@@ -87,7 +87,9 @@
     "env:generate": "node bin/generate-env.js",
     "db:seed": "node ../tools/db/seed-local.mjs",
     "backfill:jetstream": "node bin/run.js Rocksky.Scripts.BackfillJetstream",
-    "test:jetstream-backfill": "bun run build && node bin/test-jetstream-backfill.js"
+    "test:jetstream-backfill": "bun run build && node bin/test-jetstream-backfill.js",
+    "repair:artist-pictures": "node bin/run.js Rocksky.Scripts.RepairArtistPictures",
+    "test:artist-pictures": "node --test ../tools/db/artist-pictures.test.mjs"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",

@@ -107,6 +107,33 @@ bb -cp src:test test/console/gleam_test.clj
 
 ## Rocksky systemd services
 
+Switch the active API implementation from the REPL:
+
+```clojure
+(systemd/switch :typescript)
+(systemd/switch :purescript)
+(systemd/switch :gleam)
+
+(binding [systemd/*host* "ops@linux.example" systemd/*sudo* true]
+  (systemd/switch :gleam))
+```
+
+The command first stops `rocksky`, `rocksky-xrpc`, `rocksky-gleam`,
+`rocksky-gleam-xrpc`, and `rocksky-purescript`. After a successful stop,
+TypeScript starts `rocksky` and `rocksky-xrpc`; Gleam starts `rocksky-gleam`
+and `rocksky-gleam-xrpc`; PureScript starts `rocksky-purescript`, which runs
+both API servers. Switching to the current implementation restarts it.
+A failed or interrupted stop prevents startup. The command returns the stop
+or start exit code; a failed start leaves the previous implementation stopped.
+Boot enablement is unchanged. Local execution requires Linux; use an explicit
+SSH target from macOS. Service startup may take time while production builds run.
+
+```sh
+bb systemd:switch gleam
+bb systemd:switch --host ops@linux.example --sudo purescript
+```
+
+
 `console.systemd` manages installed `rocksky-*` services and timers, including
 `rocksky.service`. The REPL automatically provides the `systemd` alias. **The default target is local**. Local systemd and journalctl commands are enabled
 only on Linux, detected from `os.name`; on macOS and Windows they fail before
@@ -632,3 +659,12 @@ Gleam Jetstream v2 archive replay is available as
 `bb gleam:backfill:jetstream-v2 --help`. See the
 [Gleam backfill instructions](../../gleam/README.md#jetstream-v2-archive-backfill)
 for queue initialization, credentials, and resume behavior.
+
+### Repair missing artist pictures
+
+`(ps/repair-artist-pictures :dry-run :limit 100)` and
+`(gleam/repair-artist-pictures :dry-run :limit 100)` preview pictures from
+Rocksky's public API. Omit the options to repair all missing pictures in the
+configured database. Both commands preserve existing pictures and honor API
+rate limits. Tasks: `bb ps:repair:artist-pictures` and
+`bb gleam:repair:artist-pictures`.

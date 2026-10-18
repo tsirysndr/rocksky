@@ -71,6 +71,12 @@
   gleam:test {:doc "Run gleam/package.json script test"
                  :task (do (require 'console.gleam)
                            (apply (resolve 'console.gleam/test) *command-line-args*))}
+  gleam:repair:artist-pictures {:doc "Repair missing artist pictures"
+    :task (do (require 'console.gleam)
+              (apply (resolve 'console.gleam/repair-artist-pictures) *command-line-args*))}
+  gleam:test:artist-pictures {:doc "Test artist picture repair"
+    :task (do (require 'console.gleam)
+              (apply (resolve 'console.gleam/test-artist-pictures) *command-line-args*))}
   gleam:db:seed {:doc "Seed feed generators in local Docker PostgreSQL"
     :task (do (require 'console.gleam)
               (apply (resolve 'console.gleam/db-seed) *command-line-args*))}
@@ -187,6 +193,9 @@
   ps:prod:all {:doc "Run purescript: prod:all. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/prod-all) *command-line-args*))}
+  ps:repair:artist-pictures {:doc "Run purescript: repair:artist-pictures. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/repair-artist-pictures) *command-line-args*))}
   ps:script {:doc "Run purescript: script. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/script) *command-line-args*))}
@@ -211,6 +220,9 @@
   ps:test:analysis-backfill {:doc "Run purescript: test:analysis-backfill. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-analysis-backfill) *command-line-args*))}
+  ps:test:artist-pictures {:doc "Run purescript: test:artist-pictures. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-artist-pictures) *command-line-args*))}
   ps:test:artist-recommendations {:doc "Run purescript: test:artist-recommendations. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-artist-recommendations) *command-line-args*))}
@@ -415,6 +427,9 @@
   systemd:stop {:doc "Stop named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :stop *command-line-args*))}
+  systemd:switch {:doc "Stop all API variants, then start typescript, purescript or gleam. Target flags: --local, --host HOST, --sudo"
+    :task (do (require 'console.systemd)
+              (apply (resolve 'console.systemd/cli) :switch *command-line-args*))}
   systemd:restart {:doc "Restart named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :restart *command-line-args*))}

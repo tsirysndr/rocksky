@@ -179,3 +179,14 @@
   [& args]
   (apply sh/bun "gleam" "backfill:jetstream-v2"
          (map #(if (keyword? %) (str "--" (name %)) (str %)) args)))
+
+(defn repair-artist-pictures
+  "Fill missing pictures from Rocksky API. Accepts :dry-run :limit 100 or CLI strings."
+  [& args]
+  (apply sh/bun "gleam" "repair:artist-pictures"
+         (map #(if (keyword? %) (str "--" (name %)) (str %)) args)))
+
+(defn test-artist-pictures
+  "Test shared artist picture repair bindings."
+  [& args]
+  (apply sh/bun "gleam" "test:artist-pictures" args))

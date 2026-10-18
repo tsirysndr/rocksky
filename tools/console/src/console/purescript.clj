@@ -17,6 +17,7 @@
    [:env-generate "env:generate"]
    [:format "format"]
    [:prod-all "prod:all"]
+   [:repair-artist-pictures "repair:artist-pictures"]
    [:script "script"]
    [:start "start"]
    [:start-xrpc "start:xrpc"]
@@ -25,6 +26,7 @@
    [:test-albums "test:albums"]
    [:test-all "test:all"]
    [:test-analysis-backfill "test:analysis-backfill"]
+   [:test-artist-pictures "test:artist-pictures"]
    [:test-artist-recommendations "test:artist-recommendations"]
    [:test-artists "test:artists"]
    [:test-basic-scripts "test:basic-scripts"]
@@ -143,6 +145,11 @@
   [& args]
   (apply sh/bun "purescript" "prod:all" args))
 
+(defn repair-artist-pictures
+  "Run bun run repair:artist-pictures in purescript/. Accepts keyword flags and numeric values, e.g. :dry-run :limit 100; strings pass through."
+  [& args]
+  (apply sh/bun "purescript" "repair:artist-pictures" (map #(if (keyword? %) (str "--" (name %)) (str %)) args)))
+
 (defn script
   "Run bun run script in purescript/. Forwards extra arguments unchanged."
   [& args]
@@ -182,6 +189,11 @@
   "Run bun run test:analysis-backfill in purescript/. Forwards extra arguments unchanged."
   [& args]
   (apply sh/bun "purescript" "test:analysis-backfill" args))
+
+(defn test-artist-pictures
+  "Run bun run test:artist-pictures in purescript/. Forwards extra arguments unchanged."
+  [& args]
+  (apply sh/bun "purescript" "test:artist-pictures" args))
 
 (defn test-artist-recommendations
   "Run bun run test:artist-recommendations in purescript/. Forwards extra arguments unchanged."
