@@ -141,6 +141,20 @@
       "when": 1792312941399,
       "tag": "0049_users_bot_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792312941400,
+      "tag": "0025_tracks_key_bpm",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792312941401,
+      "tag": "0034_tracks_acoustid_fingerprint",
+      "breakpoints": true
     }
   ]
 }
