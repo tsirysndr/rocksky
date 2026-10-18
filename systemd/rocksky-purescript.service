@@ -10,9 +10,9 @@ Conflicts=rocksky.service rocksky-xrpc.service
 Type=simple
 User=root
 WorkingDirectory=/root/github/rocksky/purescript
-# Build with the locked Nix development toolchain. Secrets are only needed at runtime.
-ExecStartPre=/bin/bash -ic 'exec nix develop .. --command bash bin/build-production.sh'
-ExecStart=/bin/bash -ic 'exec nix develop .. --command doppler run -c prd -- bun run prod:all'
+# Use the tools installed on the host. Secrets are only needed at runtime.
+ExecStartPre=/bin/bash -ic 'exec bash bin/build-production.sh'
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- bun run prod:all'
 # Rebuild on restart; allow time for the initial native/compiler dependency build.
 TimeoutStartSec=30min
 TimeoutStopSec=60

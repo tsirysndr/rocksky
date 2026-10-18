@@ -54,10 +54,12 @@ See `PORTING.md` for implementation history and final validation details.
 
 ## Production service
 
-`../systemd/rocksky-purescript.service` builds and starts both APIs using the
-repository's Nix development shell and the existing Doppler `prd` configuration.
-It expects the checkout at `/root/github/rocksky`, Nix and Doppler available to
-root's shell, and Doppler configured for that checkout. The first build needs
+`../systemd/rocksky-purescript.service` builds and starts both APIs using tools
+installed on the host and the existing Doppler `prd` configuration.
+It expects the checkout at `/root/github/rocksky`, Rust/Cargo, a native C/C++
+build toolchain, Bun, Node.js 22+, and Doppler available to root's shell, with
+Doppler configured for that checkout. Bun installs the project's PureScript,
+Spago and other npm build dependencies. The first build needs
 network access to fetch locked dependencies. Each start/restart builds the Rust
 audio addon, installs frozen Bun dependencies including build tools, bundles the
 APIs, and checks bundle loading before launching either server. This build helper
