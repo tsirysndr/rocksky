@@ -569,6 +569,9 @@
                  :task (do (require 'console.docker)
                            (apply (resolve 'console.docker/down)
                                   (map keyword (filter #{"v" "volumes"} *command-line-args*))))}
+  stop          {:doc "Stop all or named Compose services, keeping containers and volumes. Usage: bb stop [svc...]"
+                 :task (do (require 'console.docker)
+                           (apply (resolve 'console.docker/stop) *command-line-args*))}
   restart       {:doc  "Restart services. Usage: bb restart <svc> [svc...]"
                  :task (do (require 'console.docker)
                            (apply (resolve 'console.docker/restart) *command-line-args*))}

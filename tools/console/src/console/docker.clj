@@ -66,6 +66,11 @@
   (let [vols? (or (has? args :volumes) (has? args :v))]
     (apply compose "down" (when vols? ["--volumes"]))))
 
+(defn stop
+  "Stop all services, or only the named services, keeping containers and volumes."
+  [& services]
+  (apply compose "stop" (map svc services)))
+
 (defn restart
   "Restart one or more services.
 

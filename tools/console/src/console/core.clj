@@ -156,6 +156,7 @@
    {:group "docker" :ns 'console.docker
     :cmds [[:up              "compose up -d (pass :foreground for inline logs)"]
            [:down            "compose down (pass :volumes to wipe data)"]
+           [:stop            "Stop all or named services, keeping containers and volumes"]
            [:restart         "Restart one or more services"]
            [:logs            "Print logs; pass :follow to tail"]
            [:ps              "List running services"]

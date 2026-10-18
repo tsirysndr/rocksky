@@ -302,7 +302,7 @@ Run `(help)` / `bb help` for the live list. Snapshot:
 |           | `local-proxy`            | local dev split-proxy on :8081                      |
 |           | `mb`                     | musicbrainz Go cache server                         |
 | `cron`    | `schedule <min> <cmd>`   | wrap any command in Deno cron                       |
-| `docker`  | `up`, `down`, `restart`  | manage compose.yaml services (nats/dragonfly/typesense/db) |
+| `docker`  | `up`, `down`, `stop`, `restart`  | manage compose.yaml services (nats/dragonfly/typesense/db) |
 |           | `logs`, `ps`, `pull`, `exec` | inspect + exec inside containers               |
 |           | `compose & args`         | escape hatch for any subcommand                     |
 | `env`     | `load!`, `doppler!`      | populate env from `.env` or Doppler                 |
@@ -371,6 +371,8 @@ manage them from the REPL without leaving Clojure.
 (docker/up)                       ;; docker compose up -d
 (docker/up :foreground)           ;; without -d, logs stream in REPL
 (docker/up "db" "nats")           ;; bring up only these (still detached)
+(docker/stop)                     ;; stop all services; keep containers and volumes
+(docker/stop :db :nats)           ;; stop only these services
 (docker/down)                     ;; docker compose down
 (docker/down :volumes)            ;; …and wipe named volumes (irreversible)
 (docker/restart "db")
@@ -385,6 +387,8 @@ manage them from the REPL without leaving Clojure.
 $ bb up                  # detached
 $ bb up fg               # foreground
 $ bb down                # bb down v  to also drop volumes
+$ bb stop                # stop all services
+$ bb stop db nats        # stop selected services
 $ bb restart db
 $ bb logs db follow
 $ bb ps
