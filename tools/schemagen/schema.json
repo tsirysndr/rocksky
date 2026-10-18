@@ -5152,7 +5152,7 @@
     "name": "display_name",
     "dataType": "string",
     "columnType": "PgText",
-    "notNull": true,
+    "notNull": false,
     "hasDefault": false,
     "isArray": false
    },

@@ -33,7 +33,7 @@ pub fn encode(neighbour: Neighbour) {
     #("userId", json.string(u.id)),
     #("did", json.string(u.did)),
     #("handle", json.string(u.handle)),
-    #("displayName", json.string(u.display_name)),
+    #("displayName", json.nullable(u.display_name, json.string)),
     #("avatar", json.string(u.avatar)),
     #("sharedArtistsCount", json.int(neighbour.shared_count)),
     #("similarityScore", json.float(neighbour.similarity)),

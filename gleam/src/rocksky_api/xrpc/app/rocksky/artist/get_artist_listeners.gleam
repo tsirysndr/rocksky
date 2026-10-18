@@ -90,7 +90,7 @@ fn retrieve(ctx: Context, params: models.GetArtistListenersParams) {
                 pair(
                   field("handle", u.handle(users)),
                   pair(
-                    field("name", nullable(u.display_name(users))),
+                    field("name", u.display_name(users)),
                     field("avatar", u.avatar(users)),
                   ),
                 ),
@@ -158,7 +158,7 @@ fn retrieve(ctx: Context, params: models.GetArtistListenersParams) {
               Some(id),
               Some(user.0.1),
               Some(user.1.0),
-              Some(option.unwrap(user.1.1.0, "")),
+              user.1.1.0,
               Some(user.1.1.1),
               Some(models.ArtistSongViewBasic(
                 title: Some(

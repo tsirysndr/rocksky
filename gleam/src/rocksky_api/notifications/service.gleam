@@ -305,7 +305,7 @@ pub fn hydrate(
           pair(
             field("handle", u.handle(users)),
             pair(
-              field("name", nullable(u.display_name(users))),
+              field("name", u.display_name(users)),
               field("avatar", u.avatar(users)),
             ),
           ),

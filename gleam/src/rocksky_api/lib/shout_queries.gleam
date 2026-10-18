@@ -215,7 +215,7 @@ pub fn encode(views: List(View)) {
               Some(view.author.id),
               Some(view.author.did),
               Some(view.author.handle),
-              Some(view.author.display_name),
+              view.author.display_name,
               Some(view.author.avatar),
             )),
           ),

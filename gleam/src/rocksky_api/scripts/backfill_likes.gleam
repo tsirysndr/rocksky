@@ -67,7 +67,7 @@ pub fn ensure_user(
         insert(users, [
           set(us.did(users), did),
           set(us.handle(users), handle),
-          set(us.display_name(users), option.unwrap(profile.display_name, "")),
+          set(us.display_name(users), profile.display_name),
           set(us.avatar(users), option.unwrap(profile.avatar, "")),
         ])
         |> returning(ctx.db)
@@ -81,7 +81,7 @@ pub fn ensure_user(
           #("xata_id", json.string(user.id)),
           #("did", json.string(user.did)),
           #("handle", json.string(user.handle)),
-          #("display_name", json.string(user.display_name)),
+          #("display_name", json.nullable(user.display_name, json.string)),
           #("avatar", json.string(user.avatar)),
           #("xata_createdat", json.string(row.iso8601(user.created_at))),
           #("xata_updatedat", json.string(row.iso8601(user.updated_at))),

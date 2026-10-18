@@ -68,7 +68,7 @@ pub fn retrieve(
         pair(field("id", u.id(users)), field("did", u.did(users))),
         pair(
           field("handle", u.handle(users)),
-          field("name", nullable(u.display_name(users))),
+          field("name", u.display_name(users)),
         ),
       ),
       pair(

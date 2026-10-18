@@ -34,7 +34,7 @@ pub fn process_user(ctx: Context, user: users.User, skip: Bool) {
             None -> []
           },
           case profile.display_name {
-            Some(v) -> [set(us.display_name(table), v)]
+            Some(v) -> [set(us.display_name(table), Some(v))]
             None -> []
           },
         ])
@@ -59,7 +59,7 @@ pub fn process_user(ctx: Context, user: users.User, skip: Bool) {
       #("xata_id", json.string(user.id)),
       #("did", json.string(user.did)),
       #("handle", json.string(user.handle)),
-      #("display_name", json.string(user.display_name)),
+      #("display_name", json.nullable(user.display_name, json.string)),
       #("avatar", json.string(user.avatar)),
       #("xata_createdat", json.string(row.iso8601(user.created_at))),
       #("xata_updatedat", json.string(row.iso8601(user.updated_at))),

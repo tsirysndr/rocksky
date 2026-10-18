@@ -20,8 +20,8 @@ pub fn did(table: Table(rows.User)) -> Expression(String) {
   column(table, "did", text())
 }
 
-pub fn display_name(table: Table(rows.User)) -> Expression(String) {
-  column(table, "displayName", text())
+pub fn display_name(table: Table(rows.User)) -> Expression(Option(String)) {
+  column(table, "displayName", optional(text()))
 }
 
 pub fn handle(table: Table(rows.User)) -> Expression(String) {

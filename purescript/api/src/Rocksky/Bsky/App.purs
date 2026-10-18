@@ -86,7 +86,7 @@ profile ctx c did = do
       resolved <- fetchBskyProfile (Just did) (Just a)
       when (handle /= "") do
         inserted <- attempt (runInsert ctx.db (insertForeign T.users
-          [toForeign { did, handle, displayName: fromMaybe "" resolved.displayName, avatar: fromMaybe "" resolved.avatar }]))
+          [toForeign { did, handle, displayName: toNullable resolved.displayName, avatar: fromMaybe "" resolved.avatar }]))
         case inserted of
           Right _ -> pure unit
           Left e | contains (Pattern "invalid record: column [did]: is not unique") (message e) ->

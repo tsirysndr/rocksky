@@ -2,7 +2,7 @@ import gleam/dynamic/decode
 import gleam/json
 import gleam/option.{Some}
 import rocksky_api/db/row
-import rocksky_api/drizzle/orm.{field, map, nullable, pair}
+import rocksky_api/drizzle/orm.{field, map, pair}
 import rocksky_api/drizzle/schema/users as u
 import rocksky_api/lexicon/models
 import rocksky_api/schema/dropbox_accounts
@@ -35,7 +35,7 @@ pub fn selection(table) {
       pair(field("id", u.id(table)), field("did", u.did(table))),
       pair(
         field("handle", u.handle(table)),
-        field("name", nullable(u.display_name(table))),
+        field("name", u.display_name(table)),
       ),
     ),
     pair(
@@ -89,7 +89,7 @@ pub fn encode_detailed(view: Detailed) {
     #("id", json.string(user.id)),
     #("did", json.string(user.did)),
     #("handle", json.string(user.handle)),
-    #("displayName", json.string(user.display_name)),
+    #("displayName", json.nullable(user.display_name, json.string)),
     #("createdAt", json.string(row.iso8601(user.created_at))),
     #("updatedAt", json.string(row.iso8601(user.updated_at))),
     #("spotifyUser", models.encode_actor_response_spotify_user_view(spotify)),

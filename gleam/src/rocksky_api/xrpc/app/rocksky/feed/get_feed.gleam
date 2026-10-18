@@ -185,7 +185,7 @@ pub fn hydrate(ctx: Context, uris: List(String), did: Option(String)) {
           created_at: Some(row.iso8601(scrobble.created_at)),
           updated_at: Some(json_value.String(row.iso8601(scrobble.updated_at))),
           user: Some(user.0),
-          user_display_name: Some(user.1.0),
+          user_display_name: user.1.0,
           user_avatar: Some(user.1.1),
           tags: genres,
           liked: Some(list.contains(likes.1, track.id)),

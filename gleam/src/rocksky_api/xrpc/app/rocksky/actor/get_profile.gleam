@@ -172,13 +172,13 @@ pub fn refresh(
         set(u.did(users), did),
         set(u.handle(users), handle),
         set(u.avatar(users), option.unwrap(fetched.avatar, "")),
-        set(u.display_name(users), option.unwrap(fetched.display_name, "")),
+        set(u.display_name(users), fetched.display_name),
       ])
       |> returning_one(ctx.db, "Failed to refresh profile")
       |> task.map(fn(user) { #(Some(user), True, 1) })
     Some(user) -> {
       let avatar = option.unwrap(fetched.avatar, user.avatar)
-      let name = option.unwrap(fetched.display_name, user.display_name)
+      let name = option.or(fetched.display_name, user.display_name)
       case
         user.handle == handle
         && user.avatar == avatar
@@ -224,7 +224,7 @@ fn publish(ctx: Context, user: User, version: Int) {
       #("xata_id", json.string(user.id)),
       #("did", json.string(user.did)),
       #("handle", json.string(user.handle)),
-      #("display_name", json.string(user.display_name)),
+      #("display_name", json.nullable(user.display_name, json.string)),
       #("avatar", json.string(user.avatar)),
       #("xata_createdat", json.string(row.iso8601(user.created_at))),
       #("xata_updatedat", json.string(row.iso8601(user.updated_at))),

@@ -14,7 +14,7 @@ import {
 var users = pgTable("users", {
   id: text("xata_id").primaryKey().default(sql`xata_id()`),
   did: text("did").unique().notNull(),
-  displayName: text("display_name").notNull(),
+  displayName: text("display_name"),
   handle: text("handle").unique().notNull(),
   avatar: text("avatar").notNull(),
   isBot: boolean("is_bot").notNull().default(false),

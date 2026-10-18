@@ -12,7 +12,7 @@ import Data.Either (Either(..))
 import Data.JSDate (JSDate)
 import Data.JSDate as Date
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
-import Data.Nullable (Nullable, toMaybe)
+import Data.Nullable (Nullable, toMaybe, toNullable)
 import Data.String (Pattern(..), stripPrefix)
 import Drizzle.Builder (insertForeign, leftJoin, run, runInsert, runUpdate, selectFieldsFrom, selectFrom, update)
 import Drizzle.Query (where_)
@@ -74,7 +74,7 @@ refreshProfile :: Context -> String -> String -> ResolvedBskyProfile -> Maybe Se
 refreshProfile ctx did handle fetched existing = stage "Failed to refresh profile" case existing of
   Nothing -> do
     runInsert ctx.db (insertForeign T.users [toForeign
-      { did, handle, avatar: fromMaybe "" fetched.avatar, displayName: fromMaybe "" fetched.displayName }])
+      { did, handle, avatar: fromMaybe "" fetched.avatar, displayName: toNullable fetched.displayName }])
     rows :: Array SelectUser <- run ctx.db (selectFrom T.users # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string did)))
     user <- case head rows of
       Nothing -> throwError (error "Inserted user was not found")
@@ -87,7 +87,7 @@ refreshProfile ctx did handle fetched existing = stage "Failed to refresh profil
     pure user
   Just user -> do
     let avatar = fromMaybe user.avatar fetched.avatar
-        displayName = fromMaybe user.displayName fetched.displayName
+        displayName = fromMaybe user.displayName (map (toNullable <<< Just) fetched.displayName)
     when (user.handle /= handle || user.avatar /= avatar || user.displayName /= displayName) do
       now <- liftEffect Date.now
       -- The source starts the update without awaiting it, then publishes.

@@ -143,7 +143,7 @@ pub fn rsvp(entry: EventRsvp, user: User) {
     status: entry.status,
     did: user.did,
     handle: user.handle,
-    display_name: user.display_name,
+    display_name: option.unwrap(user.display_name, ""),
     avatar: nonempty(user.avatar),
     created_at: row.iso8601(entry.created_at),
   )
@@ -185,7 +185,7 @@ pub fn view(event: Event, organizer: User, artists, counts, viewer) {
     }),
     organizer_did: organizer.did,
     organizer_handle: Some(organizer.handle),
-    organizer_name: Some(organizer.display_name),
+    organizer_name: organizer.display_name,
     organizer_avatar_url: nonempty(organizer.avatar),
     rsvp_counts: counts,
     viewer_rsvp: viewer,

@@ -110,7 +110,7 @@ fn profile(ctx: Context, c: hono.Context) {
                   ..list.append(
                     case profile.display_name {
                       None -> []
-                      Some(v) -> [set(us.display_name(users), v)]
+                      Some(v) -> [set(us.display_name(users), Some(v))]
                     },
                     case profile.avatar {
                       None -> []

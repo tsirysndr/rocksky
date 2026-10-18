@@ -60,10 +60,10 @@ await assert.rejects(run(P.resolveActor({})(Nothing.value)(Nothing.value)), /nei
   assert.equal(m.events[0][1].handle, "new.test");
 }
 {
-  const inserted = { ...user, handle: "new.test", avatar: "", displayName: "" };
+  const inserted = { ...user, handle: "new.test", avatar: "", displayName: null };
   const m = mock([[inserted]]);
   await run(P.refreshProfile(m.ctx)(user.did)("new.test")({ avatar: Nothing.value, displayName: Nothing.value })(Nothing.value));
-  assert.deepEqual(m.writes[0], ["insert", [{ did: user.did, handle: "new.test", avatar: "", displayName: "" }]]);
+  assert.deepEqual(m.writes[0], ["insert", [{ did: user.did, handle: "new.test", avatar: "", displayName: null }]]);
   assert.equal(m.events[0][1].xata_version, 1);
   assert.equal(m.events[0][1].xata_createdat, date.toISOString());
   m.done();
@@ -140,3 +140,12 @@ await assert.rejects(run(Compatibility.retrieve({})("actor.test")(Nothing.value)
   m.done();
 }
 console.log("Verified compatibility union scoring/rank weighting/empty libraries and neighbour SQL binding/card hydration.");
+
+{
+  const nullableUser = { ...user, displayName: null };
+  const m = mock([]);
+  const result = await run(P.refreshProfile(m.ctx)(user.did)(user.handle)({avatar: Nothing.value, displayName: Nothing.value})(new Just(nullableUser)));
+  assert.equal(result.displayName, null);
+  assert.equal(m.writes.length, 0);
+}
+console.log("Verified missing display names remain null without substituting the handle.");

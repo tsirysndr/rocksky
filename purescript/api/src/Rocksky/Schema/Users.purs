@@ -18,7 +18,7 @@ import Drizzle.Schema (Column, Table, notNull, primaryKey, unique, withDefault, 
 type UsersCols =
   ( id :: Column Postgres String
   , did :: Column Postgres String
-  , displayName :: Column Postgres String
+  , displayName :: Column Postgres (Nullable String)
   , handle :: Column Postgres String
   , avatar :: Column Postgres String
   , isBot :: Column Postgres Boolean
@@ -33,7 +33,7 @@ users :: Table Postgres UsersCols
 users = table "users"
   { id: text "xata_id" # notNull # primaryKey # defaultSQL (raw "xata_id()")
   , did: text "did" # notNull # unique
-  , displayName: text "display_name" # notNull
+  , displayName: text "display_name"
   , handle: text "handle" # notNull # unique
   , avatar: text "avatar" # notNull
   -- Persistent bot flag, written by the scrobble-abuse-sweep service and
@@ -49,7 +49,7 @@ users = table "users"
 type SelectUser =
   { id :: String
   , did :: String
-  , displayName :: String
+  , displayName :: Nullable String
   , handle :: String
   , avatar :: String
   , isBot :: Boolean

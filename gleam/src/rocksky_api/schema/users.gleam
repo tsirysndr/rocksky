@@ -14,7 +14,7 @@ pub type User {
   User(
     id: String,
     did: String,
-    display_name: String,
+    display_name: Option(String),
     handle: String,
     avatar: String,
     is_bot: Bool,
@@ -51,7 +51,11 @@ pub fn columns(alias: String) -> String {
 pub fn decoder() -> Decoder(User) {
   use id <- decode.field("xata_id", decode.string)
   use did <- decode.field("did", decode.string)
-  use display_name <- decode.field("display_name", decode.string)
+  use display_name <- decode.optional_field(
+    "display_name",
+    None,
+    decode.optional(decode.string),
+  )
   use handle <- decode.field("handle", decode.string)
   use avatar <- decode.field("avatar", decode.string)
   use is_bot <- decode.field("is_bot", decode.bool)
@@ -101,7 +105,7 @@ pub fn to_json(value: User) -> Json {
   json.object([
     #("id", json.string(value.id)),
     #("did", json.string(value.did)),
-    #("displayName", json.string(value.display_name)),
+    #("displayName", json.nullable(value.display_name, json.string)),
     #("handle", json.string(value.handle)),
     #("avatar", json.string(value.avatar)),
     #("isBot", json.bool(value.is_bot)),

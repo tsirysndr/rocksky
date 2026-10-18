@@ -69,7 +69,7 @@ fn encode(view: queries.View) {
         #("id", json.string(view.author.id)),
         #("did", json.string(view.author.did)),
         #("handle", json.string(view.author.handle)),
-        #("displayName", json.string(view.author.display_name)),
+        #("displayName", json.nullable(view.author.display_name, json.string)),
         #("avatar", json.string(view.author.avatar)),
       ]),
     ),

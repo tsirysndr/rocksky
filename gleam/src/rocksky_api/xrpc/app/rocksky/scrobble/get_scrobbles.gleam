@@ -55,7 +55,7 @@ fn fields() {
     #("track.mbId", rsql.Text(t.mb_id(tracks))),
     #("user.did", rsql.Text(nullable(u.did(users)))),
     #("user.handle", rsql.Text(nullable(u.handle(users)))),
-    #("user.displayName", rsql.Text(nullable(u.display_name(users)))),
+    #("user.displayName", rsql.Text(u.display_name(users))),
     #("artist.name", rsql.Text(nullable(a.name(artists)))),
     #("artist.genres", rsql.TextArray(a.genres(artists))),
   ])
@@ -271,7 +271,7 @@ fn retrieve(ctx: Context, params: models.GetScrobblesParams, filter) {
           date: Some(row.iso8601(scrobble.timestamp)),
           created_at: Some(row.iso8601(scrobble.timestamp)),
           user: Some(user.handle),
-          user_display_name: Some(user.display_name),
+          user_display_name: user.display_name,
           user_avatar: Some(user.avatar),
           tags: genres,
           liked: Some(list.contains(likes.1, track.id)),

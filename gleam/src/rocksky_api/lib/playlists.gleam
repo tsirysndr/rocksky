@@ -47,7 +47,7 @@ pub fn fields(curators: Bool) {
         True -> [
           #("curatorDid", rsql.Text(nullable(u.did(users)))),
           #("curatorHandle", rsql.Text(nullable(u.handle(users)))),
-          #("curatorName", rsql.Text(nullable(u.display_name(users)))),
+          #("curatorName", rsql.Text(u.display_name(users))),
         ]
       },
     ),

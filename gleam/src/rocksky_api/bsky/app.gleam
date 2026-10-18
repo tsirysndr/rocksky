@@ -188,7 +188,7 @@ pub fn profile(
         insert(users, [
           set(u.did(users), did),
           set(u.handle(users), handle),
-          set(u.display_name(users), option.unwrap(resolved.display_name, "")),
+          set(u.display_name(users), resolved.display_name),
           set(u.avatar(users), option.unwrap(resolved.avatar, "")),
         ])
         |> run(ctx.db)
@@ -211,7 +211,7 @@ pub fn profile(
                   [set(u.handle(users), handle)],
                   case resolved.display_name {
                     None -> []
-                    Some(v) -> [set(u.display_name(users), v)]
+                    Some(v) -> [set(u.display_name(users), Some(v))]
                   },
                   case resolved.avatar {
                     None -> []
