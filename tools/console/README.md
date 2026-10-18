@@ -563,3 +563,16 @@ That's it — no compilation step, the REPL picks it up on next `(require … :r
 - Not a new build system. Turbo / cargo / deno still own builds.
 - Not a config layer. It does not read or write `.env` — environment is
   inherited from the calling shell.
+
+Both environment wrappers accept the `:force` keyword:
+
+```clojure
+(gleam/dev-env :force)
+(ps/env-generate :force)
+```
+
+This forwards `--force`, replacing existing settings and regenerating local
+secrets. Gleam backs up the previous file; PureScript overwrites it. Without
+`:force`, Gleam preserves credentials and PureScript refuses to overwrite an
+existing file. CLI equivalents are `bb gleam:dev:env --force` and
+`bb ps:env:generate --force`.

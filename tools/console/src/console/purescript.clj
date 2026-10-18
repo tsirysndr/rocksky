@@ -116,9 +116,9 @@
   (apply sh/bun "purescript" "dev" args))
 
 (defn env-generate
-  "Run bun run env:generate in purescript/. Forwards extra arguments unchanged."
+  "Run bun run env:generate in purescript/. :force resets settings and secrets; other args are forwarded."
   [& args]
-  (apply sh/bun "purescript" "env:generate" args))
+  (apply sh/bun "purescript" "env:generate" (map #(if (= :force %) "--force" %) args)))
 
 (defn format
   "Run bun run format in purescript/. Forwards extra arguments unchanged."

@@ -165,6 +165,6 @@
   (apply sh/bun "gleam" "backfill:fingerprint" args))
 
 (defn dev-env
-  "Run `bun run dev:env` in gleam/. Additional arguments are forwarded."
+  "Generate local env; :force resets settings and secrets. Other args are forwarded."
   [& args]
-  (apply sh/bun "gleam" "dev:env" args))
+  (apply sh/bun "gleam" "dev:env" (map #(if (= :force %) "--force" %) args)))

@@ -37,5 +37,16 @@
                   (vector (into ["bun" "run" script] args) {:dir (str root "/gleam")})]
                  @calls)))))))
 
+(deftest force-keyword-forwarding
+  (let [calls (atom [])]
+    (with-redefs [sh/bun (fn [& args] (swap! calls conj args) 0)]
+      (console.gleam/dev-env :force "--help")
+      (console.gleam/dev-env "--force")
+      (console.gleam/dev-env))
+    (is (= [["gleam" "dev:env" "--force" "--help"]
+            ["gleam" "dev:env" "--force"]
+            ["gleam" "dev:env"]]
+           @calls))))
+
 (let [{:keys [fail error]} (run-tests 'console.gleam-test)]
   (System/exit (if (zero? (+ fail error)) 0 1)))

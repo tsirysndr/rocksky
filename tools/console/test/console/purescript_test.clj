@@ -33,6 +33,17 @@
       (is (str/includes? output (str command)))
       (is (str/includes? output (str "bun run " script " in purescript/"))))))
 
+(deftest force-keyword-forwarding
+  (let [calls (atom [])]
+    (with-redefs [sh/bun (fn [& args] (swap! calls conj args) 0)]
+      (ps/env-generate :force "--help")
+      (ps/env-generate "--force")
+      (ps/env-generate))
+    (is (= [["purescript" "env:generate" "--force" "--help"]
+            ["purescript" "env:generate" "--force"]
+            ["purescript" "env:generate"]]
+           @calls))))
+
 (defn -main [& _]
   (let [{:keys [fail error]} (run-tests 'console.purescript-test)]
     (when (pos? (+ fail error)) (System/exit 1))))
