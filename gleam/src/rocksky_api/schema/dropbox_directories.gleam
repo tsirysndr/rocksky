@@ -58,7 +58,7 @@ pub fn decoder() -> Decoder(DropboxDirectory) {
   use xata_version <- decode.optional_field(
     "xata_version",
     None,
-    decode.optional(decode.string),
+    decode.optional(row.version_string()),
   )
   use created_at <- decode.field("xata_createdat", row.timestamp())
   use updated_at <- decode.field("xata_updatedat", row.timestamp())

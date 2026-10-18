@@ -58,6 +58,12 @@ pub fn float() -> Decoder(Float) {
   ])
 }
 
+/// Xata exposes version metadata as integers in production, while some local
+/// Drizzle schemas declare text. Preserve the string model for both sources.
+pub fn version_string() -> Decoder(String) {
+  decode.one_of(decode.string, [decode.int |> decode.map(int.to_string)])
+}
+
 pub fn string() -> Decoder(String) {
   decode.string
 }

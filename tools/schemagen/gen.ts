@@ -42,7 +42,9 @@ for (const t of tables) {
     return `${field(c.prop)}: ${c.notNull ? base : `Option(${base})`}`;
   });
   const decodeLines = t.columns.map((c) => {
-    const d = decoder[c.columnType] ?? "decode.dynamic";
+    const d = c.name === "xata_version" && c.columnType === "PgText"
+      ? "row.version_string()"
+      : decoder[c.columnType] ?? "decode.dynamic";
     return c.notNull
       ? `  use ${field(c.prop)} <- decode.field(${JSON.stringify(c.name)}, ${d})`
       : `  use ${field(c.prop)} <- decode.optional_field(${JSON.stringify(c.name)}, None, decode.optional(${d}))`;
