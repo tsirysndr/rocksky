@@ -46,6 +46,107 @@
                  :task (do (require 'console.api)
                            (apply (resolve 'console.api/lint) *command-line-args*))}
 
+  ;; ── Gleam API package scripts ────────────────────────────────
+  gleam:build {:doc "Run gleam/package.json script build"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/build) *command-line-args*))}
+  gleam:db:generate-bindings {:doc "Run gleam/package.json script db:generate-bindings"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/db-generate-bindings) *command-line-args*))}
+  gleam:dev {:doc "Run gleam/package.json script dev"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/dev) *command-line-args*))}
+  gleam:api {:doc "Run gleam/package.json script api"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/api) *command-line-args*))}
+  gleam:xrpc {:doc "Run gleam/package.json script xrpc"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/xrpc) *command-line-args*))}
+  gleam:prod {:doc "Run gleam/package.json script prod"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/prod) *command-line-args*))}
+  gleam:prod:xrpc {:doc "Run gleam/package.json script prod:xrpc"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/prod-xrpc) *command-line-args*))}
+  gleam:test {:doc "Run gleam/package.json script test"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/test) *command-line-args*))}
+  gleam:db:migrate {:doc "Run gleam/package.json script db:migrate"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/db-migrate) *command-line-args*))}
+  gleam:sync {:doc "Run gleam/package.json script sync"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/sync) *command-line-args*))}
+  gleam:typesense:import {:doc "Run gleam/package.json script typesense:import"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/typesense-import) *command-line-args*))}
+  gleam:sync:library {:doc "Run gleam/package.json script sync:library"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/sync-library) *command-line-args*))}
+  gleam:sync:library-playlist {:doc "Run gleam/package.json script sync:library-playlist"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/sync-library-playlist) *command-line-args*))}
+  gleam:avatar {:doc "Run gleam/package.json script avatar"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/avatar) *command-line-args*))}
+  gleam:genres {:doc "Run gleam/package.json script genres"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/genres) *command-line-args*))}
+  gleam:spotify {:doc "Run gleam/package.json script spotify"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/spotify) *command-line-args*))}
+  gleam:exp {:doc "Run gleam/package.json script exp"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/exp) *command-line-args*))}
+  gleam:collections {:doc "Run gleam/package.json script collections"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/collections) *command-line-args*))}
+  gleam:feed {:doc "Run gleam/package.json script feed"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/feed) *command-line-args*))}
+  gleam:event {:doc "Run gleam/package.json script event"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/event) *command-line-args*))}
+  gleam:dedup {:doc "Run gleam/package.json script dedup"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/dedup) *command-line-args*))}
+  gleam:dedup:records {:doc "Run gleam/package.json script dedup:records"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/dedup-records) *command-line-args*))}
+  gleam:seed:feed {:doc "Run gleam/package.json script seed:feed"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/seed-feed) *command-line-args*))}
+  gleam:likes {:doc "Run gleam/package.json script likes"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/likes) *command-line-args*))}
+  gleam:backfill:likes {:doc "Run gleam/package.json script backfill:likes"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/backfill-likes) *command-line-args*))}
+  gleam:backfill:isrc-mbid {:doc "Run gleam/package.json script backfill:isrc-mbid"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/backfill-isrc-mbid) *command-line-args*))}
+  gleam:riff:backfill {:doc "Run gleam/package.json script riff:backfill"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/riff-backfill) *command-line-args*))}
+  gleam:backfill:track-uri {:doc "Run gleam/package.json script backfill:track-uri"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/backfill-track-uri) *command-line-args*))}
+  gleam:backfill:replaygain {:doc "Run gleam/package.json script backfill:replaygain"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/backfill-replaygain) *command-line-args*))}
+  gleam:backfill:analysis {:doc "Run gleam/package.json script backfill:analysis"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/backfill-analysis) *command-line-args*))}
+  gleam:backfill:discogs {:doc "Run gleam/package.json script backfill:discogs"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/backfill-discogs) *command-line-args*))}
+  gleam:backfill:fingerprint {:doc "Run gleam/package.json script backfill:fingerprint"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/backfill-fingerprint) *command-line-args*))}
+  gleam:dev:env {:doc "Run gleam/package.json script dev:env"
+                 :task (do (require 'console.gleam)
+                           (apply (resolve 'console.gleam/dev-env) *command-line-args*))}
+
   ;; ── db ───────────────────────────────────────────────────────
   db:migrate         {:task (do (require 'console.db) ((resolve 'console.db/migrate)))}
   db:gen-migration   {:task (do (require 'console.db) ((resolve 'console.db/gen-migration)))}

@@ -54,6 +54,7 @@ tools/console/
     ├── shell.clj           # process helpers (sh, sh!, sh*, cargo, bun)
     ├── lexgen.clj          # lexicon codegen wrappers
     ├── db.clj              # migrate, gen-migration, pkl, pgpull
+    ├── gleam.clj           # every Gleam API package script
     ├── sync.clj            # apps/api data-op scripts (12 commands)
     ├── daemons.clj         # all Rust services
     ├── devops.clj          # backup-ddb, local-proxy, mb
@@ -61,6 +62,46 @@ tools/console/
 ```
 
 ---
+
+## Gleam API scripts
+
+Every script in `gleam/package.json` is available through `console.gleam`.
+The REPL loads the `gleam` alias automatically; `(help)` lists the full group.
+Replace colons in a package script name with hyphens for its Clojure function:
+
+```clojure
+(gleam/dev-env)                       ; bun run dev:env
+(gleam/db-generate-bindings)           ; bun run db:generate-bindings
+(gleam/build)
+(gleam/test)
+(gleam/api)                           ; foreground REST server
+(gleam/xrpc)                          ; foreground XRPC server
+(gleam/sync "alice.bsky.social")
+(gleam/sync-library-playlist "did:plc:example" "playlist-id" "--dry-run")
+```
+
+From `tools/console/`, Babashka tasks use `gleam:` followed by the exact package
+script name:
+
+```sh
+bb gleam:dev:env
+bb gleam:db:migrate
+bb gleam:backfill:analysis
+```
+
+These commands run in the repository's `gleam/` directory and forward arguments
+unchanged. They use the console's existing environment inheritance. If a REPL
+session has loaded remote credentials, clear those overrides with `(env/unload!)`
+before using the local `.env`; the inherited environment takes precedence over
+Node's dotenv loader. Long-running scripts stay in the foreground.
+
+When adding a package script, add its wrapper in `src/console/gleam.clj`, help
+entry in `src/console/core.clj`, and task in `bb.edn`. Verify complete coverage and
+argument forwarding without running builds, migrations, or services:
+
+```sh
+bb -cp src:test test/console/gleam_test.clj
+```
 
 ## Prerequisites
 
