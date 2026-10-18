@@ -560,6 +560,13 @@
                            ((resolve 'console.env/load!))
                            (apply (resolve 'console.env/save!) *command-line-args*))}
 
+  docker:redis {:doc "Connect to Compose Dragonfly with redis-cli"
+                :task (do (require 'console.docker)
+                          ((resolve 'console.docker/redis)))}
+  docker:postgres {:doc "Connect to Compose PostgreSQL with pgcli or psql"
+                   :task (do (require 'console.docker)
+                             ((resolve 'console.docker/postgres)))}
+
   ;; ── docker compose ───────────────────────────────────────────
   up            {:doc  "docker compose up -d (use `bb up fg` for foreground)"
                  :task (do (require 'console.docker)

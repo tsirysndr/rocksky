@@ -18,7 +18,9 @@
       (docker/compose \"top\" \"db\")     ;; escape hatch — any subcommand"
   (:refer-clojure :exclude [name])
   (:require [console.shell :as sh]
-            [clojure.core :as core]))
+            [clojure.core :as core]
+            [babashka.fs :as fs]
+            [cheshire.core :as json]))
 
 (defn- svc
   "Normalize a keyword/string/symbol service name to a string."
@@ -110,3 +112,45 @@
       (exec \"dragonfly\" \"redis-cli\")"
   [service & cmd]
   (apply compose "exec" (svc service) (map str cmd)))
+
+(defn- local-connection [service target]
+  (let [{:keys [exit out]} (sh/sh! ["docker" "compose" "config" "--format" "json"])]
+    (when-not (zero? exit)
+      (throw (ex-info "Could not read Docker Compose configuration" {})))
+    (let [config (get-in (json/parse-string out true) [:services service])
+          port (first (filter #(and (= (str target) (str (:target %)))
+                                   (= "tcp" (or (:protocol %) "tcp"))) (:ports config)))]
+      (when-not (and port (re-matches #"[0-9]+" (str (:published port))))
+        (throw (ex-info "Compose service must publish its TCP port for a local client"
+                        {:service service :port target})))
+      {:config config
+       :host (if (contains? #{nil "" "0.0.0.0" "::"} (:host_ip port))
+               "127.0.0.1" (:host_ip port))
+       :port (str (:published port))})))
+
+(defn postgres
+  "Connect to Compose db with local pgcli, then local psql, then container psql.
+  Reads Compose settings; does not start services. Exit the client with \\q."
+  []
+  (if-let [client (or (fs/which "pgcli") (fs/which "psql"))]
+    (let [{:keys [config host port]} (local-connection :db 5432)
+          user (or (get-in config [:environment :POSTGRES_USER]) "postgres")
+          database (or (get-in config [:environment :POSTGRES_DB]) user)
+          password (get-in config [:environment :POSTGRES_PASSWORD])]
+      (when-not (string? password)
+        (throw (ex-info "Compose db needs POSTGRES_PASSWORD for a local client" {})))
+      (sh/sh [(str client) "--host" host "--port" port
+              "--username" user "--dbname" database]
+             {:extra-env {"PGPASSWORD" password "PGSERVICE" "" "PGSERVICEFILE" ""
+                          "PGSSLMODE" "prefer"}}))
+    (compose "exec" "db" "sh" "-c"
+             "export PGPASSWORD=\"$POSTGRES_PASSWORD\"; exec psql -h 127.0.0.1 -U \"${POSTGRES_USER:-postgres}\" -d \"${POSTGRES_DB:-${POSTGRES_USER:-postgres}}\"")))
+
+(defn redis
+  "Connect to Compose Dragonfly using local redis-cli. Exit with quit."
+  []
+  (if-let [client (fs/which "redis-cli")]
+    (let [{:keys [host port]} (local-connection :dragonfly 6379)]
+      (sh/sh [(str client) "-h" host "-p" port]
+             {:extra-env {"REDISCLI_AUTH" ""}}))
+    (throw (ex-info "redis-cli is required; install the Redis command-line tools" {}))))

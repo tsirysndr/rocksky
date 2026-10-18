@@ -371,6 +371,7 @@ manage them from the REPL without leaving Clojure.
 (docker/up)                       ;; docker compose up -d
 (docker/up :foreground)           ;; without -d, logs stream in REPL
 (docker/up "db" "nats")           ;; bring up only these (still detached)
+(docker/postgres)                 ;; PostgreSQL console: pgcli, falling back to psql
 (docker/stop)                     ;; stop all services; keep containers and volumes
 (docker/stop :db :nats)           ;; stop only these services
 (docker/down)                     ;; docker compose down
@@ -580,3 +581,17 @@ secrets. Gleam backs up the previous file; PureScript overwrites it. Without
 `:force`, Gleam preserves credentials and PureScript refuses to overwrite an
 existing file. CLI equivalents are `bb gleam:dev:env --force` and
 `bb ps:env:generate --force`.
+
+Connect to the running Compose `db` service with `(docker/postgres)` or
+`bb docker:postgres`. The command prefers local `pgcli`, then local `psql`.
+If neither is installed, it runs `psql` inside the database container.
+Local clients use the published PostgreSQL port and credentials from resolved
+Compose configuration; the password is passed through `PGPASSWORD` rather than
+command arguments. Start the database first with `(docker/up :db)`; exit the
+SQL console with `\q`.
+
+Connect to the running Dragonfly service with `(docker/redis)` or
+`bb docker:redis`. Install `redis-cli` locally first. The command reads the
+published Redis port from resolved Compose configuration and connects to the
+local, unauthenticated Dragonfly service. Start it with `(docker/up :dragonfly)`
+and exit the client with `quit`.

@@ -162,6 +162,8 @@
            [:ps              "List running services"]
            [:pull            "Pull latest images"]
            [:exec            "Run a command inside a service. Args: svc cmd [args...]"]
+           [:redis           "Connect to Compose Dragonfly with redis-cli"]
+           [:postgres        "Connect to Compose PostgreSQL with pgcli or psql"]
            [:compose         "Escape hatch: any `docker compose` subcommand"]]}
 
    {:group "cron" :ns 'console.cron
