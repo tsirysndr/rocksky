@@ -1,0 +1,14 @@
+import {Ok,Error as GError,toList} from '../../gleam.mjs';
+import {Some,None} from '../../../gleam_stdlib/gleam/option.mjs';
+import {Metadata,ClientMetadata,Pkce} from './oauth_runtime.mjs';
+const option=v=>v==null?new None():new Some(v);
+const list=v=>v==null?new None():new Some(toList(v));
+const wrap=(f,map=v=>v)=>Promise.resolve().then(f).then(v=>new Ok(map(v)),e=>new GError(e));
+export const metadata=c=>new ClientMetadata(c.clientMetadata.client_id,toList(c.clientMetadata.redirect_uris),c.clientMetadata.scope,c.clientMetadata.token_endpoint_auth_method,c.responseMode);
+export const resolve=(c,input,signal)=>wrap(()=>c.oauthResolver.resolve(input,{signal}),r=>new Metadata(r.metadata,!!r.identityInfo,r.metadata.issuer,r.metadata.authorization_endpoint,option(r.metadata.pushed_authorization_request_endpoint),!!r.metadata.require_pushed_authorization_requests,list(r.metadata.dpop_signing_alg_values_supported),toList(r.metadata.token_endpoint_auth_methods_supported),list(r.metadata.token_endpoint_auth_signing_alg_values_supported)));
+export const pkce=c=>wrap(()=>c.runtime.generatePKCE(),v=>new Pkce(v.verifier,v.challenge,v.method));
+export const key=(c,algorithms)=>wrap(()=>c.runtime.generateKey(algorithms.toArray()));
+export const signingKeys=(c,algorithms)=>c.keyset==null?new None():new Some(toList([...c.keyset.list({alg:algorithms.toArray(),usage:'sign'})].map(k=>k.kid??'')));
+export const nonce=c=>wrap(()=>c.runtime.generateNonce());
+export const saveState=(c,state,data)=>wrap(()=>c.stateStore.set(state,data));
+export const par=(c,metadata,auth,key,parameters)=>wrap(async()=>{const server=await c.serverFactory.fromMetadata(metadata,auth,key);return (await server.request('pushed_authorization_request',parameters)).request_uri;});

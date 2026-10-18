@@ -1,0 +1,10 @@
+import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {Ok,Error as GError,BitArray} from '../../gleam.mjs';
+const attempt=async f=>{try{return new Ok(await f());}catch(e){return new GError(e);}};
+export const temporaryDirectory=prefix=>attempt(()=>mkdtemp(join(tmpdir(),prefix)));
+export const read=path=>attempt(async()=>new BitArray(new Uint8Array(await readFile(path))));
+export const write=(path,bytes)=>attempt(()=>writeFile(path,Buffer.from(bytes.rawBuffer)));
+export const removeTree=path=>attempt(()=>rm(path,{recursive:true,force:true}));
+export const fromBytes=data=>{try{return new Ok(new BitArray(new Uint8Array(Buffer.from(data))));}catch(e){return new GError(e);}};

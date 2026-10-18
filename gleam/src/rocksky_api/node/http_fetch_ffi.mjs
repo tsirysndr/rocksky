@@ -1,0 +1,10 @@
+import {Ok, Error as GError} from '../../gleam.mjs';
+import {Some,None} from '../../../gleam_stdlib/gleam/option.mjs';
+export const get=(url,headers,signal)=>fetch(url,{method:'GET',headers:Object.fromEntries(headers.toArray()),signal}).then(v=>new Ok(v),e=>new GError(e));
+export const status=r=>r.status;
+export const header=(r,k)=>{const v=r.headers.get(k);return v===null?new None():new Some(v);};
+export const json=r=>r.json().then(v=>new Ok(v),e=>new GError(e));
+export const request=(url,method,headers,body)=>fetch(url,{method,headers:Object.fromEntries(headers.toArray()),...(body instanceof Some?{body:body[0]}:{})}).then(v=>new Ok(v),e=>new GError(e));
+export const text=r=>r.text().then(v=>new Ok(v),e=>new GError(e));
+import {BitArray} from '../../gleam.mjs';
+export const bytes=r=>r.arrayBuffer().then(b=>new Ok(new BitArray(new Uint8Array(b))),e=>new GError(e));

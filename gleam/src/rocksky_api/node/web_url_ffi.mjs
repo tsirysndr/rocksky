@@ -1,0 +1,11 @@
+import { Ok, Error as GError } from '../../gleam.mjs';
+export const parse = value => {try {return new Ok(new URL(value));} catch(e) {return new GError(e);}};
+export const host = url => url.host;
+export const protocol = url => url.protocol;
+export const setHost = (url, host) => {url.host = host;};
+export const setPort = (url, port) => {url.port = port;};
+export const setQuery = (url, key, value) => {url.searchParams.set(key, value);};
+export const requestLength = url => url.pathname.length + url.search.length;
+export const href = url => url.href;
+export const resolve = (path, base) => {try {return new Ok(new URL(path, base));} catch(e) {return new GError(e);}};
+export const pathname=url=>url.pathname;
