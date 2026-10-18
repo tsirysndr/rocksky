@@ -74,7 +74,7 @@ fn retrieve(
         None -> task.ok(None)
         Some(uri) ->
           select(user_tracks, field("track_id", ut.track_id(user_tracks)))
-          |> where(eq(ut.uri(user_tracks), uri))
+          |> where(eq(ut.uri(user_tracks), Some(uri)))
           |> one(ctx.read_db)
       })
       let clauses =

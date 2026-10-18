@@ -7,7 +7,8 @@ import rocksky_api/atproto/agent as atp
 import rocksky_api/context.{type Context}
 import rocksky_api/drizzle/orm.{
   alias, all, and, distinct, eq, eq_columns, exists, field, from, inner_join,
-  is_null, like, not_exists, nullable, or, pair, run, select, set, update, where,
+  is_null, like_optional, not_exists, nullable, or, pair, run, select, set,
+  update, where,
 }
 import rocksky_api/drizzle/schema/scrobbles as sc
 import rocksky_api/drizzle/schema/tracks as tr
@@ -63,17 +64,20 @@ pub fn from_user_tracks(ctx: Context, dry: Bool) {
     |> where(
       and([
         is_null(tr.uri(tracks)),
-        like(ut.uri(links), "at://%/app.rocksky.song/%"),
+        like_optional(ut.uri(links), "at://%/app.rocksky.song/%"),
         not_exists(
           from(other)
-          |> where(eq_columns(tr.uri(other), nullable(ut.uri(links)))),
+          |> where(eq_columns(tr.uri(other), ut.uri(links))),
         ),
       ]),
     )
     |> all(ctx.db),
   )
   common.fold(rows, 0, fn(r, total) {
-    use changed <- task.map(apply_uri(ctx, r.0, r.1, dry))
+    use changed <- task.map(case r.1 {
+      Some(uri) -> apply_uri(ctx, r.0, uri, dry)
+      None -> task.ok(0)
+    })
     total + changed
   })
 }

@@ -17,7 +17,7 @@ const userArtists = pgTable(
     updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
     xataVersion: integer("xata_version"),
     scrobbles: integer("scrobbles"),
-    uri: text("uri").unique().notNull(),
+    uri: text("uri").unique(),
   },
   (t) => [
     index("user_artists_user_id_idx").on(t.userId),

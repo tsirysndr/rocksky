@@ -91,9 +91,9 @@ for (const matching of ["unmatched", "ambiguous", "failure", "matched"]) {
 console.log("Verified durable recovery, matching fallback, catalog enrichment, duplicate recheck, reservation ownership and no post-publication polling.");
 
 const { publishScrobble } = await import("../output/Rocksky.Nowplaying.Publication/index.js");
-{
+for (const uri of [null, "at://did:plc:example/app.rocksky.song/test"]) {
   const date = new Date("2026-10-18T00:00:00Z");
-  const row = (id, extra = {}) => ({ id, createdAt: date, updatedAt: date, ...extra });
+  const row = (id, extra = {}) => ({ id, uri, createdAt: date, updatedAt: date, ...extra });
   const joined = {
     scrobble: row("scrobble", { timestamp: date, trackId: "track", albumId: "album", artistId: "artist", userId: "user" }),
     track: row("track", { sha256: "identity" }), album: row("album"), artist: row("artist"),
@@ -133,6 +133,10 @@ const { publishScrobble } = await import("../output/Rocksky.Nowplaying.Publicati
   assert.deepEqual(inserted, ["user_artists", "user_albums", "user_tracks"]);
   assert.deepEqual(events.map(([subject]) => subject), ["rocksky.scrobble", "rocksky.track"]);
   const body = events[0][1];
+  for (const name of ["artist", "album", "track"]) {
+    assert.equal(tables[`user_${name}s`][0].uri, uri);
+    assert.equal(body[`user_${name}`].uri, uri);
+  }
   assert.equal(body.scrobble.timestamp, date.toISOString());
   assert.equal(body.scrobble.track_id.sha256, "identity");
   assert.equal(body.scrobble.user_id.xata_id, "user");

@@ -40,7 +40,10 @@ fn retrieve(ctx: Context, uri: String) {
       eq_columns(ua.artist_id(users), artists.id(artists_table)),
     )
     |> where(
-      or([eq(ua.uri(users), uri), eq(artists.uri(artists_table), Some(uri))]),
+      or([
+        eq(ua.uri(users), Some(uri)),
+        eq(artists.uri(artists_table), Some(uri)),
+      ]),
     )
     |> required(ctx.read_db, "Artist not found: " <> uri),
   )

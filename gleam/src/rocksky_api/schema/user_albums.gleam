@@ -19,7 +19,7 @@ pub type UserAlbum {
     updated_at: Timestamp,
     xata_version: Option(Int),
     scrobbles: Option(Int),
-    uri: String,
+    uri: Option(String),
   )
 }
 
@@ -58,7 +58,7 @@ pub fn decoder() -> Decoder(UserAlbum) {
     None,
     decode.optional(row.int()),
   )
-  use uri <- decode.field("uri", decode.string)
+  use uri <- decode.optional_field("uri", None, decode.optional(decode.string))
   decode.success(UserAlbum(
     id:,
     user_id:,
@@ -90,7 +90,7 @@ pub fn to_json(value: UserAlbum) -> Json {
     #("updatedAt", encode_timestamp(value.updated_at)),
     #("xataVersion", json.nullable(value.xata_version, json.int)),
     #("scrobbles", json.nullable(value.scrobbles, json.int)),
-    #("uri", json.string(value.uri)),
+    #("uri", json.nullable(value.uri, json.string)),
   ])
 }
 

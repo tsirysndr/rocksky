@@ -4666,7 +4666,7 @@
     "name": "uri",
     "dataType": "string",
     "columnType": "PgText",
-    "notNull": true,
+    "notNull": false,
     "hasDefault": false,
     "isArray": false
    }
@@ -4744,7 +4744,7 @@
     "name": "uri",
     "dataType": "string",
     "columnType": "PgText",
-    "notNull": true,
+    "notNull": false,
     "hasDefault": false,
     "isArray": false
    }
@@ -4987,7 +4987,7 @@
     "name": "uri",
     "dataType": "string",
     "columnType": "PgText",
-    "notNull": true,
+    "notNull": false,
     "hasDefault": false,
     "isArray": false
    },

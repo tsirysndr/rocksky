@@ -31,7 +31,7 @@ pub fn register(server: Server, ctx: Context) -> Nil {
       |> left_join(t, eq_columns(at.track_id(links), tracks.id(t)))
       |> left_join(albums, eq_columns(at.album_id(links), a.id(albums)))
       |> left_join(users, eq_columns(a.id(albums), ua.album_id(users)))
-      |> where(eq(ua.uri(users), params.uri))
+      |> where(eq(ua.uri(users), Some(params.uri)))
       |> order_by([asc(tracks.disc_number(t)), asc(tracks.track_number(t))])
       |> all(ctx.read_db),
     )

@@ -1087,7 +1087,7 @@ var userAlbums = pgTable50("user_albums", {
   updatedAt: timestamp50("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer28("xata_version"),
   scrobbles: integer28("scrobbles"),
-  uri: text50("uri").unique().notNull()
+  uri: text50("uri").unique()
 }, (t) => [index24("user_albums_user_id_idx").on(t.userId)]);
 var user_albums_default = userAlbums;
 
@@ -1102,7 +1102,7 @@ var userArtists = pgTable51("user_artists", {
   updatedAt: timestamp51("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer29("xata_version"),
   scrobbles: integer29("scrobbles"),
-  uri: text51("uri").unique().notNull()
+  uri: text51("uri").unique()
 }, (t) => [
   index25("user_artists_user_id_idx").on(t.userId),
   index25("user_artists_artist_id_idx").on(t.artistId)
@@ -1131,7 +1131,7 @@ var userTracks = pgTable53("user_tracks", {
   createdAt: timestamp53("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp53("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer30("xata_version"),
-  uri: text53("uri").unique().notNull(),
+  uri: text53("uri").unique(),
   scrobbles: integer30("scrobbles")
 }, (t) => [index26("user_tracks_user_id_idx").on(t.userId)]);
 var user_tracks_default = userTracks;

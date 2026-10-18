@@ -16,7 +16,7 @@ const userTracks = pgTable(
     createdAt: timestamp("xata_createdat").defaultNow().notNull(),
     updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
     xataVersion: integer("xata_version"),
-    uri: text("uri").unique().notNull(),
+    uri: text("uri").unique(),
     scrobbles: integer("scrobbles"),
   },
   // The unique index on (track_id, user_id) cannot serve a user_id lookup:

@@ -40,6 +40,6 @@ pub fn scrobbles(table: Table(rows.UserArtist)) -> Expression(Option(Int)) {
   column(table, "scrobbles", optional(integer()))
 }
 
-pub fn uri(table: Table(rows.UserArtist)) -> Expression(String) {
-  column(table, "uri", text())
+pub fn uri(table: Table(rows.UserArtist)) -> Expression(Option(String)) {
+  column(table, "uri", optional(text()))
 }

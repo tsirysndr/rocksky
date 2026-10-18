@@ -181,6 +181,7 @@ fn prepare(
     )
     |> one(ctx.db),
   )
+  let user_track = option.flatten(user_track)
   use candidate <- task.then(
     {
       use request <- task.then(
@@ -239,6 +240,7 @@ fn prepare(
     |> where(and([eq(ar.sha256(artists), artist_hash), eq(u.did(users), did)]))
     |> one(ctx.db),
   )
+  let user_artist = option.flatten(user_artist)
   use _ <- task.then(case record_ownership.owns_record(user_artist, did) {
     True -> task.ok(None)
     False ->
@@ -266,6 +268,7 @@ fn prepare(
     |> where(and([eq(al.sha256(albums), album_hash), eq(u.did(users), did)]))
     |> one(ctx.db),
   )
+  let user_album = option.flatten(user_album)
   let track =
     Track(
       ..track,

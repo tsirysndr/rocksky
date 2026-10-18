@@ -24,7 +24,7 @@ type UserTracksCols =
   , createdAt :: Column Postgres JSDate
   , updatedAt :: Column Postgres JSDate
   , xataVersion :: Column Postgres (Nullable Int)
-  , uri :: Column Postgres String
+  , uri :: Column Postgres (Nullable String)
   , scrobbles :: Column Postgres (Nullable Int)
   )
 
@@ -36,7 +36,7 @@ userTracks = table "user_tracks"
   , createdAt: timestamp "xata_createdat" # notNull # defaultNow
   , updatedAt: timestamp "xata_updatedat" # notNull # defaultNow
   , xataVersion: integer "xata_version"
-  , uri: text "uri" # notNull # unique
+  , uri: text "uri" # unique
   , scrobbles: integer "scrobbles"
   }
 
@@ -47,6 +47,6 @@ type SelectUserTrack =
   , createdAt :: JSDate
   , updatedAt :: JSDate
   , xataVersion :: Nullable Int
-  , uri :: String
+  , uri :: Nullable String
   , scrobbles :: Nullable Int
   }

@@ -38,6 +38,23 @@ test('Scrobble pipeline preserves submitted identity, durable recovery, reservat
   const before=requests;assert.ok((await call(new Some(new Submission('job','3mv234567abcf',true)))) instanceof Ok);assert.equal(requests,before);
   const published=await publish_scrobble(ctx,'s');assert.ok(published instanceof Ok,JSON.stringify(published));
   const payload=JSON.parse(messages.find(m=>m.topic==='rocksky.scrobble').data);assert.equal(payload.scrobble.track_id.xata_id,'t');assert.equal(payload.user_track.user_id.xata_id,'u');assert.ok(messages.some(m=>m.topic==='rocksky.track'));
+  // Match TypeScript publication: missing catalog URIs pass through as null.
+  // Exercise membership creation for both present and absent catalog URIs.
+  for (const missing of [false, true]) {
+    await pool.query('DELETE FROM user_artists; DELETE FROM user_albums; DELETE FROM user_tracks');
+    if (missing) await pool.query('UPDATE artists SET uri = NULL; UPDATE albums SET uri = NULL; UPDATE tracks SET uri = NULL');
+    messages.length = 0;
+    const result = await publish_scrobble(ctx, 's');
+    assert.ok(result instanceof Ok, JSON.stringify(result));
+    assert.deepEqual(messages.map(m => m.topic), ['rocksky.scrobble', 'rocksky.track']);
+    const body = JSON.parse(messages[0].data);
+    for (const [entity, uri] of [['artist', artist], ['album', album], ['track', song]]) {
+      const {rows} = await pool.query(`SELECT uri FROM user_${entity}s`);
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].uri, missing ? null : uri);
+      assert.equal(body[`user_${entity}`].uri, missing ? null : uri);
+    }
+  }
   await new Promise(resolve=>setTimeout(resolve,20));
  } finally {await pool.end();}
 });

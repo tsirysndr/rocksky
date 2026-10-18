@@ -175,7 +175,13 @@ pub fn repoint(
   case collection {
     Artist -> {
       let users = ua.table()
-      use _ <- task.then(replace(ctx, users, ua.uri(users), keeper, gone))
+      use _ <- task.then(replace(
+        ctx,
+        users,
+        ua.uri(users),
+        Some(keeper),
+        list.map(gone, Some),
+      ))
       use _ <- task.then(replace(
         ctx,
         artists,
@@ -200,7 +206,13 @@ pub fn repoint(
     }
     Album -> {
       let users = ul.table()
-      use _ <- task.then(replace(ctx, users, ul.uri(users), keeper, gone))
+      use _ <- task.then(replace(
+        ctx,
+        users,
+        ul.uri(users),
+        Some(keeper),
+        list.map(gone, Some),
+      ))
       use _ <- task.then(replace(
         ctx,
         albums,
@@ -218,7 +230,13 @@ pub fn repoint(
     }
     Song -> {
       let users = ut.table()
-      use _ <- task.then(replace(ctx, users, ut.uri(users), keeper, gone))
+      use _ <- task.then(replace(
+        ctx,
+        users,
+        ut.uri(users),
+        Some(keeper),
+        list.map(gone, Some),
+      ))
       replace(ctx, tracks, tr.uri(tracks), Some(keeper), list.map(gone, Some))
     }
   }
@@ -233,7 +251,7 @@ fn dedup(
 ) {
   use rows <- task.then(records(agent, did, collection, None, []))
   use linked <- task.then(linked(ctx, did, collection))
-  let plan = plan(rows, linked)
+  let plan = plan(rows, list.filter_map(linked, option.to_result(_, Nil)))
   list.each(plan, fn(p) {
     log.info("Keep " <> p.keeper.uri <> " (" <> p.keeper.key <> ")")
   })

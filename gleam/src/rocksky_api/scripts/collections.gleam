@@ -82,7 +82,7 @@ fn user_link(
   insert(table, [
     set(user_column, user),
     set(item_column, item),
-    set(uri_column, uri),
+    set(uri_column, Some(uri)),
     set(plays_column, Some(1)),
   ])
   |> on_conflict_update(

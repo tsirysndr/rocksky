@@ -139,7 +139,7 @@ pub fn resolve_track(ctx: Context, uri: String, cache) {
       let links = ut.table()
       use linked <- task.then(
         select(links, field("id", ut.track_id(links)))
-        |> where(eq(ut.uri(links), uri))
+        |> where(eq(ut.uri(links), Some(uri)))
         |> one(ctx.db),
       )
       case linked {

@@ -38,6 +38,9 @@ test('full migration history, reruns and older missing entries', {skip:!process.
     await pool.query('SELECT discogs_release_id FROM albums LIMIT 0');
     const {rows}=await pool.query("SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='display_name'");
     assert.equal(rows[0].is_nullable,'YES');
+    const memberships = await pool.query("SELECT table_name, is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('user_artists', 'user_albums', 'user_tracks') AND column_name='uri'");
+    assert.equal(memberships.rows.length, 3);
+    for (const row of memberships.rows) assert.equal(row.is_nullable, 'YES', row.table_name);
     await mkdir(join(directory,'meta'));
     await writeFile(join(directory,'meta/_journal.json'),JSON.stringify({entries:[{idx:0,when:1,tag:'old_missing'}]}));
     await writeFile(join(directory,'old_missing.sql'),'CREATE TABLE old_missing (id integer);');

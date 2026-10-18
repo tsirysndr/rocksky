@@ -25,7 +25,7 @@ type UserAlbumsCols =
   , updatedAt :: Column Postgres JSDate
   , xataVersion :: Column Postgres (Nullable Int)
   , scrobbles :: Column Postgres (Nullable Int)
-  , uri :: Column Postgres String
+  , uri :: Column Postgres (Nullable String)
   )
 
 userAlbums :: Table Postgres UserAlbumsCols
@@ -37,7 +37,7 @@ userAlbums = table "user_albums"
   , updatedAt: timestamp "xata_updatedat" # notNull # defaultNow
   , xataVersion: integer "xata_version"
   , scrobbles: integer "scrobbles"
-  , uri: text "uri" # notNull # unique
+  , uri: text "uri" # unique
   }
 
 type SelectUserAlbum =
@@ -48,5 +48,5 @@ type SelectUserAlbum =
   , updatedAt :: JSDate
   , xataVersion :: Nullable Int
   , scrobbles :: Nullable Int
-  , uri :: String
+  , uri :: Nullable String
   }

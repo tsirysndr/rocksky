@@ -17,7 +17,7 @@ const userAlbums = pgTable(
     updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
     xataVersion: integer("xata_version"),
     scrobbles: integer("scrobbles"),
-    uri: text("uri").unique().notNull(),
+    uri: text("uri").unique(),
   },
   // As user_tracks: the unique index leads with album_id. See drizzle/0028.
   (t) => [index("user_albums_user_id_idx").on(t.userId)],

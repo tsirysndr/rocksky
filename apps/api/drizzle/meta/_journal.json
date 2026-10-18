@@ -384,6 +384,13 @@
       "tag": "0048_rsql_catalog_indexes",
       "breakpoints": true,
       "transaction": false
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792314855468,
+      "tag": "0051_user_membership_nullable_uris",
+      "breakpoints": true
     }
   ]
 }

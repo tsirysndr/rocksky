@@ -18,7 +18,7 @@ pub type UserTrack {
     created_at: Timestamp,
     updated_at: Timestamp,
     xata_version: Option(Int),
-    uri: String,
+    uri: Option(String),
     scrobbles: Option(Int),
   )
 }
@@ -53,7 +53,7 @@ pub fn decoder() -> Decoder(UserTrack) {
     None,
     decode.optional(row.int()),
   )
-  use uri <- decode.field("uri", decode.string)
+  use uri <- decode.optional_field("uri", None, decode.optional(decode.string))
   use scrobbles <- decode.optional_field(
     "scrobbles",
     None,
@@ -89,7 +89,7 @@ pub fn to_json(value: UserTrack) -> Json {
     #("createdAt", encode_timestamp(value.created_at)),
     #("updatedAt", encode_timestamp(value.updated_at)),
     #("xataVersion", json.nullable(value.xata_version, json.int)),
-    #("uri", json.string(value.uri)),
+    #("uri", json.nullable(value.uri, json.string)),
     #("scrobbles", json.nullable(value.scrobbles, json.int)),
   ])
 }

@@ -36,8 +36,8 @@ pub fn xata_version(table: Table(rows.UserTrack)) -> Expression(Option(Int)) {
   column(table, "xataVersion", optional(integer()))
 }
 
-pub fn uri(table: Table(rows.UserTrack)) -> Expression(String) {
-  column(table, "uri", text())
+pub fn uri(table: Table(rows.UserTrack)) -> Expression(Option(String)) {
+  column(table, "uri", optional(text()))
 }
 
 pub fn scrobbles(table: Table(rows.UserTrack)) -> Expression(Option(Int)) {

@@ -128,14 +128,11 @@ pub fn publish_scrobble(ctx: Context, id: String) {
   use user_artist <- task.then(case memberships.1 {
     Some(v) -> task.ok(v)
     None -> {
-      use uri <- task.then(
-        task.require(item.artist.uri, "Missing artist URI") |> task.from_result,
-      )
       use _ <- task.then(
         insert(user_artists, [
           set(ur.user_id(user_artists), item.user.id),
           set(ur.artist_id(user_artists), item.artist.id),
-          set(ur.uri(user_artists), uri),
+          set(ur.uri(user_artists), item.artist.uri),
           set(ur.scrobbles(user_artists), Some(1)),
         ])
         |> run(ctx.db),
@@ -148,14 +145,11 @@ pub fn publish_scrobble(ctx: Context, id: String) {
   use user_album <- task.then(case memberships.0 {
     Some(v) -> task.ok(v)
     None -> {
-      use uri <- task.then(
-        task.require(item.album.uri, "Missing album URI") |> task.from_result,
-      )
       use _ <- task.then(
         insert(user_albums, [
           set(ua.user_id(user_albums), item.user.id),
           set(ua.album_id(user_albums), item.album.id),
-          set(ua.uri(user_albums), uri),
+          set(ua.uri(user_albums), item.album.uri),
           set(ua.scrobbles(user_albums), Some(1)),
         ])
         |> run(ctx.db),
@@ -168,14 +162,11 @@ pub fn publish_scrobble(ctx: Context, id: String) {
   use user_track <- task.then(case memberships.2 {
     Some(v) -> task.ok(v)
     None -> {
-      use uri <- task.then(
-        task.require(item.track.uri, "Missing track URI") |> task.from_result,
-      )
       use _ <- task.then(
         insert(user_tracks, [
           set(ut.user_id(user_tracks), item.user.id),
           set(ut.track_id(user_tracks), item.track.id),
-          set(ut.uri(user_tracks), uri),
+          set(ut.uri(user_tracks), item.track.uri),
           set(ut.scrobbles(user_tracks), Some(1)),
         ])
         |> run(ctx.db),

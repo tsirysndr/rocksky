@@ -94,7 +94,7 @@ pub fn song(ctx: Context, uri: String) {
     from(t) |> where(eq(tr.uri(t), Some(uri))) |> one(ctx.db),
     select(u, nested("track", all_columns(t)))
       |> left_join(t, eq_columns(ut.track_id(u), tr.id(t)))
-      |> where(eq(ut.uri(u), uri))
+      |> where(eq(ut.uri(u), Some(uri)))
       |> one(ctx.db),
   ))
   use track <- task.then(
@@ -116,7 +116,7 @@ pub fn artist(ctx: Context, uri: String) {
   use artist <- task.then(
     select(u, nested("artist", all_columns(a)))
     |> left_join(a, eq_columns(ur.artist_id(u), ar.id(a)))
-    |> where(or([eq(ur.uri(u), uri), eq(ar.uri(a), Some(uri))]))
+    |> where(or([eq(ur.uri(u), Some(uri)), eq(ar.uri(a), Some(uri))]))
     |> required(ctx.db, "Artist not found"),
   )
   use totals <- task.map(task.all2(
@@ -135,7 +135,7 @@ pub fn album(ctx: Context, uri: String) {
   use album <- task.then(
     select(u, nested("album", all_columns(a)))
     |> left_join(a, eq_columns(ua.album_id(u), al.id(a)))
-    |> where(or([eq(ua.uri(u), uri), eq(al.uri(a), Some(uri))]))
+    |> where(or([eq(ua.uri(u), Some(uri)), eq(al.uri(a), Some(uri))]))
     |> required(ctx.db, "Album not found"),
   )
   use rows <- task.then(
