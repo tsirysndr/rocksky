@@ -1,4 +1,4 @@
-# Rocksky API — PureScript
+# Rocksky AppView - PyreScript
 
 A port of `../apps/api` (TypeScript) to PureScript, targeting Node.js 22+.
 Bun is the package manager; spago builds the PureScript.

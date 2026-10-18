@@ -1,4 +1,4 @@
-# Rocksky API in Gleam
+# Rocksky AppView in Gleam
 
 This package ports `apps/api` to Gleam's JavaScript target, running on Node.js.
 REST, XRPC, subscriptions, workers, OAuth policy, recommendations, uploads and
