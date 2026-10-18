@@ -23,6 +23,22 @@ Use `bun run dev:env --force` to reset settings and regenerate all local secrets
 and signing keys. Existing provider credentials and custom settings are cleared;
 the previous file is still backed up.
 
+## Local feed seed
+
+After `bun run db:migrate`, run `bun run db:seed` from this package.
+It imports the shared `tools/db/seeds/feed-generators.json` snapshot into the
+root Compose `db` container, including missing feed owners. Existing users are
+matched by DID and preserved; feeds are upserted by URI, so rerunning is safe.
+The command ignores database URLs in `.env` and always targets Docker PostgreSQL.
+It requires the container to be running and the migrations to have been applied.
+No production connection or OAuth session is needed.
+
+The snapshot was read from production on 2026-10-18 and contains feed metadata
+and the public profile fields needed for its owners, without credentials.
+The existing `seed:feed` script is separate: it imports an authenticated user's
+feed records from their PDS.
+
+
 ## Run
 
 Install workspace dependencies from the repository root with `bun install`, then:

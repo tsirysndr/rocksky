@@ -168,3 +168,8 @@
   "Generate local env; :force resets settings and secrets. Other args are forwarded."
   [& args]
   (apply sh/bun "gleam" "dev:env" (map #(if (= :force %) "--force" %) args)))
+
+(defn db-seed
+  "Seed feed generators in the local Docker Compose database."
+  [& args]
+  (apply sh/bun "gleam" "db:seed" args))

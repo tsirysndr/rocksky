@@ -1,0 +1,758 @@
+[
+  {
+    "id": "rec_d583ae8d60d8fb81asu0",
+    "display_name": "afrobeat",
+    "description": "Dive into Afrobeat — infectious rhythms, smooth vocals, and modern African pop energy. Featuring chart-toppers and rising artists from across the continent and diaspora.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/afrobeat",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81astg",
+    "display_name": "afrobeats",
+    "description": "A feed dedicated to Afrobeat — African-influenced music driven by rhythmic grooves, danceable beats, and vibrant melodies.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/afrobeats",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d5911q8d60d4fe81h70g",
+    "display_name": "all",
+    "description": "Everything, all at once. A real-time feed of scrobbles from the Rocksky community, spanning every genre, mood, and scene.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/all",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81ast0",
+    "display_name": "alternative metal",
+    "description": "Explore alternative metal, where heavy guitars meet unconventional songwriting, atmospheric textures, and genre-crossing ideas.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/alternative-metal",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81assg",
+    "display_name": "alternative r&b",
+    "description": "Dive into alternative R&B — textured beats, expressive vocals, and genre-blending ideas. Featuring influential artists and emerging voices redefining contemporary R&B.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/alternative-rnb",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81ass0",
+    "display_name": "anime",
+    "description": "Dive into anime music — high-energy openings, emotional ballads, and memorable themes. Featuring classics, trending songs, and new releases tied to anime series.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/anime",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81asrg",
+    "display_name": "art pop",
+    "description": "A feed dedicated to art pop — pop music with an experimental, conceptual, and artistic approach, blending accessibility with innovation.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/art-pop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81asr0",
+    "display_name": "breakcore",
+    "description": "A feed dedicated to breakcore — an experimental electronic genre built on chopped breakbeats, heavy distortion, and unpredictable rhythms.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/breakcore",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d58debgd60d21tg1djjg",
+    "display_name": "chicago drill",
+    "description": "Explore Chicago drill, the origin of the drill movement. Minimalist production, aggressive flows, and uncompromising storytelling that reshaped modern hip hop.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/chicago-drill",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81asqg",
+    "display_name": "chillwave",
+    "description": "A feed dedicated to chillwave — dreamy electronic pop characterized by hazy synths, relaxed tempos, and nostalgic atmospheres.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/chillwave",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ae0d60d8fb81asq0",
+    "display_name": "country hip hop",
+    "description": "A feed dedicated to country hip hop — a genre blending hip hop beats and rap vocals with country themes, Southern roots, and rural storytelling.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/country-hip-hop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81aspg",
+    "display_name": "crunk",
+    "description": "A feed dedicated to crunk — a high-energy style of Southern hip hop built on aggressive beats, chant-driven vocals, and club-ready intensity.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/crunk",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81asp0",
+    "display_name": "dance pop",
+    "description": "Explore dance pop, where infectious melodies meet club-ready production. Upbeat, rhythmic, and made to move.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/dance-pop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d58dguod60d21p81dl4g",
+    "display_name": "deep house",
+    "description": "Dive into deep house — minimal beats, rich textures, and emotional depth. Featuring classic tracks, underground favorites, and modern deep house releases.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/deep-house",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d58ddi8d60d21p81djj0",
+    "display_name": "drill",
+    "description": "A feed dedicated to drill — a hip hop subgenre known for dark beats, aggressive delivery, and street-focused storytelling.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/drill",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d58ld0od60d9h6g1eet0",
+    "display_name": "dubstep",
+    "description": "A feed dedicated to dubstep — electronic music defined by heavy bass, syncopated rhythms, and dark, bass-driven sound design.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/dubstep",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81asog",
+    "display_name": "emo",
+    "description": "Explore emo, where vulnerability meets intensity. From early emotional hardcore roots to melodic and alternative evolutions.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/emo",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81aso0",
+    "display_name": "grunge",
+    "description": "Explore grunge, the sound of early-90s Seattle. Fuzzy riffs, introspective lyrics, and a raw, unpolished aesthetic define the genre.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/grunge",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81asng",
+    "display_name": "hard rock",
+    "description": "Explore hard rock, where loud guitars, driving rhythms, and bold attitude take center stage. From classic anthems to modern rock powerhouses.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/hard-rock",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81asn0",
+    "display_name": "heavy metal",
+    "description": "A feed dedicated to heavy metal — powerful, riff-driven music defined by loud guitars, strong vocals, and classic metal intensity.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/heavy-metal",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81asmg",
+    "display_name": "hip hop",
+    "description": "Dive into hip hop — sharp lyricism, innovative production, and evolving styles. Featuring legends, deep cuts, and emerging artists shaping the future of the genre.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/hip-hop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adod60d8fb81asm0",
+    "display_name": "house",
+    "description": "Explore house music, where rhythm, bass, and repetition create an irresistible groove. From classic club sounds to modern house variations.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/house",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81aslg",
+    "display_name": "hyperpop",
+    "description": "Dive into hyperpop — distorted vocals, glossy synths, and boundary-breaking pop experiments. Featuring both pioneers and emerging artists reshaping modern pop.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/hyperpop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81asl0",
+    "display_name": "indie",
+    "description": "Explore indie music, where creative freedom and individuality come first. From lo-fi beginnings to polished releases, this feed highlights diverse independent voices.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/indie",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81askg",
+    "display_name": "indie rock",
+    "description": "A feed dedicated to indie rock — guitar-driven music rooted in independent scenes, blending melody, experimentation, and alternative rock influence.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/indie-rock",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81ask0",
+    "display_name": "j-pop",
+    "description": "What the Rocksky community is listening to in J-pop. A live feed of scrobbles, trends, and favorites from Japan’s pop world.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/j-pop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81asjg",
+    "display_name": "j-rock",
+    "description": "A feed dedicated to J-rock — Japanese rock music blending energetic guitar-driven sound with diverse influences and expressive songwriting.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/j-rock",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d58lregd60d9uc01ehm0",
+    "display_name": "jazz",
+    "description": "A feed dedicated to jazz — a genre rooted in improvisation, rhythm, and expressive musicianship.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/jazz",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81asj0",
+    "display_name": "k-pop",
+    "description": "A feed dedicated to K-pop — blending pop, hip-hop, R&B, and electronic influences. Discover high-energy tracks, polished production, and genre-defining Korean pop artists.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/k-pop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d58m3nod60d9uc01emc0",
+    "display_name": "lo-fi",
+    "description": "A feed dedicated to lo-fi — music characterized by relaxed beats, warm textures, and an intentionally unpolished sound.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/lo-fi",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81asig",
+    "display_name": "metal",
+    "description": "A feed dedicated to metal — heavy music defined by powerful riffs, intensity, and diverse subgenres spanning decades.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/metal",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583adgd60d8fb81asi0",
+    "display_name": "metalcore",
+    "description": "Dive into metalcore — heavy breakdowns, screamed and clean vocals, and modern production. Featuring influential bands and emerging acts shaping the scene.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/metalcore",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81ashg",
+    "display_name": "midwest emo",
+    "description": "A feed dedicated to Midwest emo — an emo subgenre known for intricate guitar lines, dynamic shifts, and introspective, emotional songwriting.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/midwest-emo",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81ash0",
+    "display_name": "nu metal",
+    "description": "Explore nu metal, where heavy riffs meet groove, aggression, and raw emotion. From late-90s classics to modern revival bands, this feed captures the genre’s signature sound.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/nu-metal",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81asgg",
+    "display_name": "pop punk",
+    "description": "Explore pop punk, where punchy guitars meet infectious hooks and rebellious spirit. From classic anthems to modern revival bands.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/pop-punk",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81asg0",
+    "display_name": "post-grunge",
+    "description": "Explore post-grunge, where grunge’s emotional intensity meets polished riffs and anthemic choruses. From late-90s staples to modern rock acts.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/post-grunge",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81asfg",
+    "display_name": "rap",
+    "description": "Dive into rap — sharp flows, evolving production, and voices from every scene. Featuring iconic tracks, deep cuts, and emerging artists.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/rap",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81asf0",
+    "display_name": "rap metal",
+    "description": "A feed dedicated to rap metal — a genre fusing heavy guitar riffs with hip-hop rhythms, rap vocals, and aggressive energy.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/rap-metal",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81aseg",
+    "display_name": "R&B",
+    "description": "A feed dedicated to R&B — rhythm and blues music rooted in soulful vocals, groove, and emotional expression.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/rnb",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad8d60d8fb81ase0",
+    "display_name": "rock",
+    "description": "Dive into rock — powerful riffs, memorable hooks, and raw energy. Featuring iconic artists, deep cuts, and emerging rock acts.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/rock",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81asdg",
+    "display_name": "southern hip hop",
+    "description": "Explore Southern hip hop, from early Atlanta and Memphis sounds to modern trap dominance. Deep bass, bold flows, and strong regional identity define the genre.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/southern-hip-hop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81asd0",
+    "display_name": "speedcore",
+    "description": "Dive into speedcore — chaotic rhythms, extreme tempos, and raw power. Featuring both classic tracks and modern underground releases pushing BPMs to the limit.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/speedcore",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81ascg",
+    "display_name": "swedish pop",
+    "description": "What the Rocksky community is listening to in Swedish pop. A live feed of scrobbles, trends, and favorites spanning classic hits and fresh Scandinavian pop releases.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/swedish-pop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d58m250d60d9uc01ekn0",
+    "display_name": "synthwave",
+    "description": "Explore synthwave, where analog synths, neon visuals, and retro-futuristic vibes recreate the sound and feel of the 1980s.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/synthwave",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81asc0",
+    "display_name": "thrash metal",
+    "description": "Explore thrash metal, where speed, precision, and aggression collide. Razor-sharp riffs, pounding drums, and relentless intensity.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/thrash-metal",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81asbg",
+    "display_name": "trap",
+    "description": "A feed dedicated to trap — a hip hop style defined by heavy 808s, rapid hi-hat patterns, and dark, atmospheric production.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/trap",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81asb0",
+    "display_name": "trap soul",
+    "description": "Explore trap soul, where smooth R&B melodies meet dark, bass-heavy trap production. Late-night vibes, emotional lyrics, and modern soul.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/trap-soul",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81asa0",
+    "display_name": "tropical house",
+    "description": "Explore tropical house, where breezy beats, melodic hooks, and sun-soaked atmospheres create laid-back, feel-good dance music.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/tropical-house",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583ad0d60d8fb81as90",
+    "display_name": "vaporwave",
+    "description": "Dive into vaporwave — hazy melodies, warped samples, and lo-fi atmospheres. Featuring classic releases and modern interpretations of the genre.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/vaporwave",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583acod60d8fb81as8g",
+    "display_name": "visual kei",
+    "description": "Dive into visual kei — dramatic melodies, heavy riffs, and bold aesthetics. Featuring iconic bands and modern artists shaping the evolution of the scene.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/visual-kei",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583acod60d8fb81as80",
+    "display_name": "vocaloid",
+    "description": "A feed dedicated to Vocaloid — music created using voice synthesis software, featuring virtual singers and producer-driven creativity.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/vocaloid",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583acod60d8fb81as7g",
+    "display_name": "west coast hip hop",
+    "description": "A feed dedicated to West Coast hip hop — hip hop rooted in California, known for its laid-back grooves, funk influence, and distinctive regional sound.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/west-coast-hip-hop",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583acod60d8fb81as70",
+    "display_name": "Discover",
+    "description": "Trending songs from your personal network",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/whats-hot",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  },
+  {
+    "id": "rec_d583acod60d8fb81as6g",
+    "display_name": "Popular With Friends",
+    "description": "A mix of popular songs from accounts you follow and songs that your follows like.",
+    "did": "did:web:discover.rocksky.app",
+    "uri": "at://did:plc:vegqomyce4ssoqs7zwqvgqty/app.rocksky.feed.generator/with-friends",
+    "avatar": null,
+    "owner": {
+      "did": "did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "handle": "rocksky.app",
+      "display_name": "Rocksky",
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:vegqomyce4ssoqs7zwqvgqty/bafkreibbpf6grs3vzmbtj25wsd2etsm52fttvr4jez67eick223hck7daa"
+    }
+  }
+]

@@ -71,6 +71,9 @@
   gleam:test {:doc "Run gleam/package.json script test"
                  :task (do (require 'console.gleam)
                            (apply (resolve 'console.gleam/test) *command-line-args*))}
+  gleam:db:seed {:doc "Seed feed generators in local Docker PostgreSQL"
+    :task (do (require 'console.gleam)
+              (apply (resolve 'console.gleam/db-seed) *command-line-args*))}
   gleam:db:migrate {:doc "Run gleam/package.json script db:migrate"
                  :task (do (require 'console.gleam)
                            (apply (resolve 'console.gleam/db-migrate) *command-line-args*))}
@@ -163,6 +166,9 @@
   ps:db:migrate {:doc "Run purescript: db:migrate. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/db-migrate) *command-line-args*))}
+  ps:db:seed {:doc "Run purescript: db:seed. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/db-seed) *command-line-args*))}
   ps:dev {:doc "Run purescript: dev. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/dev) *command-line-args*))}

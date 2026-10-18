@@ -84,7 +84,8 @@
     "test:server": "node bin/test-server.js",
     "test:all": "bun run build && bun run test && node bin/test-all.js",
     "db:migrate": "node ../tools/db/migrate-cli.mjs ../apps/api/drizzle",
-    "env:generate": "node bin/generate-env.js"
+    "env:generate": "node bin/generate-env.js",
+    "db:seed": "node ../tools/db/seed-local.mjs"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",

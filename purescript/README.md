@@ -39,6 +39,22 @@ this regenerates secrets and removes manual edits. Companion services and an S3
 server must be started/configured separately. Compose settings must use literal
 values; the generator rejects `${...}` interpolation.
 
+## Local feed seed
+
+After `bun run db:migrate`, run `bun run db:seed` from this package.
+It imports the shared `tools/db/seeds/feed-generators.json` snapshot into the
+root Compose `db` container, including missing feed owners. Existing users are
+matched by DID and preserved; feeds are upserted by URI, so rerunning is safe.
+The command ignores database URLs in `.env` and always targets Docker PostgreSQL.
+It requires the container to be running and the migrations to have been applied.
+No production connection or OAuth session is needed.
+
+The snapshot was read from production on 2026-10-18 and contains feed metadata
+and the public profile fields needed for its owners, without credentials.
+The existing `seed:feed` script is separate: it imports an authenticated user's
+feed records from their PDS.
+
+
 ## Updating tables and generating migrations
 
 The database has one shared migration history. Drizzle Kit reads

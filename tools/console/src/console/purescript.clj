@@ -11,6 +11,7 @@
    [:bundle "bundle"]
    [:check-bundles "check:bundles"]
    [:db-migrate "db:migrate"]
+   [:db-seed "db:seed"]
    [:dev "dev"]
    [:env-generate "env:generate"]
    [:format "format"]
@@ -109,6 +110,11 @@
   "Run bun run db:migrate in purescript/. Forwards extra arguments unchanged."
   [& args]
   (apply sh/bun "purescript" "db:migrate" args))
+
+(defn db-seed
+  "Run bun run db:seed in purescript/. Forwards extra arguments unchanged."
+  [& args]
+  (apply sh/bun "purescript" "db:seed" args))
 
 (defn dev
   "Run bun run dev in purescript/. Forwards extra arguments unchanged."

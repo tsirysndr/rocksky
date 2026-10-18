@@ -610,3 +610,10 @@ It preserves other databases and Compose volumes. `:force` is mandatory.
 Migration connection variables are set from Compose, overriding any loaded REPL
 credentials. If the reset fails, migrations do not run; if migration fails, its
 nonzero exit code is returned so the error can be fixed before retrying migrations.
+
+### Seed local feed generators
+
+After migrating the Compose database, run `(gleam/db-seed)` or `(ps/db-seed)`
+in the REPL. The equivalent tasks are `bb gleam:db:seed` and `bb ps:db:seed`.
+Both use the same saved feed snapshot and target only the root Compose `db`
+container; rerunning updates feeds by URI without duplicating them.

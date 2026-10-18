@@ -41,6 +41,7 @@
            [:prod-xrpc "Run gleam/package.json script prod:xrpc"]
            [:test "Run gleam/package.json script test"]
            [:db-migrate "Run gleam/package.json script db:migrate"]
+           [:db-seed "Seed feed generators in local Docker PostgreSQL"]
            [:sync "Run gleam/package.json script sync"]
            [:typesense-import "Run gleam/package.json script typesense:import"]
            [:sync-library "Run gleam/package.json script sync:library"]
