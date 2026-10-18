@@ -28,6 +28,7 @@
     "dedup:records": "gleam run -m rocksky_api/scripts/dedup_records",
     "seed:feed": "gleam run -m rocksky_api/scripts/seed_feed",
     "likes": "gleam run -m rocksky_api/scripts/likes",
+    "backfill:jetstream-v2": "gleam run -m rocksky_api/scripts/backfill_jetstream_v2 --",
     "backfill:likes": "gleam run -m rocksky_api/scripts/backfill_likes",
     "backfill:isrc-mbid": "gleam run -m rocksky_api/scripts/backfill_isrc_mbid",
     "riff:backfill": "gleam run -m rocksky_api/scripts/backfill_riff",
@@ -44,12 +45,14 @@
     "@atproto/common": "^0.4.6",
     "@atproto/identity": "^0.4.5",
     "@atproto/jwk-jose": "0.1.11",
+    "@atproto/lex": "^0.3.0",
     "@atproto/lexicon": "^0.4.5",
     "@atproto/oauth-client-node": "0.3.16",
     "@atproto/syntax": "^0.3.1",
     "@atproto/xrpc-server": "^0.7.8",
     "@aws-sdk/client-s3": "^3.1052.0",
     "@aws-sdk/s3-request-presigner": "^3.1052.0",
+    "@bsky/jetstream": "^1.0.0",
     "@hono/node-server": "^1.13.8",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.200.0",
@@ -86,12 +89,12 @@
     "node-cron": "^4.2.1",
     "node-taglib-sharp": "^6.0.3",
     "pg": "^8.13.3",
+    "prompts": "^2.4.2",
     "redis": "^4.7.0",
     "redlock": "^5.0.0-beta.2",
     "sharp": "^0.33.5",
     "typesense": "^3.0.6",
-    "uuid": "^11.1.0",
-    "prompts": "^2.4.2"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "concurrently": "^9.2.0"

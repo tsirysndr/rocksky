@@ -173,3 +173,8 @@
   "Seed feed generators in the local Docker Compose database."
   [& args]
   (apply sh/bun "gleam" "db:seed" args))
+
+(defn backfill-jetstream-v2
+  "Replay app.rocksky.* Jetstream v2 archives into the durable indexer inbox."
+  [& args]
+  (apply sh/bun "gleam" "backfill:jetstream-v2" args))

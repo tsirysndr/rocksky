@@ -140,6 +140,9 @@
   gleam:backfill:analysis {:doc "Run gleam/package.json script backfill:analysis"
                  :task (do (require 'console.gleam)
                            (apply (resolve 'console.gleam/backfill-analysis) *command-line-args*))}
+  gleam:backfill:jetstream-v2 {:doc "Replay app.rocksky.* Jetstream v2 archives"
+                             :task (do (require 'console.gleam)
+                                       (apply (resolve 'console.gleam/backfill-jetstream-v2) *command-line-args*))}
   gleam:backfill:discogs {:doc "Run gleam/package.json script backfill:discogs"
                  :task (do (require 'console.gleam)
                            (apply (resolve 'console.gleam/backfill-discogs) *command-line-args*))}

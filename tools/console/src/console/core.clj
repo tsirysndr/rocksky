@@ -64,6 +64,7 @@
            [:backfill-replaygain "Run gleam/package.json script backfill:replaygain"]
            [:backfill-analysis "Run gleam/package.json script backfill:analysis"]
            [:backfill-discogs "Run gleam/package.json script backfill:discogs"]
+           [:backfill-jetstream-v2 "Replay app.rocksky.* Jetstream v2 archives"]
            [:backfill-fingerprint "Run gleam/package.json script backfill:fingerprint"]
            [:dev-env "Run gleam/package.json script dev:env"]]}
 

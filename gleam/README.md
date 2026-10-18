@@ -283,3 +283,57 @@ statement outside a transaction for concurrent indexes; other files run in a
 transaction. Use `bun run db:migrate` rather than `drizzle-kit migrate` to apply
 this history. A failed concurrent migration can leave completed statements;
 these index migrations use `IF NOT EXISTS` / `IF EXISTS` for retries.
+
+## Jetstream v2 archive backfill
+
+`bun run backfill:jetstream-v2` downloads a finite archive snapshot of all
+`app.rocksky.*` create, update, and delete commits and queues them for the Rust
+Jetstream indexer. This includes unknown/new Rocksky collections; the indexer
+still determines which record types it can materialize. It does not replay
+account, identity, or sync events, or fetch current records from PDS repositories.
+
+Start `rockskyd jetstream` once to initialize its durable inbox, and keep the
+indexer running to process queued commits. Set `SUBMISSIONS_DATABASE_URL` to that
+PostgreSQL queue database (which can differ from the API database), and set
+`JETSTREAM_API_KEY` for Bluesky's hosted archive. Both variables can be in `.env`.
+The script does not create queue tables or run API migrations.
+
+```sh
+# Inspect archive records without connecting to the queue or saving a checkpoint:
+bun run backfill:jetstream-v2 --dry-run --limit 100
+
+# Queue the archived history, then exit at the snapshot's sealed tip:
+bun run backfill:jetstream-v2
+
+# Resume: rerun the same command. Bound the work if desired:
+bun run backfill:jetstream-v2 --limit 10000 --batch-size 250
+
+# Explicit range for a source that has no saved checkpoint:
+bun run backfill:jetstream-v2 --service https://jetstream.us-west.bsky.network --after-seq 100 --before-seq 1000
+```
+
+The default service is `https://jetstream.us-west.bsky.network`; override it with
+`--service` or `JETSTREAM_BACKFILL_URL`. Bounds are v2 sequence numbers, not v1
+microsecond timestamps: `--after-seq` is exclusive and `--before-seq` inclusive.
+Sequences and checkpoints are specific to the service. A conflicting
+`--after-seq` is rejected when a saved checkpoint exists.
+
+Each batch atomically inserts jobs and advances a separate archive checkpoint.
+Job IDs match the live subscriber, so already queued commits are deduplicated.
+The live subscription cursor is never changed. Ctrl-C closes the stream; rerun
+to resume after the last committed batch. Only one backfill per service may use
+the same queue at a time. Dry-run starts from `--after-seq` (default zero), ignores
+saved checkpoints, and makes no database writes. The archive is compacted and
+finite; it is not a complete forensic event log or a live subscription.
+See the [Jetstream replay documentation](https://bsky.network/docs/jetstream-replay/).
+
+From the Clojure REPL or console directory:
+
+```clojure
+(gleam/backfill-jetstream-v2 "--dry-run" "--limit" "100")
+(gleam/backfill-jetstream-v2)
+```
+
+```sh
+bb gleam:backfill:jetstream-v2 --help
+```

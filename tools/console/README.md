@@ -617,3 +617,9 @@ After migrating the Compose database, run `(gleam/db-seed)` or `(ps/db-seed)`
 in the REPL. The equivalent tasks are `bb gleam:db:seed` and `bb ps:db:seed`.
 Both use the same saved feed snapshot and target only the root Compose `db`
 container; rerunning updates feeds by URI without duplicating them.
+
+Gleam Jetstream v2 archive replay is available as
+`(gleam/backfill-jetstream-v2 "--dry-run" "--limit" "100")` or
+`bb gleam:backfill:jetstream-v2 --help`. See the
+[Gleam backfill instructions](../../gleam/README.md#jetstream-v2-archive-backfill)
+for queue initialization, credentials, and resume behavior.
