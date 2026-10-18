@@ -1,0 +1,33 @@
+[Unit]
+Description=Rocksky PureScript API (REST and XRPC)
+After=network-online.target rocksky-matching.service
+Wants=network-online.target rocksky-matching.service
+Before=rocksky-submissions.service
+# These services bind the same REST/XRPC ports.
+Conflicts=rocksky.service rocksky-xrpc.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/purescript
+# Build with the locked Nix development toolchain. Secrets are only needed at runtime.
+ExecStartPre=/bin/bash -ic 'exec nix develop .. --command bash bin/build-production.sh'
+ExecStart=/bin/bash -ic 'exec nix develop .. --command doppler run -c prd -- bun run prod:all'
+# Rebuild on restart; allow time for the initial native/compiler dependency build.
+TimeoutStartSec=30min
+TimeoutStopSec=60
+Restart=always
+RestartSec=10
+KillMode=control-group
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-purescript
+
+Environment=HOME=/root
+Environment=USER=root
+Environment=NODE_ENV=production
+Environment=MATCHING_URL=http://127.0.0.1:8097
+EnvironmentFile=-/etc/default/rocksky-purescript
+
+[Install]
+WantedBy=multi-user.target

@@ -51,3 +51,37 @@ Existing TypeScript limitations are preserved: several player/API-key/cloud
 XRPC endpoints are no-ops or empty responses, and cloud downloads report
 “Not implemented yet.” These are source behavior, not newly added features.
 See `PORTING.md` for implementation history and final validation details.
+
+## Production service
+
+`../systemd/rocksky-purescript.service` builds and starts both APIs using the
+repository's Nix development shell and the existing Doppler `prd` configuration.
+It expects the checkout at `/root/github/rocksky`, Nix and Doppler available to
+root's shell, and Doppler configured for that checkout. The first build needs
+network access to fetch locked dependencies. Each start/restart builds the Rust
+audio addon, installs frozen Bun dependencies including build tools, bundles the
+APIs, and checks bundle loading before launching either server. This build helper
+is Linux-specific, matching systemd deployment.
+
+Use the same production secrets as the TypeScript API. Ensure `DB_PATH` and
+`KV_DB_PATH` point to the existing persistent databases with **absolute paths**:
+the service's working directory is now `purescript/`. Optional environment
+settings can be placed in `/etc/default/rocksky-purescript`; Doppler supplies its
+configured values at runtime. REST listens on 8000 and XRPC defaults to 3004
+(`ROCKSKY_XPRC_PORT` retains the original environment-variable spelling).
+
+On the production host:
+
+```sh
+sudo install -m 644 systemd/rocksky-purescript.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl disable --now rocksky.service rocksky-xrpc.service
+sudo systemctl enable --now rocksky-purescript.service
+sudo journalctl -u rocksky-purescript.service -f
+```
+
+Run those commands from the repository root. The unit conflicts with the old
+REST/XRPC services because they bind the same ports. `prod:all` runs the built
+bundles and terminates the sibling process when either exits; systemd then
+restarts the pair. The submissions worker is ordered after this API when both
+are started together. No service is installed or activated by adding these files.

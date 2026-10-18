@@ -12,7 +12,7 @@
     "dev": "concurrently 'node bin/run.js Rocksky.Index' 'node bin/run.js Rocksky.Server'",
     "start": "node --enable-source-maps bin/run.js Rocksky.Index",
     "start:xrpc": "node --enable-source-maps bin/run.js Rocksky.Server",
-    "prod:all": "concurrently 'node bin/run.js Rocksky.Index' 'node bin/run.js Rocksky.Server'",
+    "prod:all": "concurrently --kill-others --kill-timeout 10000 --names rest,xrpc 'node --enable-source-maps api/dist/index.js' 'node --enable-source-maps api/dist/server.js'",
     "script": "node bin/run.js",
     "test": "spago test",
     "format": "purs-tidy format-in-place 'api/src/**/*.purs' 'api/test/**/*.purs' 'packages/*/src/**/*.purs'",
