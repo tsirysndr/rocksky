@@ -3,6 +3,7 @@
 
 import gleam/int
 import gleam/javascript/promise
+import gleam/json
 import gleam/list
 import rocksky_api/context
 import rocksky_api/db/db
@@ -68,6 +69,7 @@ pub fn main() {
           express.new()
           |> express.use_(express.cors())
           |> express.use_(xrpc_telemetry.middleware(metrics))
+          |> express.use_(health())
           |> express.use_(xrpc_server.router(server))
           |> express.use_(express.proxy("http://localhost:8000"))
           |> express.listen(port, fn() {
@@ -140,4 +142,26 @@ fn schedule_view_refresh(primary: db.Db) -> Nil {
   })
   let _ = list.length(materialized_views)
   Nil
+}
+
+/// Liveness of this XRPC process; does not depend on REST or storage.
+pub fn health() -> express.Middleware {
+  express.middleware(fn(req, res, next) {
+    case
+      express.path(req) == "/xrpc/_health"
+      && { express.method(req) == "GET" || express.method(req) == "HEAD" }
+    {
+      True -> {
+        express.set_header(res, "Cache-Control", "no-store")
+        express.send_json(
+          res,
+          json.object([
+            #("status", json.string("ok")),
+            #("version", json.string(version)),
+          ]),
+        )
+      }
+      False -> next()
+    }
+  })
 }

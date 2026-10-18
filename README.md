@@ -1,7 +1,7 @@
-# Rocksky 
-
 > [!IMPORTANT]
 > The Rocksky AppView has been ported from TypeScript to Gleam and still targets JavaScript running on Node.js. [`apps/api`](./apps/api) is the original TypeScript version; [`./gleam`](./gleam) is the current version deployed at [api.rocksky.app](https://api.rocksky.app).
+
+# Rocksky
 
 [![ci](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml/badge.svg)](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml)
 [![build](https://github.com/tsirysndr/rocksky/actions/workflows/build.yml/badge.svg)](https://github.com/tsirysndr/rocksky/actions/workflows/build.yml)

@@ -28,3 +28,5 @@ export const onFinish = (res, f) => {
 export const setHeader = (res, name, value) => {
   res.setHeader(name, value);
 };
+
+export const sendJson = (res, body) => { res.json(body); };

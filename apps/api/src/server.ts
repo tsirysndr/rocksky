@@ -75,6 +75,10 @@ server = API(server, ctx);
 const app = express();
 app.use(cors());
 app.use(xrpcTelemetry());
+app.get("/xrpc/_health", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ status: "ok", version: "0.0.1" });
+});
 app.use(server.xrpc.router);
 app.use(proxyMiddleware);
 

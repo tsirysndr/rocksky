@@ -41,7 +41,7 @@ nonempty value = value >>= \v -> if v == "" then Nothing else Just v
 
 register :: Context -> Hono.App -> Effect Unit
 register ctx app = do
-  Hono.get app "/" \c -> Rest.json c 200 (F.toForeign { status: "ok" })
+  Hono.get app "/" \c -> Rest.text c 200 "\n ___         _       _            _           __   ___\n| _ \\___  __| |__ __| |___  _    /_\\  _ __ _ _\\ \\ / (_)_____ __ __\n|   / _ \\/ _| / /(_-< / / || |  / _ \\| '_ \\ '_ \\ V /| / -_) V  V /\n|_|_\\___/\\__|_\\_\\/__/_\\_\\\\_, | /_/ \\_\\ .__/ .__/\\_/ |_\\___|\\_/\\_/\n                         |__/        |_|  |_|\n\nRocksky AppView\n\nDocs: https://docs.rocksky.app\nSource: https://tangled.org/rocksky.app/rocksky\n"
   Hono.get app "/proxy-image" \c -> case nonempty (Hono.reqQuery c "url") of
     Nothing -> Rest.text c 400 "Missing url"
     Just url -> do

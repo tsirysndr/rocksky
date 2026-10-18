@@ -26,3 +26,6 @@ export const onFinish = (res) => (f) => () => {
   res.on("finish", () => f());
 };
 export const toRouter = (x) => x;
+
+export const sendJson = res => body => () => { res.json(body); };
+export const setHeader = res => name => value => () => { res.setHeader(name, value); };

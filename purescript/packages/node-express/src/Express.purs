@@ -18,6 +18,8 @@ module Express
   , reqQuery
   , resStatusCode
   , onFinish
+  , sendJson
+  , setHeader
   , toRouter
   ) where
 
@@ -71,3 +73,6 @@ foreign import onFinish :: Response -> Effect Unit -> Effect Unit
 
 -- | Treat any foreign express handler/router as a `Router`.
 foreign import toRouter :: Foreign -> Router
+
+foreign import sendJson :: Response -> Foreign -> Effect Unit
+foreign import setHeader :: Response -> String -> String -> Effect Unit

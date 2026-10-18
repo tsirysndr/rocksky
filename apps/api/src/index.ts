@@ -124,7 +124,7 @@ app.get("/proxy-image", async (c) => {
 // `remote-ws` service; Caddy routes /ws there. See remote-ws/README.md.
 
 app.get("/", async (c) => {
-  return c.json({ status: "ok" });
+  return c.text("\n ___         _       _            _           __   ___\n| _ \\___  __| |__ __| |___  _    /_\\  _ __ _ _\\ \\ / (_)_____ __ __\n|   / _ \\/ _| / /(_-< / / || |  / _ \\| '_ \\ '_ \\ V /| / -_) V  V /\n|_|_\\___/\\__|_\\_\\/__/_\\_\\\\_, | /_/ \\_\\ .__/ .__/\\_/ |_\\___|\\_/\\_/\n                         |__/        |_|  |_|\n\nRocksky AppView\n\nDocs: https://docs.rocksky.app\nSource: https://tangled.org/rocksky.app/rocksky\n");
 });
 
 app.post("/now-playing", async (c) => {

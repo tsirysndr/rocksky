@@ -161,9 +161,9 @@ fn root_routes(app: App, ctx: Context) -> App {
     }
   })
   |> hono.get("/", fn(c) {
-    hono.respond(hono.json(
+    hono.respond(hono.text(
       c,
-      json.object([#("status", json.string("ok"))]),
+      "\n ___         _       _            _           __   ___\n| _ \\___  __| |__ __| |___  _    /_\\  _ __ _ _\\ \\ / (_)_____ __ __\n|   / _ \\/ _| / /(_-< / / || |  / _ \\| '_ \\ '_ \\ V /| / -_) V  V /\n|_|_\\___/\\__|_\\_\\/__/_\\_\\\\_, | /_/ \\_\\ .__/ .__/\\_/ |_\\___|\\_/\\_/\n                         |__/        |_|  |_|\n\nRocksky AppView\n\nDocs: https://docs.rocksky.app\nSource: https://tangled.org/rocksky.app/rocksky\n",
       200,
     ))
   })

@@ -1,6 +1,7 @@
 //// Binding to `express`, `cors` and `http-proxy-middleware`.
 
 import gleam/dynamic.{type Dynamic}
+import gleam/json
 import gleam/option.{type Option}
 
 pub type App
@@ -52,3 +53,6 @@ pub fn on_finish(res: Response, f: fn() -> Nil) -> Nil
 
 @external(javascript, "./express_ffi.mjs", "setHeader")
 pub fn set_header(res: Response, name: String, value: String) -> Nil
+
+@external(javascript, "./express_ffi.mjs", "sendJson")
+pub fn send_json(res: Response, body: json.Json) -> Nil
