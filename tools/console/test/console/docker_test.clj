@@ -14,8 +14,8 @@
 
 (deftest clients-and-registration
   (doseq [[available command expected]
-          [[#{"pgcli" "psql"} :postgres ["/bin/pgcli" "--host" "127.0.0.1" "--port" "15433" "--username" "test user" "--dbname" "test db"]]
-           [#{"psql"} :postgres ["/bin/psql" "--host" "127.0.0.1" "--port" "15433" "--username" "test user" "--dbname" "test db"]]
+          [[#{"pgcli" "psql"} :postgres ["env" "-u" "PGSERVICE" "-u" "PGSERVICEFILE" "/bin/pgcli" "--host" "127.0.0.1" "--port" "15433" "--username" "test user" "--dbname" "test db"]]
+           [#{"psql"} :postgres ["env" "-u" "PGSERVICE" "-u" "PGSERVICEFILE" "/bin/psql" "--host" "127.0.0.1" "--port" "15433" "--username" "test user" "--dbname" "test db"]]
            [#{"redis-cli"} :redis ["/bin/redis-cli" "-h" "127.0.0.2" "-p" "16379"]]]]
     (let [calls (atom [])
           tasks (:tasks (read-string (slurp "bb.edn")))]
@@ -30,6 +30,20 @@
       (is (= [expected expected expected] (map first @calls)))
       (when (= :postgres command)
         (is (= "test secret" (get-in (first @calls) [1 :extra-env "PGPASSWORD"])))))))
+
+(deftest postgres-removes-service-overrides
+  ;; Exercise the real subprocess environment without connecting to a database.
+  (let [capture sh/sh!]
+    (with-redefs [fs/which (constantly "/bin/sh")
+                sh/sh! (constantly {:exit 0 :out (json/generate-string config)})
+                sh/sh (fn [args opts]
+                        (let [result (capture
+                                      (into (vec (take 5 args))
+                                            ["sh" "-c" "test -z \"${PGSERVICE+x}\" && test -z \"${PGSERVICEFILE+x}\" && test \"$PGPASSWORD\" = 'test secret'"])
+                                      (update opts :extra-env merge
+                                              {"PGSERVICE" "remote" "PGSERVICEFILE" "/missing/service.conf"}))]
+                          (:exit result)))]
+    (is (= 0 (docker/postgres))))))
 
 (deftest fallback-and-errors
   (let [calls (atom [])]

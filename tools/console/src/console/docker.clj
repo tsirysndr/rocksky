@@ -139,10 +139,12 @@
           password (get-in config [:environment :POSTGRES_PASSWORD])]
       (when-not (string? password)
         (throw (ex-info "Compose db needs POSTGRES_PASSWORD for a local client" {})))
-      (sh/sh [(str client) "--host" host "--port" port
+      ;; An empty PGSERVICE still selects a named service in pgcli. Remove
+      ;; service overrides after the console environment has been merged.
+      (sh/sh ["env" "-u" "PGSERVICE" "-u" "PGSERVICEFILE"
+              (str client) "--host" host "--port" port
               "--username" user "--dbname" database]
-             {:extra-env {"PGPASSWORD" password "PGSERVICE" "" "PGSERVICEFILE" ""
-                          "PGSSLMODE" "prefer"}}))
+             {:extra-env {"PGPASSWORD" password "PGSSLMODE" "prefer"}}))
     (compose "exec" "db" "sh" "-c"
              "export PGPASSWORD=\"$POSTGRES_PASSWORD\"; exec psql -h 127.0.0.1 -U \"${POSTGRES_USER:-postgres}\" -d \"${POSTGRES_DB:-${POSTGRES_USER:-postgres}}\"")))
 
