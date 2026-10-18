@@ -56,6 +56,60 @@ The existing `seed:feed` script is separate: it imports an authenticated user's
 feed records from their PDS.
 
 
+## Jetstream v2 archive backfill
+
+Build once with `bun run build`, then run from `purescript/`:
+
+```sh
+# Loads this package's .env. Store the hosted archive key there or export it.
+bun run backfill:jetstream --dry-run --limit 100
+bun run backfill:jetstream
+```
+
+`JETSTREAM_API_KEY` is required by the hosted archive service. Obtain it through
+[Bluesky's replay documentation](https://bsky.network/docs/jetstream-replay/).
+`JETSTREAM_BACKFILL_URL` defaults to `https://jetstream.us-west.bsky.network`;
+`--service https://your-jetstream.example` overrides it. Use Node >= 22.15
+for the SDK's native Zstandard decoder.
+
+The PureScript command scans the sealed archive for **all `app.rocksky.*`
+commit collections**, including create/update/delete, then exits. It does not
+start a live tail or fetch unrelated namespaces. Missing or invalid archive
+records stop the run rather than being silently skipped. The official SDK
+handles planning, bounded archive downloads, CBOR decoding and HTTP retries.
+
+Non-dry runs require `SUBMISSIONS_DATABASE_URL` pointing to the same **Postgres**
+durable queue as `rockskyd jetstream`. Start that service once to initialize its
+queue tables, and keep it running to index the captured jobs into the app
+catalog. This command queues work for the existing production indexing handlers;
+"queued" does not mean indexing has completed. Check worker errors/dashboard
+for indexing progress. SQLite queues are not supported by this script.
+
+The job IDs match the Rust live subscriber's `(did, collection, rkey, rev)`
+identity, preventing duplicate jobs while retained in the queue. A separate
+`jetstream:v2:backfill:<origin>:app.rocksky.*` checkpoint is committed atomically
+with every batch. Restart the same command to resume; it never advances the
+live subscriber's checkpoint. Interruptions leave uncommitted batches replayable.
+Only one backfill per origin can write to a queue at a time. Archive sequences
+are instance-specific, so changing `--service` starts an independent checkpoint.
+
+Options:
+
+- `--dry-run`: downloads and validates without opening the database or saving progress.
+- `--limit N`: stop after N commits this run; rerun without it to finish.
+- `--batch-size N`: 1–1000 commits per transaction (default 250).
+- `--after-seq N`: exclusive starting sequence for a new checkpoint (default 0);
+  rejected if it conflicts with an existing checkpoint. Dry runs use it directly.
+- `--before-seq N`: inclusive archive upper bound; otherwise stop at the sealed tip.
+- `--help`: show usage without connecting to any services.
+
+Sequences are v2 sequence numbers, **not** v1 microsecond timestamps.
+Use `(ps/backfill-jetstream)` in the Clojure REPL or `bb ps:backfill:jetstream`.
+For example, `(ps/backfill-jetstream "--dry-run" "--limit" "100")`.
+Run `bun run test:jetstream-backfill` for regressions. Set
+`JETSTREAM_BACKFILL_TEST_URL` to a local PostgreSQL URL to include the isolated
+queue transaction tests (they create and remove their own temporary schema).
+
 ## Updating tables and generating migrations
 
 The database has one shared migration history. Drizzle Kit reads

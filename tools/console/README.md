@@ -618,6 +618,15 @@ in the REPL. The equivalent tasks are `bb gleam:db:seed` and `bb ps:db:seed`.
 Both use the same saved feed snapshot and target only the root Compose `db`
 container; rerunning updates feeds by URI without duplicating them.
 
+### PureScript Jetstream v2 backfill
+
+`(ps/backfill-jetstream "--dry-run" "--limit" "100")` previews the archive;
+`(ps/backfill-jetstream)` queues all `app.rocksky.*` commits and resumes its saved
+checkpoint. The Babashka equivalent is `bb ps:backfill:jetstream`.
+Build PureScript first and configure `JETSTREAM_API_KEY` and the initialized
+Postgres `SUBMISSIONS_DATABASE_URL` in `purescript/.env`. Run the Jetstream worker
+to process queued records. `(ps/test-jetstream-backfill)` runs its regressions.
+
 Gleam Jetstream v2 archive replay is available as
 `(gleam/backfill-jetstream-v2 "--dry-run" "--limit" "100")` or
 `bb gleam:backfill:jetstream-v2 --help`. See the

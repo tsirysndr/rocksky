@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.15.0"
   },
   "scripts": {
     "build": "spago build",
@@ -85,19 +85,23 @@
     "test:all": "bun run build && bun run test && node bin/test-all.js",
     "db:migrate": "node ../tools/db/migrate-cli.mjs ../apps/api/drizzle",
     "env:generate": "node bin/generate-env.js",
-    "db:seed": "node ../tools/db/seed-local.mjs"
+    "db:seed": "node ../tools/db/seed-local.mjs",
+    "backfill:jetstream": "node bin/run.js Rocksky.Scripts.BackfillJetstream",
+    "test:jetstream-backfill": "bun run build && node bin/test-jetstream-backfill.js"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",
     "@atproto/common": "^0.4.6",
     "@atproto/identity": "^0.4.5",
     "@atproto/jwk-jose": "0.1.11",
+    "@atproto/lex": "^0.3.0",
     "@atproto/lexicon": "^0.4.5",
     "@atproto/oauth-client-node": "0.3.16",
     "@atproto/syntax": "^0.3.1",
     "@atproto/xrpc-server": "^0.7.8",
     "@aws-sdk/client-s3": "^3.1052.0",
     "@aws-sdk/s3-request-presigner": "^3.1052.0",
+    "@bsky/jetstream": "1.0.0",
     "@hono/node-server": "^1.13.8",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.200.0",

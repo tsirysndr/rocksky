@@ -157,6 +157,9 @@
   ps:audit:port {:doc "Run purescript: audit:port. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/audit-port) *command-line-args*))}
+  ps:backfill:jetstream {:doc "Run purescript: backfill:jetstream. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/backfill-jetstream) *command-line-args*))}
   ps:build {:doc "Run purescript: build. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/build) *command-line-args*))}
@@ -259,6 +262,9 @@
   ps:test:isrc-backfill {:doc "Run purescript: test:isrc-backfill. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-isrc-backfill) *command-line-args*))}
+  ps:test:jetstream-backfill {:doc "Run purescript: test:jetstream-backfill. Extra arguments pass through to Bun."
+    :task (do (require 'console.purescript)
+              (apply (resolve 'console.purescript/test-jetstream-backfill) *command-line-args*))}
   ps:test:likes-backfill {:doc "Run purescript: test:likes-backfill. Extra arguments pass through to Bun."
     :task (do (require 'console.purescript)
               (apply (resolve 'console.purescript/test-likes-backfill) *command-line-args*))}

@@ -7,6 +7,7 @@
 (def script-commands
   "[REPL function, package script] pairs used by console help and coverage checks."
   [[:audit-port "audit:port"]
+   [:backfill-jetstream "backfill:jetstream"]
    [:build "build"]
    [:bundle "bundle"]
    [:check-bundles "check:bundles"]
@@ -41,6 +42,7 @@
    [:test-graph "test:graph"]
    [:test-import "test:import"]
    [:test-isrc-backfill "test:isrc-backfill"]
+   [:test-jetstream-backfill "test:jetstream-backfill"]
    [:test-likes-backfill "test:likes-backfill"]
    [:test-match-uris "test:match-uris"]
    [:test-matching "test:matching"]
@@ -90,6 +92,11 @@
   "Run bun run audit:port in purescript/. Forwards extra arguments unchanged."
   [& args]
   (apply sh/bun "purescript" "audit:port" args))
+
+(defn backfill-jetstream
+  "Run bun run backfill:jetstream in purescript/. Forwards extra arguments unchanged."
+  [& args]
+  (apply sh/bun "purescript" "backfill:jetstream" args))
 
 (defn build
   "Run bun run build in purescript/. Forwards extra arguments unchanged."
@@ -260,6 +267,11 @@
   "Run bun run test:isrc-backfill in purescript/. Forwards extra arguments unchanged."
   [& args]
   (apply sh/bun "purescript" "test:isrc-backfill" args))
+
+(defn test-jetstream-backfill
+  "Run bun run test:jetstream-backfill in purescript/. Forwards extra arguments unchanged."
+  [& args]
+  (apply sh/bun "purescript" "test:jetstream-backfill" args))
 
 (defn test-likes-backfill
   "Run bun run test:likes-backfill in purescript/. Forwards extra arguments unchanged."
