@@ -23,11 +23,11 @@ pub fn embed_from_scrobble(s: &ScrobbleData, rkey: &str) -> DiscordEmbed {
         footer: Some(DiscordFooter {
             text: format!("Rocksky • {}", s.user.handle.clone()),
         }),
-        author: DiscordAuthor {
-            name: s.user.display_name.clone(),
+        author: s.user.display_name.as_ref().map(|name| DiscordAuthor {
+            name: name.clone(),
             url: format!("https://rocksky.app/profile/{}", s.user.handle),
             icon_url: s.user.avatar_url.clone(),
-        },
+        }),
     }
 }
 
@@ -62,4 +62,32 @@ pub async fn post_embeds(
 
 fn esc(s: &str) -> String {
     s.replace(['*', '_', '~', '`', '>'], "\\$0")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nullable_display_name_is_preserved_in_events() {
+        for name in [serde_json::Value::Null, serde_json::json!("Alice")] {
+            let data: ScrobbleData = serde_json::from_value(serde_json::json!({
+                "user": {"did": "did:plc:test", "display_name": name,
+                         "handle": "alice.test", "avatar_url": ""},
+                "track": {"title": "Song", "artist": "Artist", "album": "Album", "duration": 100},
+                "played_at": "2026-01-02T03:04:05Z"
+            }))
+            .unwrap();
+            assert_eq!(
+                serde_json::to_value(&data).unwrap()["user"]["display_name"],
+                name
+            );
+            let embed = serde_json::to_value(embed_from_scrobble(&data, "rkey")).unwrap();
+            if name.is_null() {
+                assert!(embed.get("author").is_none());
+            } else {
+                assert_eq!(embed["author"]["name"], name);
+            }
+        }
+    }
 }

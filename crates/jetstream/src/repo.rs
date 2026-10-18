@@ -181,7 +181,7 @@ pub async fn save_scrobble(
                                 did: did.to_string(),
                                 display_name: users[0].display_name.clone(),
                                 handle: users[0].handle.clone(),
-                                avatar_url: users[0].avatar.clone(),
+                                avatar_url: users[0].avatar().to_owned(),
                             },
                             track: discord::model::Track {
                                 title: scrobble_record.title.clone(),
@@ -490,7 +490,7 @@ async fn publish_user_record(nc: &async_nats::Client, u: &User) -> Result<(), Er
         "did": u.did,
         "handle": u.handle,
         "display_name": u.display_name,
-        "avatar": u.avatar,
+        "avatar": u.avatar(),
         "xata_createdat": u.xata_createdat.to_rfc3339(),
         "xata_updatedat": u.xata_createdat.to_rfc3339(),
         "xata_version": 0,

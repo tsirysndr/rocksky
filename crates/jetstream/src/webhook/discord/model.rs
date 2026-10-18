@@ -20,7 +20,7 @@ pub struct ScrobbleData {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {
     pub did: String,
-    pub display_name: String,
+    pub display_name: Option<String>,
     pub handle: String,
     pub avatar_url: String,
 }
@@ -63,7 +63,8 @@ pub struct DiscordEmbed {
     pub thumbnail: Option<DiscordThumb>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub footer: Option<DiscordFooter>,
-    pub author: DiscordAuthor,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author: Option<DiscordAuthor>,
 }
 
 #[derive(Debug, Serialize)]
