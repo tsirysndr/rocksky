@@ -26,6 +26,14 @@ PostgreSQL, NATS, Redis and Typesense ports in `../compose.yaml`. It generates
 fresh local secrets and leaves third-party credentials blank. No Docker daemon,
 compiled PureScript output, or running services are required.
 
+The generated `SUBMISSIONS_*` settings also configure the submissions worker:
+its queue uses the Compose PostgreSQL database, it listens on `127.0.0.1:8098`,
+and its callbacks target the local REST API on port 8000. Load this same `.env`
+when starting the worker so it shares `SUBMISSIONS_SECRET` with the API.
+Worker concurrency, retry, cleanup and dashboard settings use the worker defaults;
+CORS origins are empty for same-origin dashboard access. The worker still needs
+to be started separately.
+
 An existing `.env` is preserved. Use `bun run env:generate --force` to replace it;
 this regenerates secrets and removes manual edits. Companion services and an S3
 server must be started/configured separately. Compose settings must use literal

@@ -56,6 +56,16 @@ export function generateEnv(compose) {
       SPOTIFY_ENCRYPTION_KEY: secret(), SPOTIFY_ENCRYPTION_IV: secret(16),
       STORAGE_ENCRYPTION_KEY: secret(), SUBMISSIONS_SECRET: secret(), NAVIDROME_INTERNAL_SECRET: secret(),
     }],
+    ['Submissions worker: use this same environment for the API and worker.', {
+      SUBMISSIONS_DATABASE_URL: pg, SUBMISSIONS_BIND: '127.0.0.1:8098',
+      SUBMISSIONS_API_URL: 'http://127.0.0.1:8000/internal/submissions/process',
+      SUBMISSIONS_TEAL_API_URL: 'http://127.0.0.1:8000/internal/submissions/tealfm/process',
+      SUBMISSIONS_CONCURRENCY: 8, SUBMISSIONS_TEAL_CONCURRENCY: 4, SUBMISSIONS_MAX_ATTEMPTS: 20,
+      SUBMISSIONS_CLEANUP_ENABLED: true, SUBMISSIONS_COMPLETED_RETENTION_SECONDS: 604800,
+      SUBMISSIONS_DEDUP_RETENTION_SECONDS: 7776000, SUBMISSIONS_CLEANUP_INTERVAL_SECONDS: 300,
+      SUBMISSIONS_CLEANUP_BATCH_SIZE: 500, SUBMISSIONS_DASHBOARD_CACHE_SECONDS: 30,
+      SUBMISSIONS_CORS_ORIGINS: '',
+    }],
     ['Companion services must be started separately; compose.yaml does not provide them.', {
       SUBMISSIONS_URL: 'http://127.0.0.1:8098', MATCHING_URL: 'http://127.0.0.1:8097',
       ANALYTICS: 'http://127.0.0.1:7879', GOOGLE_DRIVE: 'http://127.0.0.1:7880',
