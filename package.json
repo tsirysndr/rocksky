@@ -25,6 +25,7 @@
     "dev:scrobbler": "cargo run -p rockskyd --release -- scrobbler",
     "dev:spotify": "cargo run -p rockskyd --release -- spotify",
     "dev:storage": "cargo run -p rocksky-storage --release -- serve",
+    "dev:submissions": "cargo run -p rockskyd --release -- submissions",
     "dev:webscrobbler": "cargo run -p rockskyd --release -- webscrobbler",
     "dev:tracklist": "cargo run -p rockskyd --release -- tracklist",
     "db:pgpull": "cargo run -p rockskyd --release -- pull",
