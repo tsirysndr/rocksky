@@ -245,3 +245,13 @@ REST/XRPC services because they bind the same ports. `prod:all` runs the built
 bundles and terminates the sibling process when either exits; systemd then
 restarts the pair. The submissions worker is ordered after this API when both
 are started together. No service is installed or activated by adding these files.
+
+Migration runners share `tools/db/migrate.mjs`. Every SQL file must appear once
+in both journals; run `node --test tools/db/migrate.test.mjs` from the repository
+root to check coverage and matching copies. Registered migrations are checked
+individually against applied hashes/timestamps, so older missing files are not
+skipped by a latest-timestamp cutoff. Entries with `transaction: false` run each
+statement outside a transaction for concurrent indexes; other files run in a
+transaction. Use `bun run db:migrate` rather than `drizzle-kit migrate` to apply
+this history. A failed concurrent migration can leave completed statements;
+these index migrations use `IF NOT EXISTS` / `IF EXISTS` for retries.

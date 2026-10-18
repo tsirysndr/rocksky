@@ -83,7 +83,7 @@
     "check:bundles": "node bin/check-bundles.js",
     "test:server": "node bin/test-server.js",
     "test:all": "bun run build && bun run test && node bin/test-all.js",
-    "db:migrate": "drizzle-kit migrate --config=drizzle.config.js",
+    "db:migrate": "node ../tools/db/migrate-cli.mjs ../apps/api/drizzle",
     "env:generate": "node bin/generate-env.js"
   },
   "dependencies": {

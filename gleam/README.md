@@ -253,3 +253,13 @@ journalctl -u rocksky-gleam -u rocksky-gleam-xrpc -f
 The units conflict with their TypeScript equivalents to avoid competing listeners.
 After updating the checkout, restart both Gleam services to rebuild and load the
 new code. These units do not run database migrations automatically.
+
+Migration runners share `tools/db/migrate.mjs`. Every SQL file must appear once
+in both journals; run `node --test tools/db/migrate.test.mjs` from the repository
+root to check coverage and matching copies. Registered migrations are checked
+individually against applied hashes/timestamps, so older missing files are not
+skipped by a latest-timestamp cutoff. Entries with `transaction: false` run each
+statement outside a transaction for concurrent indexes; other files run in a
+transaction. Use `bun run db:migrate` rather than `drizzle-kit migrate` to apply
+this history. A failed concurrent migration can leave completed statements;
+these index migrations use `IF NOT EXISTS` / `IF EXISTS` for retries.

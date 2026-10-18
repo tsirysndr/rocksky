@@ -26,7 +26,7 @@
     "dev:xrpc": "tsx --watch ./src/server.ts",
     "tsx:xrpc": "tsx ./src/server.ts",
     "prod:xrpc": "node --enable-source-maps ./dist/server.js",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "node ../../tools/db/migrate-cli.mjs drizzle",
     "db:gen-migration": "drizzle-kit generate",
     "prod:all": "concurrently 'tsx ./src/index.ts' 'tsx ./src/server.ts'",
     "format": "biome format src",
