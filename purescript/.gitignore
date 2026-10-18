@@ -1,0 +1,11 @@
+node_modules/
+output/
+output-*/
+.spago/
+dist/
+*.sqlite
+
+# Local editor, REPL and test state
+.psc-ide-port
+.purs-repl
+.spec-results
