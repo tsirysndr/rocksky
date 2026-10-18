@@ -1,0 +1,75 @@
+import gleam/json
+import gleam/list
+import gleam/option.{None, Some}
+import rocksky_api/context.{type Context}
+import rocksky_api/drizzle/schema/albums as t
+import rocksky_api/drizzle/schema/scrobbles as sc
+import rocksky_api/lexicon/models
+import rocksky_api/lib/actor_catalog
+import rocksky_api/lib/query_cache
+import rocksky_api/node/xrpc_server.{type Server}
+import rocksky_api/task
+import rocksky_api/xrpc/auth
+import rocksky_api/xrpc/handler
+
+pub fn register(server: Server, ctx: Context) -> Nil {
+  let cache = query_cache.new(120_000, 200)
+  let fallback =
+    models.GetActorAlbumsOutput(Some([]))
+    |> models.encode_get_actor_albums_output
+  xrpc_server.method(
+    server,
+    "app.rocksky.actor.getActorAlbums",
+    Some(auth.verifier(ctx)),
+    fn(req) {
+      use params <- handler.query(
+        req,
+        handler.options("getActorAlbums")
+          |> handler.timeout(120_000)
+          |> handler.on_error(handler.Fallback(fallback)),
+        models.get_actor_albums_params_decoder(),
+      )
+      query_cache.get(
+        cache,
+        models.encode_get_actor_albums_params(params) |> json.to_string,
+        fn() {
+          let table = t.table()
+          use rows <- task.map(actor_catalog.retrieve(
+            ctx,
+            table,
+            t.id(table),
+            fn(row) { row.id },
+            sc.album_id(sc.table()),
+            None,
+            params.did,
+            params.start_date,
+            params.end_date,
+            option.unwrap(params.limit, 10),
+            option.unwrap(params.offset, 0),
+          ))
+          models.GetActorAlbumsOutput(
+            Some(
+              list.map(rows, fn(r) {
+                models.AlbumViewBasic(
+                  ..models.new_album_view_basic(),
+                  id: Some(r.0.id),
+                  uri: r.0.uri,
+                  title: Some(r.0.title),
+                  artist: Some(r.0.artist),
+                  artist_uri: r.0.artist_uri,
+                  year: r.0.year,
+                  album_art: r.0.album_art,
+                  release_date: r.0.release_date,
+                  sha256: Some(r.0.sha256),
+                  play_count: Some(r.1),
+                  unique_listeners: Some(r.2),
+                )
+              }),
+            ),
+          )
+          |> models.encode_get_actor_albums_output
+        },
+      )
+    },
+  )
+}

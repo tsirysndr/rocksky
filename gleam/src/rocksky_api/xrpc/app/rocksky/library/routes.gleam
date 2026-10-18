@@ -1,0 +1,77 @@
+import rocksky_api/context.{type Context}
+import rocksky_api/node/xrpc_server.{type Server}
+import rocksky_api/xrpc/app/rocksky/library/get_album
+import rocksky_api/xrpc/app/rocksky/library/get_album_info
+import rocksky_api/xrpc/app/rocksky/library/get_album_list
+import rocksky_api/xrpc/app/rocksky/library/get_artist
+import rocksky_api/xrpc/app/rocksky/library/get_artist_info
+import rocksky_api/xrpc/app/rocksky/library/get_artists
+import rocksky_api/xrpc/app/rocksky/library/get_cover_art_url
+import rocksky_api/xrpc/app/rocksky/library/get_download_url
+import rocksky_api/xrpc/app/rocksky/library/get_genres
+import rocksky_api/xrpc/app/rocksky/library/get_indexes
+import rocksky_api/xrpc/app/rocksky/library/get_internet_radio_stations
+import rocksky_api/xrpc/app/rocksky/library/get_license
+import rocksky_api/xrpc/app/rocksky/library/get_lyrics
+import rocksky_api/xrpc/app/rocksky/library/get_music_directory
+import rocksky_api/xrpc/app/rocksky/library/get_music_folders
+import rocksky_api/xrpc/app/rocksky/library/get_now_playing
+import rocksky_api/xrpc/app/rocksky/library/get_play_queue
+import rocksky_api/xrpc/app/rocksky/library/get_playlist
+import rocksky_api/xrpc/app/rocksky/library/get_playlists
+import rocksky_api/xrpc/app/rocksky/library/get_random_songs
+import rocksky_api/xrpc/app/rocksky/library/get_scan_status
+import rocksky_api/xrpc/app/rocksky/library/get_similar_songs
+import rocksky_api/xrpc/app/rocksky/library/get_song
+import rocksky_api/xrpc/app/rocksky/library/get_songs_by_genre
+import rocksky_api/xrpc/app/rocksky/library/get_starred
+import rocksky_api/xrpc/app/rocksky/library/get_stream_url
+import rocksky_api/xrpc/app/rocksky/library/get_top_songs
+import rocksky_api/xrpc/app/rocksky/library/get_user
+import rocksky_api/xrpc/app/rocksky/library/ping
+import rocksky_api/xrpc/app/rocksky/library/save_play_queue
+import rocksky_api/xrpc/app/rocksky/library/scrobble
+import rocksky_api/xrpc/app/rocksky/library/search
+import rocksky_api/xrpc/app/rocksky/library/star
+import rocksky_api/xrpc/app/rocksky/library/start_scan
+import rocksky_api/xrpc/app/rocksky/library/unstar
+import rocksky_api/xrpc/app/rocksky/library/update_now_playing
+
+pub fn register(server: Server, ctx: Context) -> Nil {
+  get_album.register(server, ctx)
+  get_album_info.register(server, ctx)
+  get_album_list.register(server, ctx)
+  get_artist.register(server, ctx)
+  get_artist_info.register(server, ctx)
+  get_artists.register(server, ctx)
+  get_cover_art_url.register(server, ctx)
+  get_download_url.register(server, ctx)
+  get_genres.register(server, ctx)
+  get_indexes.register(server, ctx)
+  get_internet_radio_stations.register(server, ctx)
+  get_license.register(server, ctx)
+  get_lyrics.register(server, ctx)
+  get_music_directory.register(server, ctx)
+  get_music_folders.register(server, ctx)
+  get_now_playing.register(server, ctx)
+  get_play_queue.register(server, ctx)
+  get_playlist.register(server, ctx)
+  get_playlists.register(server, ctx)
+  get_random_songs.register(server, ctx)
+  get_scan_status.register(server, ctx)
+  get_similar_songs.register(server, ctx)
+  get_song.register(server, ctx)
+  get_songs_by_genre.register(server, ctx)
+  get_starred.register(server, ctx)
+  get_stream_url.register(server, ctx)
+  get_top_songs.register(server, ctx)
+  get_user.register(server, ctx)
+  ping.register(server, ctx)
+  save_play_queue.register(server, ctx)
+  scrobble.register(server, ctx)
+  search.register(server, ctx)
+  star.register(server, ctx)
+  start_scan.register(server, ctx)
+  unstar.register(server, ctx)
+  update_now_playing.register(server, ctx)
+}
