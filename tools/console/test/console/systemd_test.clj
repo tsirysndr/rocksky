@@ -1,10 +1,13 @@
 (ns console.systemd-test
-  (:require [clojure.test :refer [deftest is run-tests testing]]
+  (:require [clojure.test :refer [deftest is run-tests testing use-fixtures]]
             [clojure.string :as str]
             [console.core :as core]
             [console.remote :as remote]
             [console.shell :as sh]
             [console.systemd :as systemd]))
+
+(use-fixtures :each
+  (fn [f] (with-redefs [systemd/current-os (constantly "Linux")] (f))))
 
 (defn capture [f]
   (let [calls (atom [])]
@@ -15,7 +18,8 @@
 (deftest target-and-argument-handling
   (is (= [["ssh" "--" remote/prod-host
            "'systemctl' '--no-pager' '--full' 'status' 'rocksky-gleam.service' 'rocksky-gleam-xrpc.service'"]]
-         (capture #(systemd/status :gleam "rocksky-gleam-xrpc.service"))))
+         (capture #(binding [systemd/*host* remote/prod-host]
+                     (systemd/status :gleam "rocksky-gleam-xrpc.service")))))
   (binding [systemd/*host* nil]
     (is (= [["systemctl" "--no-pager" "--full" "stop" "rocksky.service" "rocksky-scrobble-abuse-sweep.timer"]]
            (capture #(systemd/stop "rocksky" "scrobble-abuse-sweep.timer"))))
@@ -87,7 +91,8 @@
                                  "--lines" "all" "--follow")))))
   (is (= [["ssh" "--" remote/prod-host
            "'journalctl' '--no-pager' '--unit' 'rocksky-gleam.service' '--lines=100' '--since=1 hour ago'"]]
-         (capture #(systemd/journalctl :gleam :since "1 hour ago"))))
+         (capture #(binding [systemd/*host* remote/prod-host]
+                     (systemd/journalctl :gleam :since "1 hour ago")))))
   (let [calls (atom [])]
     (with-redefs [sh/sh #(swap! calls conj %)]
       (doseq [options [[:since] [:lines -1] [:lines "bad"] [:output nil]
@@ -95,6 +100,25 @@
                        [:unit "ssh"] [:follow false]]]
         (is (thrown? Exception (apply systemd/journalctl :gleam options)))))
     (is (empty? @calls))))
+
+(deftest local-default-and-os-gating
+  (is (nil? systemd/*host*))
+  (is (= [["systemctl" "--no-pager" "--full" "status" "rocksky-gleam.service"]]
+         (capture #(systemd/status :gleam))))
+  (doseq [os ["Mac OS X" "Windows 11" "FreeBSD"]]
+    (with-redefs [systemd/current-os (constantly os)]
+      (let [calls (atom [])
+            group (first (filter #(= "systemd" (:group %))
+                                 (var-get (ns-resolve 'console.core 'registry))))]
+        (with-redefs [sh/sh #(swap! calls conj %)]
+          (doseq [[command _] (:cmds group)]
+            (is (thrown-with-msg? clojure.lang.ExceptionInfo #"require Linux"
+                  (apply systemd/cli command
+                         (if (#{:list :list-files :daemon-reload} command) [] ["gleam"]))))))
+        (is (empty? @calls)))
+      (is (= [["ssh" "--" "ops@linux.test"
+               "'journalctl' '--no-pager' '--unit' 'rocksky-gleam.service' '--lines=100'"]]
+             (capture #(systemd/cli :journalctl "--host" "ops@linux.test" "gleam")))))))
 
 (let [{:keys [fail error]} (run-tests 'console.systemd-test)]
   (System/exit (if (zero? (+ fail error)) 0 1)))

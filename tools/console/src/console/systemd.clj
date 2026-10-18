@@ -1,13 +1,11 @@
 (ns console.systemd
-  "Manage Rocksky systemd services and timers. Defaults to the production SSH
-  host used by console.remote. Bind *host* to nil for local execution, or to
-  another SSH host. Bind *sudo* to true to use non-interactive sudo."
+  "Manage Rocksky systemd services and timers. Defaults to local execution on Linux.
+  Bind *host* to an explicit SSH host to manage a remote Linux system. Bind *sudo* to true to use non-interactive sudo."
   (:refer-clojure :exclude [list])
   (:require [clojure.string :as str]
-            [console.remote :as remote]
             [console.shell :as sh]))
 
-(def ^:dynamic *host* remote/prod-host)
+(def ^:dynamic *host* nil)
 (def ^:dynamic *sudo* false)
 
 (def ^:private patterns ["rocksky.service" "rocksky-*.service" "rocksky-*.timer"])
@@ -29,10 +27,19 @@
 (defn- shell-quote [arg]
   (str "'" (str/replace (str arg) "'" "'\"'\"'") "'"))
 
+(defn current-os
+  "Return the current JVM/Babashka operating system name."
+  [] (System/getProperty "os.name"))
+
 (defn- execute [args]
   (let [args (into (if *sudo* ["sudo" "-n"] []) args)]
     (if (nil? *host*)
-      (sh/sh args)
+      (do
+        (when-not (= "linux" (str/lower-case (or (current-os) "")))
+          (throw (ex-info
+                   "Local systemd and journalctl commands require Linux. Use --host HOST or bind *host* to a remote Linux SSH target."
+                   {:os (current-os) :target :local})))
+        (sh/sh args))
       (do
         (when-not (and (string? *host*)
                        (re-matches #"[A-Za-z0-9_][A-Za-z0-9_.@:-]*" *host*))

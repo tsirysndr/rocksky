@@ -385,61 +385,61 @@
   ;; END GENERATED PURESCRIPT TASKS
 
   ;; ── Rocksky systemd management ───────────────────────────────
-  systemd:list {:doc "List loaded Rocksky services/timers, including inactive units. Target flags: --local, --host HOST, --sudo"
+  systemd:list {:doc "List loaded Rocksky services/timers, including inactive units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :list *command-line-args*))}
-  systemd:list-files {:doc "List installed Rocksky unit files and enablement state. Target flags: --local, --host HOST, --sudo"
+  systemd:list-files {:doc "List installed Rocksky unit files and enablement state. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :list-files *command-line-args*))}
-  systemd:status {:doc "Show status; optional unit names. Target flags: --local, --host HOST, --sudo"
+  systemd:status {:doc "Show status; optional unit names. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :status *command-line-args*))}
-  systemd:start {:doc "Start named units. Target flags: --local, --host HOST, --sudo"
+  systemd:start {:doc "Start named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :start *command-line-args*))}
-  systemd:stop {:doc "Stop named units. Target flags: --local, --host HOST, --sudo"
+  systemd:stop {:doc "Stop named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :stop *command-line-args*))}
-  systemd:restart {:doc "Restart named units. Target flags: --local, --host HOST, --sudo"
+  systemd:restart {:doc "Restart named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :restart *command-line-args*))}
-  systemd:reload {:doc "Reload named units (requires ExecReload). Target flags: --local, --host HOST, --sudo"
+  systemd:reload {:doc "Reload named units (requires ExecReload). Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :reload *command-line-args*))}
-  systemd:enable {:doc "Enable at boot without starting. Target flags: --local, --host HOST, --sudo"
+  systemd:enable {:doc "Enable at boot without starting. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :enable *command-line-args*))}
-  systemd:disable {:doc "Disable at boot without stopping. Target flags: --local, --host HOST, --sudo"
+  systemd:disable {:doc "Disable at boot without stopping. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :disable *command-line-args*))}
-  systemd:enable-now {:doc "Enable and start named units. Target flags: --local, --host HOST, --sudo"
+  systemd:enable-now {:doc "Enable and start named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :enable-now *command-line-args*))}
-  systemd:disable-now {:doc "Disable and stop named units. Target flags: --local, --host HOST, --sudo"
+  systemd:disable-now {:doc "Disable and stop named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :disable-now *command-line-args*))}
-  systemd:is-active {:doc "Query active state. Target flags: --local, --host HOST, --sudo"
+  systemd:is-active {:doc "Query active state. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :is-active *command-line-args*))}
-  systemd:is-enabled {:doc "Query enablement state. Target flags: --local, --host HOST, --sudo"
+  systemd:is-enabled {:doc "Query enablement state. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :is-enabled *command-line-args*))}
-  systemd:show {:doc "Show unit properties. Target flags: --local, --host HOST, --sudo"
+  systemd:show {:doc "Show unit properties. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :show *command-line-args*))}
-  systemd:cat {:doc "Show unit files and drop-ins. Target flags: --local, --host HOST, --sudo"
+  systemd:cat {:doc "Show unit files and drop-ins. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :cat *command-line-args*))}
-  systemd:reset-failed {:doc "Reset failure/start limits for named units. Target flags: --local, --host HOST, --sudo"
+  systemd:reset-failed {:doc "Reset failure/start limits for named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :reset-failed *command-line-args*))}
-  systemd:daemon-reload {:doc "Reload systemd definitions globally; no service restart. Target flags: --local, --host HOST, --sudo"
+  systemd:daemon-reload {:doc "Reload systemd definitions globally; no service restart. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :daemon-reload *command-line-args*))}
-  systemd:journalctl {:doc "Query unit journal with filters. Target flags: --local, --host HOST, --sudo"
+  systemd:journalctl {:doc "Query unit journal with filters. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :journalctl *command-line-args*))}
-  systemd:logs {:doc "Read unit journal. Args: unit [lines] [follow] [boot]. Target flags: --local, --host HOST, --sudo"
+  systemd:logs {:doc "Read unit journal. Args: unit [lines] [follow] [boot]. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :logs *command-line-args*))}
 

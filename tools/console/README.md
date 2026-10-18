@@ -108,9 +108,14 @@ bb -cp src:test test/console/gleam_test.clj
 ## Rocksky systemd services
 
 `console.systemd` manages installed `rocksky-*` services and timers, including
-`rocksky.service`. The REPL automatically provides the `systemd` alias. **The
-default target is production over SSH**, using `console.remote/prod-host`, just
-like the existing `remote-ws` and `deezer` commands.
+`rocksky.service`. The REPL automatically provides the `systemd` alias. **The default target is local**. Local systemd and journalctl commands are enabled
+only on Linux, detected from `os.name`; on macOS and Windows they fail before
+starting a process. Explicit SSH targets remain available on any client OS and
+must point to a Linux machine with systemd.
+
+To target production explicitly, bind `systemd/*host*` to `remote/prod-host`,
+or pass `--host root@161.97.141.205` to a Babashka task. The existing `remote-ws`
+and `deezer` commands retain their own target defaults.
 
 ```clojure
 (systemd/list)                         ; loaded units, including inactive ones
