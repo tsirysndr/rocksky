@@ -4,6 +4,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {randomBytes, generateKeyPairSync} from 'node:crypto';
 import dotenv from 'dotenv';
+import {parseArgs} from 'node:util';
 
 function endpoint(service, target) {
   const port = service?.ports?.find(p => Number(p.target) === target && (p.protocol ?? 'tcp') === 'tcp');
@@ -54,10 +55,10 @@ function quote(value) {
   throw new Error('An existing value cannot be safely encoded as dotenv');
 }
 
-export function generate(config, file) {
+export function generate(config, file, {force = false} = {}) {
   const local = localSettings(config);
   const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
-  const previous = dotenv.parse(existing ?? '');
+  const previous = force ? {} : dotenv.parse(existing ?? '');
   const values = {
     SPOTIFY_CLIENT_ID: '', SPOTIFY_CLIENT_SECRET: '', DROPBOX_CLIENT_ID: '', DROPBOX_CLIENT_SECRET: '',
     ROCKSKY_BETA_TOKEN: '', S3_ACCESS_KEY_ID: '', S3_SECRET_ACCESS_KEY: '', S3_REGION: 'us-east-1',
@@ -86,11 +87,19 @@ export function generate(config, file) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
+    const {values} = parseArgs({options: {force: {type: 'boolean'}, help: {type: 'boolean'}}});
+    if (values.help) {
+      console.log('Usage: bun run dev:env [--force]\n--force resets existing settings and regenerates local secrets, backing up the previous file.');
+      process.exit(0);
+    }
     const project = fileURLToPath(new URL('../', import.meta.url));
     // Compose resolves interpolation and normalizes short/long port syntax. No daemon is needed.
     const output = execFileSync('docker', ['compose', '-f', path.join(project, '../compose.yaml'), 'config', '--format', 'json'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']});
-    const changed = generate(JSON.parse(output), path.join(project, '.env'));
-    console.log(changed ? 'Generated gleam/.env; existing credentials preserved and previous file backed up.' : 'gleam/.env already matches local configuration.');
+    const changed = generate(JSON.parse(output), path.join(project, '.env'), {force: values.force});
+    console.log(changed
+      ? (values.force ? 'Generated gleam/.env with fresh settings and secrets; previous file backed up if present.'
+        : 'Generated gleam/.env; existing credentials preserved and previous file backed up if present.')
+      : 'gleam/.env already matches local configuration.');
   } catch (error) {
     console.error(error?.status !== undefined || error?.code === 'ENOENT' ? 'Could not read Compose configuration. Ensure Docker Compose is installed and compose.yaml is valid.' : error.message);
     process.exitCode = 1;

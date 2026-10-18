@@ -32,6 +32,19 @@ test('Local env generation follows Compose ports without rotating secrets or los
   assert.match(fs.readFileSync(path.join(dir,backups[0]),'utf8'),/keep me/);
   config.services.nats.ports[0].published='24224';assert.equal(generate(config,file),true);
   const second=dotenv.parse(fs.readFileSync(file));assert.deepEqual(second,{...first,NATS_URL:'nats://127.0.0.1:24224'});
+  const beforeForce=fs.readFileSync(file,'utf8');
+  assert.equal(generate(config,file,{force:true}),true);
+  const forced=dotenv.parse(fs.readFileSync(file));
+  assert.equal(forced.SPOTIFY_CLIENT_SECRET,'');
+  assert.equal(forced.CUSTOM_SETTING,undefined);
+  for(const key of ['COOKIE_SECRET','JWT_SECRET','STORAGE_ENCRYPTION_KEY','SPOTIFY_ENCRYPTION_KEY','SUBMISSIONS_SECRET','SPOTIFY_ENCRYPTION_IV','PRIVATE_KEY_1','PRIVATE_KEY_2','PRIVATE_KEY_3']) {
+   assert.notEqual(forced[key],second[key]);
+  }
+  assert.equal(forced.NATS_URL,second.NATS_URL);
+  assert.equal(createPrivateKey(forced.PRIVATE_KEY_1).asymmetricKeyType,'ec');
+  assert.equal(fs.statSync(file).mode&0o777,0o600);
+  assert.ok(fs.readdirSync(dir).filter(name=>name.endsWith('.bak')).some(name=>fs.readFileSync(path.join(dir,name),'utf8')===beforeForce));
+  assert.equal(generate(config,file),false);
   const content=fs.readFileSync(file,'utf8');delete config.services.db.ports;
   assert.throws(()=>generate(config,file),/publish TCP port 5432/);assert.equal(fs.readFileSync(file,'utf8'),content);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}

@@ -19,6 +19,10 @@ has mode `0600`. Missing OAuth signing keys and local secrets are generated.
 Spotify/Dropbox/S3 credentials remain blank unless already configured; S3 and
 application sidecars require separate setup.
 
+Use `bun run dev:env --force` to reset settings and regenerate all local secrets
+and signing keys. Existing provider credentials and custom settings are cleared;
+the previous file is still backed up.
+
 ## Run
 
 Install workspace dependencies from the repository root with `bun install`, then:
