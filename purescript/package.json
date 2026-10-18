@@ -83,7 +83,8 @@
     "check:bundles": "node bin/check-bundles.js",
     "test:server": "node bin/test-server.js",
     "test:all": "bun run build && bun run test && node bin/test-all.js",
-    "db:migrate": "drizzle-kit migrate --config=drizzle.config.js"
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.js",
+    "env:generate": "node bin/generate-env.js"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",
@@ -152,7 +153,8 @@
     "purescript": "^0.15.15",
     "purs-tidy": "^0.11.0",
     "spago": "next",
-    "drizzle-kit": "^0.31.1"
+    "drizzle-kit": "^0.31.1",
+    "yaml": "^2.8.0"
   },
   "trustedDependencies": [
     "better-sqlite3",

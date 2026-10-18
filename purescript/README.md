@@ -5,6 +5,7 @@ Bun is the package manager; spago builds the PureScript.
 
 ```sh
 bun install
+bun run env:generate              # create .env from local Docker Compose settings
 bun run build
 node bin/run.js Rocksky.Index    # REST API (Hono), port 8000
 node bin/run.js Rocksky.Server   # XRPC API (express + @atproto/xrpc-server), port 3004
@@ -17,6 +18,18 @@ bun run test:xrpc                 # registration + deletion checks, no live serv
 Environment variables are the same as `apps/api` (see `api/src/Rocksky/Lib/Env.purs`).
 Lexicon JSON is read at startup from `../apps/api/lexicons` and
 `../apps/api/src/tealfm/lexicons`; override with `LEXICONS_DIR` (comma separated).
+
+## Local environment
+
+`bun run env:generate` creates a private, git-ignored `.env` using the published
+PostgreSQL, NATS, Redis and Typesense ports in `../compose.yaml`. It generates
+fresh local secrets and leaves third-party credentials blank. No Docker daemon,
+compiled PureScript output, or running services are required.
+
+An existing `.env` is preserved. Use `bun run env:generate --force` to replace it;
+this regenerates secrets and removes manual edits. Companion services and an S3
+server must be started/configured separately. Compose settings must use literal
+values; the generator rejects `${...}` interpolation.
 
 ## Database migrations
 
