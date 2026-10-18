@@ -1,3 +1,6 @@
+-- Fresh databases may not have run the unjournaled 0011_tracks_isrc.sql.
+ALTER TABLE "tracks" ADD COLUMN IF NOT EXISTS "isrc" text;
+
 -- mb_id stops being the canonical recording identifier — MusicBrainz can
 -- legitimately point multiple Rocksky track rows at the same recording id
 -- (remasters, regional releases). The constraint was already dropped from

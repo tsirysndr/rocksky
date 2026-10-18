@@ -1,4 +1,5 @@
-CREATE TABLE "import_jobs" (
+-- 0005_import_jobs also creates this table on fresh databases.
+CREATE TABLE IF NOT EXISTS "import_jobs" (
 	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text,
 	"type" text NOT NULL,
@@ -26,11 +27,12 @@ CREATE TABLE "user_uploads" (
 	"xata_version" integer
 );
 --> statement-breakpoint
+ALTER TABLE "import_jobs" DROP CONSTRAINT IF EXISTS "import_jobs_user_id_fkey";
 ALTER TABLE "import_jobs" ADD CONSTRAINT "import_jobs_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_uploads" ADD CONSTRAINT "user_uploads_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_uploads" ADD CONSTRAINT "user_uploads_track_id_tracks_xata_id_fk" FOREIGN KEY ("track_id") REFERENCES "public"."tracks"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "import_jobs_user_id_idx" ON "import_jobs" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "import_jobs_status_idx" ON "import_jobs" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "import_jobs_user_id_idx" ON "import_jobs" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "import_jobs_status_idx" ON "import_jobs" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "user_uploads_user_id_idx" ON "user_uploads" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "user_uploads_track_id_idx" ON "user_uploads" USING btree ("track_id");--> statement-breakpoint
 CREATE INDEX "loved_tracks_track_id_idx" ON "loved_tracks" USING btree ("track_id");--> statement-breakpoint
