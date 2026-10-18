@@ -330,7 +330,7 @@ See the [Jetstream replay documentation](https://bsky.network/docs/jetstream-rep
 From the Clojure REPL or console directory:
 
 ```clojure
-(gleam/backfill-jetstream-v2 "--dry-run" "--limit" "100")
+(gleam/backfill-jetstream-v2 :dry-run :limit 100)
 (gleam/backfill-jetstream-v2)
 ```
 

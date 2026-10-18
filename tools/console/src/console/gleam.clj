@@ -175,6 +175,7 @@
   (apply sh/bun "gleam" "db:seed" args))
 
 (defn backfill-jetstream-v2
-  "Replay app.rocksky.* Jetstream v2 archives into the durable indexer inbox."
+  "Replay app.rocksky.* archives. Accepts keyword flags and numeric values, e.g. :dry-run :limit 100; strings pass through."
   [& args]
-  (apply sh/bun "gleam" "backfill:jetstream-v2" args))
+  (apply sh/bun "gleam" "backfill:jetstream-v2"
+         (map #(if (keyword? %) (str "--" (name %)) (str %)) args)))

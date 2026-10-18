@@ -48,5 +48,18 @@
             ["gleam" "dev:env"]]
            @calls))))
 
+(deftest backfill-keyword-options
+  (let [calls (atom [])]
+    (with-redefs [sh/bun (fn [& args] (swap! calls conj args) 0)]
+      (console.gleam/backfill-jetstream-v2 :dry-run :limit 100)
+      (console.gleam/backfill-jetstream-v2 :after-seq 3000000000)
+      (console.gleam/backfill-jetstream-v2 "--dry-run" "--limit" "100")
+      (console.gleam/backfill-jetstream-v2))
+    (is (= [["gleam" "backfill:jetstream-v2" "--dry-run" "--limit" "100"]
+            ["gleam" "backfill:jetstream-v2" "--after-seq" "3000000000"]
+            ["gleam" "backfill:jetstream-v2" "--dry-run" "--limit" "100"]
+            ["gleam" "backfill:jetstream-v2"]]
+           @calls))))
+
 (let [{:keys [fail error]} (run-tests 'console.gleam-test)]
   (System/exit (if (zero? (+ fail error)) 0 1)))

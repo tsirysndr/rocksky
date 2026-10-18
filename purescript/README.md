@@ -105,7 +105,7 @@ Options:
 
 Sequences are v2 sequence numbers, **not** v1 microsecond timestamps.
 Use `(ps/backfill-jetstream)` in the Clojure REPL or `bb ps:backfill:jetstream`.
-For example, `(ps/backfill-jetstream "--dry-run" "--limit" "100")`.
+For example, `(ps/backfill-jetstream :dry-run :limit 100)`.
 Run `bun run test:jetstream-backfill` for regressions. Set
 `JETSTREAM_BACKFILL_TEST_URL` to a local PostgreSQL URL to include the isolated
 queue transaction tests (they create and remove their own temporary schema).

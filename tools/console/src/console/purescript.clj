@@ -94,9 +94,9 @@
   (apply sh/bun "purescript" "audit:port" args))
 
 (defn backfill-jetstream
-  "Run bun run backfill:jetstream in purescript/. Forwards extra arguments unchanged."
+  "Run bun run backfill:jetstream in purescript/. Accepts keyword flags and numeric values, e.g. :dry-run :limit 100; strings pass through."
   [& args]
-  (apply sh/bun "purescript" "backfill:jetstream" args))
+  (apply sh/bun "purescript" "backfill:jetstream" (map #(if (keyword? %) (str "--" (name %)) (str %)) args)))
 
 (defn build
   "Run bun run build in purescript/. Forwards extra arguments unchanged."
