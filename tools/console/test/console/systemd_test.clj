@@ -130,16 +130,16 @@
       (let [calls (atom [])]
         (with-redefs [sh/sh (fn [args] (swap! calls conj args) 0)]
           (is (= 0 (systemd/switch variant))))
-        (is (= [(into (conj prefix "stop") all-units)
-                (into (conj prefix "start") selected)] @calls))))
+        (is (= [(into (into prefix ["disable" "--now"]) all-units)
+                (into (into prefix ["enable" "--now"]) selected)] @calls))))
     (doseq [exit [1 5 130 255]]
       (let [calls (atom [])]
         (with-redefs [sh/sh (fn [args] (swap! calls conj args) exit)]
           (is (= exit (systemd/switch :gleam))))
-        (is (= [(into (conj prefix "stop") all-units)] @calls))))
+        (is (= [(into (into prefix ["disable" "--now"]) all-units)] @calls))))
     (let [calls (atom [])]
       (with-redefs [sh/sh (fn [args] (swap! calls conj args)
-                           (if (= "start" (nth args 3)) 7 0))]
+                           (if (= "enable" (nth args 3)) 7 0))]
         (is (= 7 (systemd/switch "typescript"))))
       (is (= 2 (count @calls))))
     (let [calls (atom [])]
@@ -155,9 +155,9 @@
                   sh/sh (fn [args] (swap! calls conj args) 0)]
       (is (= 0 (systemd/cli :switch "--host" "ops@linux.test" "--sudo" "purescript"))))
     (is (= [["ssh" "--" "ops@linux.test"
-             "'sudo' '-n' 'systemctl' '--no-pager' '--full' 'stop' 'rocksky.service' 'rocksky-xrpc.service' 'rocksky-gleam.service' 'rocksky-gleam-xrpc.service' 'rocksky-purescript.service'"]
+             "'sudo' '-n' 'systemctl' '--no-pager' '--full' 'disable' '--now' 'rocksky.service' 'rocksky-xrpc.service' 'rocksky-gleam.service' 'rocksky-gleam-xrpc.service' 'rocksky-purescript.service'"]
             ["ssh" "--" "ops@linux.test"
-             "'sudo' '-n' 'systemctl' '--no-pager' '--full' 'start' 'rocksky-purescript.service'"]]
+             "'sudo' '-n' 'systemctl' '--no-pager' '--full' 'enable' '--now' 'rocksky-purescript.service'"]]
            @calls))))
 
 (let [{:keys [fail error]} (run-tests 'console.systemd-test)]

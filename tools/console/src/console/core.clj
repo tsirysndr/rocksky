@@ -115,7 +115,7 @@
            [:status "Show status; optional unit names (local Linux by default; explicit SSH supported)"]
            [:start "Start named units (local Linux by default; explicit SSH supported)"]
            [:stop "Stop named units (local Linux by default; explicit SSH supported)"]
-           [:switch "Stop all API variants, then start typescript, purescript or gleam"]
+           [:switch "Stop and disable all API variants, then enable and start typescript, purescript or gleam"]
            [:restart "Restart named units (local Linux by default; explicit SSH supported)"]
            [:reload "Reload named units (requires ExecReload) (local Linux by default; explicit SSH supported)"]
            [:enable "Enable at boot without starting (local Linux by default; explicit SSH supported)"]

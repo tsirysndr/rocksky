@@ -74,19 +74,20 @@
    :gleam ["rocksky-gleam.service" "rocksky-gleam-xrpc.service"]})
 
 (defn switch
-  "Stop all five API units, then start :typescript, :purescript or :gleam.
-  Also accepts CLI strings. Returns the systemctl exit code; never starts after
-  a failed/interrupted stop. Uses *host* and *sudo*, without changing enablement."
+  "Stop and disable all five API units, then enable and start the selected
+  :typescript, :purescript or :gleam implementation (also accepts CLI strings).
+  Returns the systemctl exit code; never enables/starts after a failed or
+  interrupted disable/stop. Uses *host* and *sudo*."
   [variant]
   (let [variant (if (string? variant) (keyword variant) variant)
         selected (get api-variants variant)]
     (when-not selected
       (throw (ex-info "Select :typescript, :purescript or :gleam" {:variant variant})))
-    (let [stopped (apply stop (mapcat api-variants [:typescript :gleam :purescript]))]
+    (let [stopped (change "disable" ["--now"] (mapcat api-variants [:typescript :gleam :purescript]))]
       (if (zero? stopped)
-        (apply start selected)
+        (change "enable" ["--now"] selected)
         (do
-          (println "API switch aborted: stopping the existing services failed; no services were started.")
+          (println "API switch aborted: disabling/stopping the existing services failed; the selected implementation was not enabled or started.")
           stopped)))))
 
 (defn restart "Restart one or more named Rocksky units." [& services] (change "restart" [] services))

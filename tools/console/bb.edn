@@ -427,7 +427,7 @@
   systemd:stop {:doc "Stop named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :stop *command-line-args*))}
-  systemd:switch {:doc "Stop all API variants, then start typescript, purescript or gleam. Target flags: --local, --host HOST, --sudo"
+  systemd:switch {:doc "Stop and disable all API variants, then enable and start typescript, purescript or gleam. Target flags: --local, --host HOST, --sudo"
     :task (do (require 'console.systemd)
               (apply (resolve 'console.systemd/cli) :switch *command-line-args*))}
   systemd:restart {:doc "Restart named units. Local Linux by default. Target flags: --local, --host HOST, --sudo"

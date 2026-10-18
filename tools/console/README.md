@@ -118,15 +118,20 @@ Switch the active API implementation from the REPL:
   (systemd/switch :gleam))
 ```
 
-The command first stops `rocksky`, `rocksky-xrpc`, `rocksky-gleam`,
-`rocksky-gleam-xrpc`, and `rocksky-purescript`. After a successful stop,
-TypeScript starts `rocksky` and `rocksky-xrpc`; Gleam starts `rocksky-gleam`
-and `rocksky-gleam-xrpc`; PureScript starts `rocksky-purescript`, which runs
-both API servers. Switching to the current implementation restarts it.
-A failed or interrupted stop prevents startup. The command returns the stop
-or start exit code; a failed start leaves the previous implementation stopped.
-Boot enablement is unchanged. Local execution requires Linux; use an explicit
-SSH target from macOS. Service startup may take time while production builds run.
+The command uses `systemctl disable --now` on `rocksky`, `rocksky-xrpc`,
+`rocksky-gleam`, `rocksky-gleam-xrpc`, and `rocksky-purescript` to stop them
+and disable their boot startup. On success, it uses `systemctl enable --now`
+to enable and start the selected implementation: TypeScript runs `rocksky`
+and `rocksky-xrpc`; Gleam runs `rocksky-gleam` and `rocksky-gleam-xrpc`;
+PureScript runs `rocksky-purescript`, which hosts both API servers.
+Switching to the current implementation restarts it. The selection persists
+across reboots.
+
+A failed or interrupted disable/stop prevents enabling or starting the selection.
+The command returns the failing systemctl exit code. A failed enable/start leaves
+the previous implementation stopped and disabled; the selected units may already
+be enabled. Local execution requires Linux; use an explicit SSH target from macOS.
+Service startup may take time while production builds run.
 
 ```sh
 bb systemd:switch gleam
