@@ -6,5 +6,6 @@ pub struct LovedTrack {
     pub user_id: String,
     pub track_id: String,
     #[serde(with = "chrono::serde::ts_seconds")]
+    #[sqlx(try_from = "rocksky_db::timestamp::UtcTimestamp")]
     pub xata_createdat: chrono::DateTime<chrono::Utc>,
 }

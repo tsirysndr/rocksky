@@ -17,5 +17,6 @@ pub struct Album {
     pub uri: Option<String>,
     pub artist_uri: Option<String>,
     #[serde(with = "chrono::serde::ts_seconds")]
+    #[sqlx(try_from = "rocksky_db::timestamp::UtcTimestamp")]
     pub xata_createdat: DateTime<Utc>,
 }

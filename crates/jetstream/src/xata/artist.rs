@@ -20,5 +20,6 @@ pub struct Artist {
     pub uri: Option<String>,
     pub genres: Option<Vec<String>>,
     #[serde(with = "chrono::serde::ts_seconds")]
+    #[sqlx(try_from = "rocksky_db::timestamp::UtcTimestamp")]
     pub xata_createdat: DateTime<Utc>,
 }

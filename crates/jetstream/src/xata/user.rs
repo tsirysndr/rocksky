@@ -9,5 +9,6 @@ pub struct User {
     pub handle: String,
     pub avatar: String,
     #[serde(with = "chrono::serde::ts_seconds")]
+    #[sqlx(try_from = "rocksky_db::timestamp::UtcTimestamp")]
     pub xata_createdat: DateTime<Utc>,
 }

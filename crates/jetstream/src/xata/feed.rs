@@ -11,5 +11,6 @@ pub struct Feed {
     pub did: String,
     pub user_id: String,
     #[serde(with = "chrono::serde::ts_seconds")]
+    #[sqlx(try_from = "rocksky_db::timestamp::UtcTimestamp")]
     pub xata_createdat: DateTime<Utc>,
 }
