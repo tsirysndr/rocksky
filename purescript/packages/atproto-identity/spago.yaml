@@ -1,0 +1,10 @@
+package:
+  name: atproto-identity
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe

@@ -1,0 +1,15 @@
+package:
+  name: drizzle
+  description: PureScript bindings for Drizzle ORM
+  dependencies:
+    - aff
+    - aff-promise
+    - effect
+    - foreign
+    - functions
+    - js-date
+    - maybe
+    - nullable
+    - prelude
+    - unsafe-coerce
+    - arrays

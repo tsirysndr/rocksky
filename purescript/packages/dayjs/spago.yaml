@@ -1,0 +1,9 @@
+package:
+  name: dayjs
+  dependencies:
+    - prelude
+    - foreign
+    - effect
+    - maybe
+    - nullable
+    - js-date

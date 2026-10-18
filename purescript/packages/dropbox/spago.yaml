@@ -1,0 +1,9 @@
+package:
+  name: dropbox
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - nullable
+    - node-buffer

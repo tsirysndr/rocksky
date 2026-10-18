@@ -1,0 +1,11 @@
+package:
+  name: unstorage
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - js-date

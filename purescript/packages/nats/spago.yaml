@@ -1,0 +1,9 @@
+package:
+  name: nats
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - node-buffer

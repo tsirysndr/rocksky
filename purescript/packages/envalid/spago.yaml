@@ -1,0 +1,9 @@
+package:
+  name: envalid
+  dependencies:
+    - prelude
+    - effect
+    - foreign
+    - nullable
+    - maybe
+    - foreign-object

@@ -1,0 +1,5 @@
+package:
+  name: atproto-common
+  dependencies:
+    - prelude
+    - effect

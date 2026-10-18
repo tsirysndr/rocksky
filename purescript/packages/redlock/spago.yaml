@@ -1,0 +1,8 @@
+package:
+  name: redlock
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - ioredis

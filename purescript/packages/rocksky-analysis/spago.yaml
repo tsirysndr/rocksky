@@ -1,0 +1,10 @@
+package:
+  name: rocksky-analysis
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - nullable
+    - maybe
+    - node-buffer

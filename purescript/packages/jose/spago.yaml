@@ -1,0 +1,9 @@
+package:
+  name: jose
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - nullable
+    - foreign

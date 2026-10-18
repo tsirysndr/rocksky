@@ -1,0 +1,11 @@
+package:
+  name: music-metadata
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - nullable
+    - foreign
+    - foreign-object
+    - node-buffer

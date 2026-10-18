@@ -1,0 +1,12 @@
+package:
+  name: node-fetch
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - node-buffer
+    - foreign-object

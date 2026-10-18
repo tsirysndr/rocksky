@@ -1,0 +1,13 @@
+package:
+  name: axios
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - foreign-object
+    - either
+    - exceptions

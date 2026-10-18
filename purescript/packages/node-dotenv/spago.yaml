@@ -1,0 +1,5 @@
+package:
+  name: node-dotenv
+  dependencies:
+    - prelude
+    - effect

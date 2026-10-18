@@ -1,0 +1,7 @@
+package:
+  name: node-taglib-sharp
+  dependencies:
+    - prelude
+    - effect
+    - nullable
+    - maybe

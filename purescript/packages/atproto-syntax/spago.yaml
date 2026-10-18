@@ -1,0 +1,7 @@
+package:
+  name: atproto-syntax
+  dependencies:
+    - prelude
+    - maybe
+    - nullable
+    - either

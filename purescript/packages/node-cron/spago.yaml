@@ -1,0 +1,7 @@
+package:
+  name: node-cron
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise

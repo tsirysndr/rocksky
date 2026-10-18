@@ -1,0 +1,6 @@
+package:
+  name: node-crypto
+  dependencies:
+    - prelude
+    - effect
+    - node-buffer

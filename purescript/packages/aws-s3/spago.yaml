@@ -1,0 +1,14 @@
+package:
+  name: aws-s3
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - nullable
+    - maybe
+    - node-buffer
+    - node-streams
+    - js-date
+    - exceptions
+    - node-fetch

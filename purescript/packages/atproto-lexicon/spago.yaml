@@ -1,0 +1,9 @@
+package:
+  name: atproto-lexicon
+  dependencies:
+    - prelude
+    - effect
+    - foreign
+    - either
+    - maybe
+    - nullable

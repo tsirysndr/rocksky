@@ -1,0 +1,11 @@
+package:
+  name: googleapis
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - nullable
+    - foreign
+    - node-buffer
+    - node-streams

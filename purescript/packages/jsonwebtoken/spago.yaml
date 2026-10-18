@@ -1,0 +1,10 @@
+package:
+  name: jsonwebtoken
+  dependencies:
+    - prelude
+    - effect
+    - foreign
+    - either
+    - exceptions
+    - nullable
+    - maybe

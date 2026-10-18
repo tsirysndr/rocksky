@@ -1,0 +1,11 @@
+package:
+  name: typesense
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - foreign-object

@@ -1,0 +1,6 @@
+package:
+  name: consola
+  dependencies:
+    - prelude
+    - effect
+    - foreign

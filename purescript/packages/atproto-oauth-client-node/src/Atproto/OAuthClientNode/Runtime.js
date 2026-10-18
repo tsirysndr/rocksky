@@ -1,0 +1,11 @@
+export const resolve = c => input => signal => () => c.oauthResolver.resolve(input, {signal});
+export const generatePKCE = c => () => c.runtime.generatePKCE();
+export const generateKey = c => algs => () => c.runtime.generateKey(algs);
+export const generateNonce = c => () => c.runtime.generateNonce();
+export const setState = c => key => value => () => c.stateStore.set(key, value);
+export const serverFromMetadata = c => metadata => auth => key => () => c.serverFactory.fromMetadata(metadata, auth, key);
+export const request = server => name => params => () => server.request(name, params);
+export const keyset = c => c.keyset;
+export const listSigningKeys = keyset => alg => () => Array.from(keyset.list({alg, usage: 'sign'}));
+export const responseMode = c => c.responseMode;
+export const installAuthorize = c => handler => () => { c.authorize = (input, options = {}) => handler(input)(options)().then(url => new URL(url)); };

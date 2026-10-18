@@ -1,0 +1,8 @@
+package:
+  name: libsodium
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - node-buffer

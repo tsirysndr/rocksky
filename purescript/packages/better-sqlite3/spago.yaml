@@ -1,0 +1,6 @@
+package:
+  name: better-sqlite3
+  dependencies:
+    - prelude
+    - effect
+    - foreign

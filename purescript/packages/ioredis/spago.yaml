@@ -1,0 +1,7 @@
+package:
+  name: ioredis
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise

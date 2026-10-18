@@ -1,0 +1,10 @@
+package:
+  name: node-ws
+  dependencies:
+    - prelude
+    - effect
+    - nullable
+    - foreign
+    - foreign-object
+    - exceptions
+    - node-buffer

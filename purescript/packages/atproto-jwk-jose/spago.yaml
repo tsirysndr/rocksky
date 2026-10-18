@@ -1,0 +1,8 @@
+package:
+  name: atproto-jwk-jose
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - atproto-oauth-client-node

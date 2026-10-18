@@ -1,0 +1,11 @@
+package:
+  name: redis
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - foreign-object

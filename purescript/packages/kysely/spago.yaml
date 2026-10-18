@@ -1,0 +1,11 @@
+package:
+  name: kysely
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - better-sqlite3

@@ -1,0 +1,13 @@
+package:
+  name: atproto-api
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - foreign-object
+    - exceptions
+    - node-buffer

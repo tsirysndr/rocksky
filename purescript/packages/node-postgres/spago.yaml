@@ -1,0 +1,11 @@
+package:
+  name: node-postgres
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - drizzle

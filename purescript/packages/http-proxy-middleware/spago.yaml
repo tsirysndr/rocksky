@@ -1,0 +1,6 @@
+package:
+  name: http-proxy-middleware
+  dependencies:
+    - prelude
+    - effect
+    - node-express

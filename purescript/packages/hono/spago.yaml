@@ -1,0 +1,13 @@
+package:
+  name: hono
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - foreign
+    - nullable
+    - maybe
+    - foreign-object
+    - node-buffer
+    - node-fetch

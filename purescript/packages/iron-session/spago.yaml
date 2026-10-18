@@ -1,0 +1,9 @@
+package:
+  name: iron-session
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - nullable
+    - foreign
