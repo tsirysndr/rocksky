@@ -18,6 +18,15 @@ Environment variables are the same as `apps/api` (see `api/src/Rocksky/Lib/Env.p
 Lexicon JSON is read at startup from `../apps/api/lexicons` and
 `../apps/api/src/tealfm/lexicons`; override with `LEXICONS_DIR` (comma separated).
 
+## Database migrations
+
+Run `bun run db:migrate` from `purescript/` to apply the existing PostgreSQL
+migrations in `../apps/api/drizzle`. The command uses `XATA_WRITE_POSTGRES_URL`,
+falling back to `XATA_POSTGRES_URL`, and loads `.env` from this package directory.
+For the production Doppler configuration, run `doppler run -c prd -- bun run db:migrate`.
+The migration journal is shared with the TypeScript API. Migrations are explicit;
+the build and systemd startup do not apply them automatically.
+
 ## Layout
 
 - `packages/` — one spago package of FFI bindings per npm dependency
