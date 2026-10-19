@@ -27,7 +27,7 @@ function database(responses) {
     const event = { op, table: table && getTableName(table) };
     events.push(event);
     const b = {};
-    for (const name of ["where", "limit", "offset", "orderBy", "innerJoin", "leftJoin", "returning", "onConflictDoNothing"]) {
+    for (const name of ["where", "limit", "offset", "orderBy", "innerJoin", "leftJoin", "groupBy", "returning", "onConflictDoNothing"]) {
       b[name] = (...args) => { event[name] = args; return b; };
     }
     b.from = table => { event.table = getTableName(table); return b; };
@@ -46,7 +46,7 @@ function database(responses) {
   };
 }
 {
-  const mock = database([[{ id: "owner" }, { id: "mentioned" }, { id: "actor" }], []]);
+  const mock = database([[{ id: "owner" }, { id: "mentioned" }, { id: "actor" }], [], []]);
   const facets = new Just([
     { did: "did:plc:owner", byteStart: 0, byteEnd: 5 },
     { did: "did:plc:mentioned", byteStart: 6, byteEnd: 10 },

@@ -26,6 +26,7 @@ import Rocksky.Lib.Foreign (mergeForeign, omitNulls, readStringAt, toForeign)
 import Rocksky.Lib.Plc (plcDirectoryUrl)
 import Rocksky.Lib.RepoSettings (nowIso)
 import Rocksky.Notifications.Service (createNotification)
+import Rocksky.Notifications.SongActivity (notifySongShout)
 import Rocksky.Playlists.Service (atUriRepo, rkeyOf)
 import Rocksky.Schema as T
 import Rocksky.Schema.Shouts (SelectShout)
@@ -137,11 +138,15 @@ createShout ctx shout uri user agent = do
     rows :: Array SelectShout <- runInsertReturning ctx.db (insertForeign T.shouts [mergeForeign (mergeForeign (storageFields shout) (subjectFields subject)) (toForeign { uri: created.uri, authorId: user.id })])
     row <- requireRow "Shout insertion returned no row" rows
     when (isJust subject.profileDid) $ runInsert ctx.db (insertForeign T.profileShouts [toForeign { shoutId: row.id, userId: toNullable subject.ownerId }])
-    when (isJust subject.scrobbleId || isJust subject.profileDid) $ void $ createNotification ctx
-      { userId: toNullable subject.ownerId, actorId: notNull user.id, type: if isJust subject.scrobbleId then "comment_scrobble" else "comment_profile"
-      , shoutId: notNull row.id, subjectUri: toNullable (subject.uri <|> (map ("at://" <> _) subject.profileDid)) }
     let mentionSubjectUri = fromMaybe row.uri (nonempty subject.uri <|> (map ("at://" <> _) subject.profileDid))
-    notifyMentions ctx shout.facets user.id row.id mentionSubjectUri (fromMaybe [] (map pure subject.ownerId))
+    notified <- case subject.trackId of
+      Just trackId -> notifySongShout ctx trackId mentionSubjectUri user.id row.id Nothing
+      Nothing -> do
+        when (isJust subject.scrobbleId || isJust subject.profileDid) $ void $ createNotification ctx
+          { userId: toNullable subject.ownerId, actorId: notNull user.id, type: if isJust subject.scrobbleId then "comment_scrobble" else "comment_profile"
+          , shoutId: notNull row.id, subjectUri: notNull mentionSubjectUri }
+        pure (fromMaybe [] (map pure subject.ownerId))
+    notifyMentions ctx shout.facets user.id row.id mentionSubjectUri notified
 
 requireRow :: forall a. String -> Array a -> Aff a
 requireRow message rows = case head rows of
@@ -182,8 +187,12 @@ replyShout ctx reply shoutUri user agent = do
       profiles :: Array { userId :: String } <- run ctx.db (selectFieldsFrom { userId: toSQL T.profileShoutsC.userId } T.profileShouts # where_ (SQL.eq (toSQL T.profileShoutsC.shoutId) (SQL.string row.shout.id)) # limit 1)
       profile <- requireRow "Profile shout not found" profiles
       runInsert ctx.db (insertForeign T.profileShouts [toForeign { shoutId: shout.id, userId: profile.userId }])
-    void $ createNotification ctx { userId: notNull row.shout.authorId, actorId: notNull user.id, type: "reply", shoutId: notNull shout.id, subjectUri: notNull subjectUri }
-    notifyMentions ctx reply.facets user.id shout.id subjectUri [row.shout.authorId]
+    notified <- case toMaybe row.trackId of
+      Just trackId -> notifySongShout ctx trackId subjectUri user.id shout.id (Just row.shout.authorId)
+      Nothing -> do
+        void $ createNotification ctx { userId: notNull row.shout.authorId, actorId: notNull user.id, type: "reply", shoutId: notNull shout.id, subjectUri: notNull subjectUri }
+        pure [row.shout.authorId]
+    notifyMentions ctx reply.facets user.id shout.id subjectUri notified
 
 findLike :: Context -> String -> String -> Aff (Array { id :: String, uri :: String })
 findLike ctx shoutUri userId = run ctx.db

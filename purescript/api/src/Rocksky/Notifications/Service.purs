@@ -1,7 +1,7 @@
 module Rocksky.Notifications.Service where
 
 import Prelude
-import Data.Array (filter, head, last, length, mapMaybe, null, take, nub)
+import Data.Array (filter, head, last, length, mapMaybe, null, take, nub, drop, zipWith)
 import Data.Either (Either(..))
 import Data.JSDate (now, parse, toISOString)
 import Data.Map as Map
@@ -10,9 +10,9 @@ import Data.Nullable (Nullable, notNull, toMaybe, toNullable)
 import Data.String (Pattern(..), contains)
 import Data.String.Regex (regex, replace)
 import Data.String.Regex.Flags (global)
-import Data.Traversable (for, traverse)
+import Data.Traversable (for, for_, traverse)
 import Data.Tuple (Tuple(..))
-import Drizzle.Builder (insertForeign, leftJoin, limit, orderBy, run, runInsertReturning, runUpdate, selectFieldsFrom, selectFrom, update)
+import Drizzle.Builder (groupBy, insertForeign, leftJoin, limit, orderBy, run, runInsertReturning, runUpdate, selectFieldsFrom, selectFrom, update)
 import Drizzle.Query (where_)
 import Drizzle.SQL as SQL
 import Drizzle.Schema (toSQL)
@@ -39,17 +39,28 @@ publish ctx userId payload = recoverWith unit $ liftEffect (Nats.publishString c
 type CreateNotificationParams = { userId :: Nullable String, actorId :: Nullable String, type :: String, shoutId :: Nullable String, subjectUri :: Nullable String }
 
 createNotification :: Context -> CreateNotificationParams -> Aff (Maybe SelectNotification)
-createNotification ctx params = recoverWith Nothing case toMaybe params.userId, toMaybe params.actorId of
-  Just userId, Just actorId | userId /= "" && actorId /= "" && userId /= actorId -> do
-    rows :: Array SelectNotification <- runInsertReturning ctx.db (insertForeign T.notifications [ toForeign { userId, actorId, type: params.type, shoutId: params.shoutId, subjectUri: params.subjectUri } ])
-    case head rows of
-      Nothing -> pure Nothing
-      Just created -> do
-        unreadCount <- getUnreadCount ctx userId
-        views <- hydrate ctx [ created ]
-        publish ctx userId (omitNulls (toForeign { type: "notification", notification: toNullable (head views), unreadCount }))
-        pure (Just created)
-  _, _ -> pure Nothing
+createNotification ctx params = head <$> createNotifications ctx (fromMaybe [] (map pure (toMaybe params.userId))) params
+
+createNotifications :: Context -> Array String -> CreateNotificationParams -> Aff (Array SelectNotification)
+createNotifications ctx recipientIds params = recoverWith [] case toMaybe params.actorId of
+  Just actorId | actorId /= "" -> batches actorId (nub (filter (\id -> id /= "" && id /= actorId) recipientIds))
+  _ -> pure []
+  where
+  batches _ [] = pure []
+  batches actorId ids = do
+    let batch = take 200 ids
+    createdAt <- liftEffect now
+    created :: Array SelectNotification <- runInsertReturning ctx.db (insertForeign T.notifications (map (\userId -> toForeign { userId, actorId, type: params.type, shoutId: params.shoutId, subjectUri: params.subjectUri, createdAt }) batch))
+    counts :: Array { userId :: String, count :: Int } <- run ctx.db
+      (selectFieldsFrom { userId: toSQL T.notificationsC.userId, count: SQL.count } T.notifications
+        # where_ (SQL.and (SQL.inArray (toSQL T.notificationsC.userId) (map SQL.string batch)) (SQL.eq (toSQL T.notificationsC.read) (SQL.bool false)))
+        # groupBy [toSQL T.notificationsC.userId])
+    let unreadCounts = Map.fromFoldable (map (\row -> Tuple row.userId row.count) counts)
+    views <- hydrate ctx created
+    for_ (zipWith Tuple created views) \(Tuple row view) ->
+      publish ctx row.userId (omitNulls (toForeign { type: "notification", notification: view, unreadCount: fromMaybe 0 (Map.lookup row.userId unreadCounts) }))
+    rest <- batches actorId (drop 200 ids)
+    pure (created <> rest)
 
 getUnreadCount :: Context -> String -> Aff Int
 getUnreadCount ctx userId = do

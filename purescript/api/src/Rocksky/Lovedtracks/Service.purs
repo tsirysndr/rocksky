@@ -26,7 +26,7 @@ import Rocksky.Lib.Common (withFallbackAlbumArt)
 import Rocksky.Lib.ExtractPdsFromDid (extractPdsFromDid)
 import Rocksky.Lib.Foreign (mergeForeign, omitNulls, stringify, toForeign)
 import Rocksky.Lib.RepoSettings (nowIso)
-import Rocksky.Notifications.Service (createNotification)
+import Rocksky.Notifications.SongActivity (notifySongLike)
 import Rocksky.Playlists.Service (atUriRepo, rkeyOf)
 import Rocksky.Schema as T
 import Rocksky.Schema.Tracks (SelectTrack)
@@ -88,10 +88,7 @@ likeTrack ctx track user agent = do
       ownDid <- liftEffect (Api.assertDid agent)
       res <- Api.createRecord agent { repo: ownDid, collection: "app.rocksky.like", rkey: notNull rkey, record, validate: false }
       liftEffect (Log.info ("Like record created at: " <> res.uri))
-      owners :: Array { id :: String } <- run ctx.db (selectFieldsFrom { id: toSQL T.usersC.id } T.users # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string repo)) # limit 1)
-      case head owners of
-        Nothing -> pure unit
-        Just owner -> void $ createNotification ctx { userId: notNull owner.id, actorId: notNull user.id, type: "like_scrobble", subjectUri: notNull uri, shoutId: null }
+      notifySongLike ctx trackId uri user.id
       pure (notNull res.uri)
     _ -> do
       liftEffect (Log.warn ("[like] " <> trackId <> " has no song record, nothing to like"))

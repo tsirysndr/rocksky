@@ -20,7 +20,7 @@
     "test:teal": "spago build -p rocksky-api && node bin/test-teal.js",
     "test:typesense": "spago build -p rocksky-api && node bin/test-typesense.js",
     "audit:port": "python3 bin/port-status.py",
-    "test:shouts-likes": "spago build -p rocksky-api && node bin/test-shouts-likes.js",
+    "test:shouts-likes": "spago build -p rocksky-api && node bin/test-shouts-likes.js && node bin/test-notification-fanout.js",
     "test:matching": "spago build -p rocksky-api && node bin/test-matching.js",
     "test:nowplaying": "spago build -p rocksky-api && node bin/test-nowplaying.js",
     "test:submissions": "spago build -p rocksky-api && node bin/test-submissions.js",
