@@ -1,6 +1,6 @@
 import { storeSessionToken } from "../../../shared/browser-session";
 import styled from "@emotion/styled";
-import { IconDisc, IconSparkles } from "@tabler/icons-react";
+import { IconSparkles } from "@tabler/icons-react";
 import { Link, useSearch } from "@tanstack/react-router";
 import { DURATION, useSnackbar } from "baseui/snackbar";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
@@ -11,6 +11,7 @@ import { displayDrawerAtom } from "../atoms/drawer";
 import { rightPaneHiddenAtom } from "../atoms/rightPane";
 import RightPaneToggle from "../components/RightPaneToggle";
 import { profileAtom } from "../atoms/profile";
+import Library from "../components/Icons/Library";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import TotalScrobbles from "../components/TotalScrobbles";
 import { API_URL, SELF_HOSTED } from "../consts";
@@ -273,7 +274,7 @@ function Main(props: MainProps) {
                   to="/library"
                   className="flex items-center text-[var(--color-text)] text-[15px] font-bold no-underline opacity-80 hover:opacity-100"
                 >
-                  <IconDisc size={18} style={{ marginRight: "6px" }} />
+                  <Library size={18} style={{ marginRight: "6px" }} />
                   My Library (experimental)
                 </Link>
               </div>
