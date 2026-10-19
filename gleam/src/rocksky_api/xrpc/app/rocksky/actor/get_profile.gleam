@@ -8,8 +8,8 @@ import rocksky_api/atproto/identity
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
-  all_columns, eq, eq_columns, field, from, inner_join, insert, one,
-  returning_one, select, set, update, where,
+  all_columns, eq, eq_columns, field, from, inner_join, one, returning_one,
+  select, set, update, where,
 }
 import rocksky_api/drizzle/schema/spotify_accounts as sa
 import rocksky_api/drizzle/schema/spotify_tokens as st
@@ -19,6 +19,7 @@ import rocksky_api/lexicon/models
 import rocksky_api/lib/agent
 import rocksky_api/lib/bsky_profile
 import rocksky_api/lib/id_resolver
+import rocksky_api/lib/profile_user
 import rocksky_api/node/axios
 import rocksky_api/node/js
 import rocksky_api/node/nats
@@ -156,13 +157,7 @@ pub fn refresh(
     )
   use result <- task.then(case existing {
     None ->
-      insert(users, [
-        set(u.did(users), did),
-        set(u.handle(users), handle),
-        set(u.avatar(users), option.unwrap(fetched.avatar, "")),
-        set(u.display_name(users), fetched.display_name),
-      ])
-      |> returning_one(ctx.db, "Failed to refresh profile")
+      profile_user.save(ctx.db, did, handle, fetched)
       |> task.map(fn(user) { #(Some(user), True, 1) })
     Some(user) -> {
       let avatar = option.unwrap(fetched.avatar, user.avatar)

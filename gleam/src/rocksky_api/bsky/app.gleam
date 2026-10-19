@@ -13,8 +13,7 @@ import rocksky_api/auth/store
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
-  all, and, desc, eq, from, insert, limit, one, order_by, run, set, update,
-  where,
+  all, and, desc, eq, from, limit, one, order_by, where,
 }
 import rocksky_api/drizzle/schema/spotify_accounts as sa
 import rocksky_api/drizzle/schema/spotify_tokens as st
@@ -26,6 +25,7 @@ import rocksky_api/lib/auth
 import rocksky_api/lib/bsky_profile
 import rocksky_api/lib/helpers
 import rocksky_api/lib/id_resolver
+import rocksky_api/lib/profile_user
 import rocksky_api/lib/respond
 import rocksky_api/log
 import rocksky_api/node/hono
@@ -181,47 +181,7 @@ pub fn profile(
   use _ <- task.then(case handle {
     "" -> task.ok(Nil)
     _ -> {
-      use _ <- task.then(
-        insert(users, [
-          set(u.did(users), did),
-          set(u.handle(users), handle),
-          set(u.display_name(users), resolved.display_name),
-          set(u.avatar(users), option.unwrap(resolved.avatar, "")),
-        ])
-        |> run(ctx.db)
-        |> task.map(fn(_) { Nil })
-        |> task.rescue(fn(e) {
-          case
-            string.contains(
-              error.to_string(e),
-              "invalid record: column [did]: is not unique",
-            )
-          {
-            False -> {
-              log.error(error.describe(e))
-              task.ok(Nil)
-            }
-            True ->
-              update(
-                users,
-                list.flatten([
-                  [set(u.handle(users), handle)],
-                  case resolved.display_name {
-                    None -> []
-                    Some(v) -> [set(u.display_name(users), Some(v))]
-                  },
-                  case resolved.avatar {
-                    None -> []
-                    Some(v) -> [set(u.avatar(users), v)]
-                  },
-                ]),
-                eq(u.did(users), did),
-              )
-              |> run(ctx.db)
-              |> task.map(fn(_) { Nil })
-          }
-        }),
-      )
+      use _ <- task.then(profile_user.save(ctx.db, did, handle, resolved))
       use rows <- task.map(task.all2(
         from(users) |> where(eq(u.did(users), did)) |> limit(1) |> all(ctx.db),
         from(users) |> order_by([desc(u.created_at(users))]) |> one(ctx.db),
