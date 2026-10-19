@@ -1,12 +1,18 @@
 import Typesense from "typesense";
 
-export const createClient = (cfg) => () =>
-  new Typesense.Client({
+export const createClient = (cfg) => () => {
+  const client = new Typesense.Client({
     nodes: [{ host: cfg.host, port: cfg.port, protocol: cfg.protocol }],
     apiKey: cfg.apiKey,
     connectionTimeoutSeconds: cfg.connectionTimeoutSeconds,
-    numRetries: 0, // Retry policy is owned by Rocksky.Typesense.Retry.
+    numRetries: 0,
   });
+  // The installed SDK falls back to three when numRetries is zero.
+  // Keep retries exclusively in Rocksky.Typesense.Retry.
+  client.configuration.numRetries = 0;
+  client.apiCall.numRetriesPerRequest = 0;
+  return client;
+};
 
 const clean = (p) => {
   const r = {};
