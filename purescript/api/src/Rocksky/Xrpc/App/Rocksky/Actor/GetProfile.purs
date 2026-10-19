@@ -14,7 +14,7 @@ import Data.JSDate as Date
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Nullable (Nullable, toMaybe, toNullable)
 import Data.String (Pattern(..), stripPrefix)
-import Drizzle.Builder (insertForeign, leftJoin, run, runInsert, runUpdate, selectFieldsFrom, selectFrom, update)
+import Drizzle.Builder (leftJoin, run, runUpdate, selectFieldsFrom, selectFrom, update)
 import Drizzle.Query (where_)
 import Drizzle.SQL as SQL
 import Drizzle.Schema (tableSQL, toSQL)
@@ -29,6 +29,7 @@ import Rocksky.Lexicon (Server)
 import Rocksky.Lib.Aff (forkAndForget, recoverWith, retryTransientDb, timeoutMs)
 import Rocksky.Lib.Agent (createAgent)
 import Rocksky.Lib.BskyProfile (ResolvedBskyProfile, fetchBskyProfile)
+import Rocksky.Lib.ProfileUser as ProfileUser
 import Rocksky.Lib.Error (describeError)
 import Rocksky.Lib.Foreign (deleteKeys, mergeForeign, readStringAt, stringify, toForeign, undefined)
 import Rocksky.Lib.Plc (plcDirectoryUrl)
@@ -71,12 +72,7 @@ serviceEndpoint actor = stage "Failed to get service endpoint" case actor of
 refreshProfile :: Context -> String -> String -> ResolvedBskyProfile -> Maybe SelectUser -> Aff SelectUser
 refreshProfile ctx did handle fetched existing = stage "Failed to refresh profile" case existing of
   Nothing -> do
-    runInsert ctx.db (insertForeign T.users [toForeign
-      { did, handle, avatar: fromMaybe "" fetched.avatar, displayName: toNullable fetched.displayName }])
-    rows :: Array SelectUser <- run ctx.db (selectFrom T.users # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string did)))
-    user <- case head rows of
-      Nothing -> throwError (error "Inserted user was not found")
-      Just user -> pure user
+    user <- ProfileUser.save ctx.db did handle fetched
     createdAt <- liftEffect (Date.toISOString user.createdAt)
     updatedAt <- liftEffect (Date.toISOString user.updatedAt)
     liftEffect (Nats.publishString ctx.nc "rocksky.user" (stringify (toForeign

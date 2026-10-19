@@ -13,7 +13,7 @@ const run = action => fromAff(action)();
 const date = new Date("2026-10-18T00:00:00Z");
 const user = { id: "u", did: "did:plc:actor", handle: "old.test", avatar: "saved-avatar", displayName: "Saved Name", createdAt: date, updatedAt: date, xataVersion: 0, isBot: false, botFlaggedAt: null, botReason: null };
 function mock(responses) {
-  const writes = [], events = [];
+  const writes = [], events = [], conflicts = [];
   const db = {
     select() {
       const q = {};
@@ -22,7 +22,12 @@ function mock(responses) {
       return q;
     },
     insert() {
-      const q = { values(value) { writes.push(["insert", value]); return q; }, async execute() {} };
+      const q = {
+        values(value) { writes.push(["insert", value]); return q; },
+        onConflictDoUpdate(config) { conflicts.push(config); return q; },
+        returning() { return q; },
+        async execute() { assert.ok(responses.length, "Unexpected insert"); return responses.shift(); },
+      };
       return q;
     },
     update() {
@@ -31,7 +36,7 @@ function mock(responses) {
     },
   };
   const ctx = { db, nc: { publish(subject, bytes) { events.push([subject, JSON.parse(Buffer.from(bytes).toString())]); } } };
-  return { ctx, writes, events, done() { assert.equal(responses.length, 0); } };
+  return { ctx, writes, events, conflicts, done() { assert.equal(responses.length, 0); } };
 }
 await assert.rejects(run(P.resolveActor({})(Nothing.value)(Nothing.value)), /neither an actor/);
 {
@@ -60,10 +65,14 @@ await assert.rejects(run(P.resolveActor({})(Nothing.value)(Nothing.value)), /nei
   assert.equal(m.events[0][1].handle, "new.test");
 }
 {
-  const inserted = { ...user, handle: "new.test", avatar: "", displayName: null };
+  const inserted = { ...user, handle: "new.test", avatar: "", displayName: "" };
   const m = mock([[inserted]]);
   await run(P.refreshProfile(m.ctx)(user.did)("new.test")({ avatar: Nothing.value, displayName: Nothing.value })(Nothing.value));
-  assert.deepEqual(m.writes[0], ["insert", [{ did: user.did, handle: "new.test", avatar: "", displayName: null }]]);
+  assert.deepEqual(m.writes[0], ["insert", [{ did: user.did, handle: "new.test", avatar: "", displayName: "" }]]);
+  assert.equal(m.conflicts.length, 1);
+  assert.equal(m.conflicts[0].target[0].name, "did");
+  assert.equal(m.conflicts[0].set.displayName, undefined);
+  assert.equal(m.conflicts[0].set.avatar, undefined);
   assert.equal(m.events[0][1].xata_version, 1);
   assert.equal(m.events[0][1].xata_createdat, date.toISOString());
   m.done();
@@ -150,3 +159,38 @@ console.log("Verified compatibility union scoring/rank weighting/empty libraries
   assert.equal(m.writes.length, 0);
 }
 console.log("Verified missing display names remain null without substituting the handle.");
+
+// Exercise the shared REST/XRPC save path against production-like constraints.
+if (process.env.PURESCRIPT_TEST_DATABASE_URL) {
+  const { default: pg } = await import("pg");
+  const { drizzle } = await import("drizzle-orm/node-postgres");
+  const { save } = await import("../output/Rocksky.Lib.ProfileUser/index.js");
+  const client = new pg.Client({ connectionString: process.env.PURESCRIPT_TEST_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(`CREATE TEMP TABLE users (
+      xata_id text PRIMARY KEY DEFAULT md5(random()::text), did text NOT NULL,
+      handle text NOT NULL, display_name text NOT NULL, avatar text NOT NULL,
+      is_bot boolean NOT NULL DEFAULT false, bot_flagged_at timestamptz, bot_reason text,
+      xata_createdat timestamptz NOT NULL DEFAULT now(), xata_updatedat timestamptz NOT NULL DEFAULT now(),
+      xata_version integer DEFAULT 1, CONSTRAINT users__pgroll_new_did_key UNIQUE (did)
+    )`);
+    const db = drizzle(client);
+    const missing = { avatar: Nothing.value, displayName: Nothing.value };
+    const full = { avatar: new Just("saved-avatar"), displayName: new Just("Mouselett") };
+    const saveUser = (did, handle, fetched) => run(save(db)(did)(handle)(fetched));
+    const first = await saveUser("did:login", "mouselett.bsky.social", missing);
+    assert.equal(first.displayName, "");
+    assert.equal(first.avatar, "");
+    const results = await Promise.all([
+      saveUser("did:login", "mouselett.bsky.social", full),
+      saveUser("did:login", "renamed.bsky.social", missing),
+    ]);
+    assert.ok(results.every(row => row.id === first.id));
+    assert.equal(results[1].displayName, "Mouselett");
+    assert.equal(results[1].avatar, "saved-avatar");
+    assert.equal(results[1].handle, "renamed.bsky.social");
+    assert.equal((await client.query("SELECT count(*)::int AS count FROM users")).rows[0].count, 1);
+    console.log("Verified PostgreSQL profile defaults, duplicate-DID upserts and partial metadata preservation.");
+  } finally { await client.end(); }
+}

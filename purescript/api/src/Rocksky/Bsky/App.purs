@@ -13,8 +13,8 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Nullable (notNull, toMaybe, toNullable)
 import Data.Number (floor)
-import Data.String (Pattern(..), contains, joinWith, split)
-import Drizzle.Builder (insertForeign, limit, orderBy, run, runInsert, runUpdate, selectFrom, updateForeign)
+import Data.String (Pattern(..), joinWith, split)
+import Drizzle.Builder (limit, orderBy, run, selectFrom)
 import Drizzle.Query (where_)
 import Drizzle.SQL as SQL
 import Drizzle.Schema (toSQL)
@@ -33,6 +33,7 @@ import Rocksky.Context (Context)
 import Rocksky.Lib.Agent (createAgent)
 import Rocksky.Lib.AuthVerifier (bearerFrom)
 import Rocksky.Lib.BskyProfile (fetchBskyProfile)
+import Rocksky.Lib.ProfileUser as ProfileUser
 import Rocksky.Lib.Env (env)
 import Rocksky.Lib.Jwks (parseJwks)
 import Rocksky.Lib.Error (errorName, errorToForeign)
@@ -84,15 +85,7 @@ profile ctx c did = do
       handle <- ctx.resolver.resolveDidToHandle did
       resolved <- fetchBskyProfile (Just did) (Just a)
       when (handle /= "") do
-        inserted <- attempt (runInsert ctx.db (insertForeign T.users
-          [toForeign { did, handle, displayName: toNullable resolved.displayName, avatar: fromMaybe "" resolved.avatar }]))
-        case inserted of
-          Right _ -> pure unit
-          Left e | contains (Pattern "invalid record: column [did]: is not unique") (message e) ->
-            runUpdate ctx.db (updateForeign T.users (omitNulls (toForeign
-              { handle, displayName: toNullable resolved.displayName, avatar: toNullable resolved.avatar }))
-              # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string did)))
-          Left e -> liftEffect (Log.error (message e))
+        void (ProfileUser.save ctx.db did handle resolved)
         records <- sequential $ { user: _, lastUser: _ }
           <$> parallel (run ctx.db (selectFrom T.users # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string did)) # limit 1) :: Aff (Array SelectUser))
           <*> parallel (run ctx.db (selectFrom T.users # orderBy [SQL.desc (toSQL T.usersC.createdAt)] # limit 1) :: Aff (Array SelectUser))
