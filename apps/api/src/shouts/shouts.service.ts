@@ -9,6 +9,7 @@ import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
 import { PLC_DIRECTORY_URL } from "lib/plc";
 import _ from "lodash";
 import { createNotification } from "notifications/notifications.service";
+import { notifySongShout } from "notifications/song-activity";
 import type { Shout } from "types/shout";
 import albums, { type SelectAlbum } from "../schema/albums";
 import artists, { type SelectArtist } from "../schema/artists";
@@ -200,9 +201,16 @@ export async function createShout(
       });
     }
 
-    // Notify the owner of the commented-on subject. Only scrobbles and
-    // profiles have a single owner to notify (tracks/albums/artists are
-    // shared entities), matching the notification spec.
+    let notified: string[] = [];
+    if (track?.uri) {
+      notified = await notifySongShout(
+        ctx,
+        track.id,
+        track.uri,
+        user.id,
+        createdShout.id,
+      );
+    }
     if (scrobble?.scrobble) {
       await createNotification(ctx, {
         userId: scrobble.scrobble.userId,
@@ -235,7 +243,7 @@ export async function createShout(
       user.id,
       createdShout.id,
       mentionSubjectUri,
-      [scrobble?.scrobble.userId, profile?.id],
+      [...notified, scrobble?.scrobble.userId, profile?.id],
     );
   } catch (e) {
     consola.error(`Error creating shout record: ${e.message}`);
@@ -412,26 +420,33 @@ export async function replyShout(
       });
     }
 
-    // Notify the author of the parent comment that someone replied. Deep-link
-    // to the underlying subject page (where the thread renders inline), not the
-    // parent shout's at-uri which has no page of its own.
-    await createNotification(ctx, {
-      userId: shout.shout.authorId,
-      actorId: user.id,
-      type: "reply",
-      shoutId: createdShout.id,
-      subjectUri,
-    });
+    let notified = [shout.shout.authorId];
+    if (shout.track?.uri) {
+      notified = await notifySongShout(
+        ctx,
+        shout.track.id,
+        subjectUri,
+        user.id,
+        createdShout.id,
+        shout.shout.authorId,
+      );
+    } else {
+      await createNotification(ctx, {
+        userId: shout.shout.authorId,
+        actorId: user.id,
+        type: "reply",
+        shoutId: createdShout.id,
+        subjectUri,
+      });
+    }
 
-    // Notify anyone @-mentioned in the reply body. Skip the parent-comment
-    // author, who already got a reply notification above.
     await notifyMentions(
       ctx,
       reply.facets,
       user.id,
       createdShout.id,
       subjectUri,
-      [shout.shout.authorId],
+      notified,
     );
   } catch (e) {
     consola.error(`Error creating reply record: ${e.message}`);

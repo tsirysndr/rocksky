@@ -171,9 +171,9 @@ const SubjectArtist = styled.div`
 `;
 
 const VERB: Record<string, string> = {
-  like_scrobble: "liked your scrobble",
+  like_scrobble: "liked a song",
   follow: "followed you",
-  comment_scrobble: "commented on your scrobble",
+  comment_scrobble: "shouted about a song",
   comment_profile: "commented on your profile",
   reply: "replied to your comment",
   react_comment: "reacted to your comment",

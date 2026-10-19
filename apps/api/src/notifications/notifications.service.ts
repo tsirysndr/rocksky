@@ -79,38 +79,70 @@ export async function createNotification(
   ctx: Context,
   params: CreateNotificationParams,
 ): Promise<SelectNotification | undefined> {
+  const rows = await createNotifications(
+    ctx,
+    params.userId ? [params.userId] : [],
+    params,
+  );
+  return rows[0];
+}
+
+/** Persist and publish once per recipient with bounded database work. */
+export async function createNotifications(
+  ctx: Context,
+  recipientIds: string[],
+  params: Omit<CreateNotificationParams, "userId">,
+): Promise<SelectNotification[]> {
   try {
-    const { userId, actorId, type, shoutId, subjectUri } = params;
-
-    if (!userId || !actorId || userId === actorId) {
-      return undefined;
+    const { actorId, type, shoutId, subjectUri } = params;
+    if (!actorId) return [];
+    const recipients = [
+      ...new Set(recipientIds.filter((id) => id && id !== actorId)),
+    ];
+    const result: SelectNotification[] = [];
+    for (let offset = 0; offset < recipients.length; offset += 200) {
+      const batch = recipients.slice(offset, offset + 200);
+      const created = await ctx.db
+        .insert(notifications)
+        .values(
+          batch.map((userId) => ({
+            userId,
+            actorId,
+            type,
+            shoutId: shoutId ?? null,
+            subjectUri: subjectUri ?? null,
+            createdAt: new Date(),
+          })),
+        )
+        .returning();
+      const counts = await ctx.db
+        .select({
+          userId: notifications.userId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(notifications)
+        .where(
+          and(
+            inArray(notifications.userId, batch),
+            eq(notifications.read, false),
+          ),
+        )
+        .groupBy(notifications.userId);
+      const unread = new Map(counts.map((row) => [row.userId, row.count]));
+      const views = await hydrate(ctx, created);
+      created.forEach((row, i) =>
+        publish(ctx, row.userId, {
+          type: "notification",
+          notification: views[i],
+          unreadCount: unread.get(row.userId) ?? 0,
+        }),
+      );
+      result.push(...created);
     }
-
-    const created = await ctx.db
-      .insert(notifications)
-      .values({
-        userId,
-        actorId,
-        type,
-        shoutId: shoutId ?? null,
-        subjectUri: subjectUri ?? null,
-      })
-      .returning()
-      .then((rows) => rows[0]);
-
-    const unreadCount = await getUnreadCount(ctx, userId);
-    const [view] = await hydrate(ctx, [created]);
-
-    publish(ctx, userId, {
-      type: "notification",
-      notification: view,
-      unreadCount,
-    });
-
-    return created;
+    return result;
   } catch (err) {
     consola.error("Failed to create notification", err);
-    return undefined;
+    return [];
   }
 }
 

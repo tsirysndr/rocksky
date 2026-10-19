@@ -17,7 +17,7 @@ import lovedTracks from "../schema/loved-tracks";
 import tracks from "../schema/tracks";
 import users from "../schema/users";
 import extractPdsFromDid from "lib/extractPdsFromDid";
-import { createNotification } from "notifications/notifications.service";
+import { notifySongLike } from "notifications/song-activity";
 
 export async function likeTrack(
   ctx: Context,
@@ -281,22 +281,7 @@ export async function likeTrack(
   const uri = res.data.uri;
   consola.info(`Like record created at: ${uri}`);
 
-  // Notify the owner of the liked song record (the repo the at-uri belongs to).
-  const ownerDid = trackWithUri.uri.replace("at://", "").split("/")[0];
-  const owner = await ctx.db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.did, ownerDid))
-    .limit(1)
-    .then((rows) => rows[0]);
-  if (owner) {
-    await createNotification(ctx, {
-      userId: owner.id,
-      actorId: user.id,
-      type: "like_scrobble",
-      subjectUri: trackWithUri.uri,
-    });
-  }
+  await notifySongLike(ctx, trackWithUri.id, trackWithUri.uri, user.id);
 
   return uri;
 }

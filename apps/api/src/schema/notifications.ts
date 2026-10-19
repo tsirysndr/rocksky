@@ -5,9 +5,9 @@ import users from "./users";
 
 /**
  * A single notification row per event. `type` is one of:
- *  - "like_scrobble"    — someone liked the recipient's song/scrobble
+ *  - "like_scrobble"    — someone liked a song the recipient owns or loves
  *  - "follow"           — someone followed the recipient
- *  - "comment_scrobble" — someone commented on the recipient's scrobble
+ *  - "comment_scrobble" — someone shouted about a song the recipient participates in
  *  - "comment_profile"  — someone commented on the recipient's profile
  *  - "reply"            — someone replied to the recipient's comment
  *  - "react_comment"    — someone reacted to (liked) the recipient's comment
