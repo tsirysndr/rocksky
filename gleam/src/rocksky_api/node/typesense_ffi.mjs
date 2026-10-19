@@ -3,8 +3,14 @@ import { Ok, Error as GError } from "../../gleam.mjs";
 
 const wrap = (p) => Promise.resolve(p).then((v) => new Ok(v), (e) => new GError(e));
 
-export const client = (host, port, protocol, apiKey, timeout) =>
-  new Typesense.Client({ nodes: [{ host, port, protocol }], apiKey, connectionTimeoutSeconds: timeout, numRetries: 0 });
+export const client = (host, port, protocol, apiKey, timeout) => {
+  const client = new Typesense.Client({ nodes: [{ host, port, protocol }], apiKey, connectionTimeoutSeconds: timeout, numRetries: 0 });
+  // This SDK version applies `numRetries || 3`, ignoring the explicit zero.
+  // Keep retries in the bounded Gleam policy instead of nesting SDK retries.
+  client.configuration.numRetries = 0;
+  client.apiCall.numRetriesPerRequest = 0;
+  return client;
+};
 export const createCollection = (c, schema) => wrap(c.collections().create(schema));
 export const retrieveCollection = (c, name) => wrap(c.collections(name).retrieve());
 export const deleteCollection = (c, name) => wrap(c.collections(name).delete());

@@ -76,3 +76,18 @@ test('Nullable user display names survive row decoding and Typesense indexing',a
   assert.equal(documents[0].displayName,name);
  }
 });
+
+test('Typesense SDK makes one attempt on 503; Gleam owns bounded retries', async () => {
+ const { createServer } = await import('node:http');
+ const { once } = await import('node:events');
+ const { client } = await import('../build/dev/javascript/rocksky_api/rocksky_api/node/typesense_ffi.mjs');
+ let attempts = 0;
+ const server = createServer((_req, res) => { attempts++; res.writeHead(503, {'content-type':'application/json'}); res.end('{"message":"Not Ready or Lagging"}'); });
+ server.listen(0, '127.0.0.1');
+ await once(server, 'listening');
+ try {
+  const sdk = client('127.0.0.1', server.address().port, 'http', 'test', 2);
+  await assert.rejects(sdk.collections('users').retrieve(), /Not Ready or Lagging/);
+  assert.equal(attempts, 1);
+ } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
+});
