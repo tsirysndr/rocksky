@@ -16,7 +16,6 @@ import rocksky_api/drizzle/schema/artist_tracks as art
 import rocksky_api/drizzle/schema/artists as ar
 import rocksky_api/drizzle/schema/loved_tracks as lt
 import rocksky_api/drizzle/schema/tracks as t
-import rocksky_api/drizzle/schema/users as u
 import rocksky_api/lexicon/models
 import rocksky_api/lexicon/validation
 import rocksky_api/lib/helpers
@@ -26,7 +25,7 @@ import rocksky_api/node/crypto
 import rocksky_api/node/js
 import rocksky_api/node/nats
 import rocksky_api/node/tid
-import rocksky_api/notifications/service as notifications
+import rocksky_api/notifications/song_activity
 import rocksky_api/playlists/service as playlists
 import rocksky_api/task
 import rocksky_api/tracks/service as tracks
@@ -205,19 +204,7 @@ pub fn like_track(
           record,
         )),
       )
-      use owner_did <- task.then(task.from_result(playlists.at_uri_repo(uri)))
-      let users = u.table()
-      use owner <- task.then(
-        from(users) |> where(eq(u.did(users), owner_did)) |> one(ctx.db),
-      )
-      use _ <- task.map(notifications.create(
-        ctx,
-        option.map(owner, fn(u) { u.id }),
-        Some(user),
-        "like_scrobble",
-        None,
-        Some(uri),
-      ))
+      use _ <- task.map(song_activity.notify(ctx, song.id, uri, user))
       Some(created.uri)
     }
   }

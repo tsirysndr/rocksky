@@ -26,6 +26,7 @@ import rocksky_api/node/fetch
 import rocksky_api/node/js
 import rocksky_api/node/tid
 import rocksky_api/notifications/service as notifications
+import rocksky_api/notifications/song_activity
 import rocksky_api/schema/shouts.{type Shout}
 import rocksky_api/shouts/input.{type Input}
 import rocksky_api/task
@@ -282,7 +283,7 @@ fn mentions(
   actor: String,
   shout: String,
   uri: String,
-  skip: Option(String),
+  skip: List(String),
 ) {
   let users = u.table()
   let dids = list.map(input.facets, fn(f) { f.did }) |> list.unique
@@ -294,7 +295,7 @@ fn mentions(
       |> all(ctx.db)
   })
   ids
-  |> list.filter(fn(id) { Some(id) != skip })
+  |> list.filter(fn(id) { !list.contains(skip, id) })
   |> task.each_(fn(id) {
     notifications.create(
       ctx,
@@ -353,15 +354,32 @@ pub fn create(
     Some(_) -> "comment_profile"
     None -> "comment_scrobble"
   }
-  use _ <- task.then(notifications.create(
-    ctx,
-    subject.owner,
-    Some(author),
-    kind,
-    Some(shout.id),
-    Some(subject.uri),
-  ))
-  mentions(ctx, input, author, shout.id, subject.uri, subject.owner)
+  use notified <- task.then(case subject.track {
+    Some(track) ->
+      song_activity.notify_shout(
+        ctx,
+        track,
+        subject.uri,
+        author,
+        shout.id,
+        None,
+      )
+    None -> {
+      use _ <- task.map(notifications.create(
+        ctx,
+        subject.owner,
+        Some(author),
+        kind,
+        Some(shout.id),
+        Some(subject.uri),
+      ))
+      case subject.owner {
+        Some(id) -> [id]
+        None -> []
+      }
+    }
+  })
+  mentions(ctx, input, author, shout.id, subject.uri, notified)
 }
 
 fn reply_subject(ctx: Context, shout: Shout, fallback: String) {
@@ -464,15 +482,29 @@ pub fn reply(
     Some(parent.id),
   ))
   use _ <- task.then(profile_link(ctx, subject.profile, shout.id))
-  use _ <- task.then(notifications.create(
-    ctx,
-    Some(parent.author_id),
-    Some(author),
-    "reply",
-    Some(shout.id),
-    Some(subject.uri),
-  ))
-  mentions(ctx, input, author, shout.id, subject.uri, Some(parent.author_id))
+  use notified <- task.then(case subject.track {
+    Some(track) ->
+      song_activity.notify_shout(
+        ctx,
+        track,
+        subject.uri,
+        author,
+        shout.id,
+        Some(parent.author_id),
+      )
+    None -> {
+      use _ <- task.map(notifications.create(
+        ctx,
+        Some(parent.author_id),
+        Some(author),
+        "reply",
+        Some(shout.id),
+        Some(subject.uri),
+      ))
+      [parent.author_id]
+    }
+  })
+  mentions(ctx, input, author, shout.id, subject.uri, notified)
 }
 
 fn existing_like(ctx: Context, uri: String, user: String) {

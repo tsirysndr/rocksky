@@ -16,10 +16,13 @@ test('Shout writes validate records, thread replies, notify mentions once, and e
   const pool=new pg.Pool({host:process.env.GLEAM_TEST_PGHOST,port:Number(process.env.GLEAM_TEST_PGPORT),database:'postgres',max:1});
   const original=globalThis.fetch;
   try {
-    await createTables(pool,['users','tracks','albums','artists','scrobbles','shouts','shout_likes','shout_reports','profile_shouts','notifications']);
+    await createTables(pool,['users','tracks','albums','artists','scrobbles','shouts','shout_likes','shout_reports','profile_shouts','notifications','loved_tracks']);
     await pool.query(`INSERT INTO users (xata_id,did,handle,display_name,avatar) VALUES ('u',$1,'u.test','User',''),('v',$2,'v.test','Other','')`,[did,owner]);
     await pool.query("INSERT INTO tracks (xata_id,title,artist,album_artist,album,duration,sha256,uri) VALUES ('t','Song','Artist','Artist','Album',100,'hash',$1)",[subject]);
-    const ctx={db:{pool},read_db:{pool},env:{plc_directory_url:'https://plc.test'},nc:{publish:()=>{}}};
+    await pool.query("INSERT INTO users (xata_id,did,handle,display_name,avatar) VALUES ('lover','did:plc:aaaaaaaaaaaaaaaaaaaaaaaa','lover.test','Lover',''),('participant','did:plc:bbbbbbbbbbbbbbbbbbbbbbbb','participant.test','Participant',''),('passive','did:plc:cccccccccccccccccccccccc','passive.test','Passive','')");
+    await pool.query("INSERT INTO loved_tracks (user_id,track_id) VALUES ('lover','t'),('lover','t'),('v','t'),('u','t'); INSERT INTO scrobbles(user_id,track_id) VALUES ('passive','t'); INSERT INTO shouts(xata_id,author_id,track_id,content,uri) VALUES ('earlier','participant','t','Earlier','at://did:plc:bbbbbbbbbbbbbbbbbbbbbbbb/app.rocksky.shout/earlier')");
+    const events=[];
+    const ctx={db:{pool},read_db:{pool},env:{plc_directory_url:'https://plc.test'},nc:{publish:(subject,data)=>events.push({subject,data:JSON.parse(Buffer.from(data).toString())})}};
     const writes=[],deletes=[];
     const mock={did,com:{atproto:{repo:{
       getRecord:async p=>({data:{uri:p.collection==='app.bsky.actor.profile'?`at://${did}/${p.collection}/self`:subject,cid,value:{}}}),
@@ -35,17 +38,20 @@ test('Shout writes validate records, thread replies, notify mentions once, and e
     const input=new Input(new Some('Hello @other'),new None(),toList([new ShoutMention(owner,6,12),new ShoutMention(owner,6,12)]));
     const check=r=>assert.ok(r instanceof Ok,JSON.stringify(r));
     check(await service.create(ctx,input,subject,'u',mock));
-    const shout=(await pool.query('SELECT * FROM shouts')).rows[0];assert.equal(shout.track_id,'t');
+    const shout=(await pool.query("SELECT * FROM shouts WHERE author_id='u'")).rows[0];assert.equal(shout.track_id,'t');
     assert.equal(writes[0].validate,false);assert.equal(writes[0].record.subject.uri,subject);
-    assert.equal((await pool.query('SELECT count(*)::int AS n FROM notifications')).rows[0].n,1);
+    assert.deepEqual((await pool.query('SELECT user_id,type FROM notifications ORDER BY user_id')).rows,[{user_id:'lover',type:'comment_scrobble'},{user_id:'participant',type:'comment_scrobble'},{user_id:'v',type:'comment_scrobble'}]);
+    assert.equal(events.length,3);assert.ok(events.every(e=>e.data.notification.shoutContent==='Hello @other'));
+    events.length=0;
     check(await service.reply(ctx,input,shout.xata_id,'u',mock));
+    assert.equal(events.length,3);assert.ok(events.every(e=>e.data.unreadCount===2));
     assert.equal(writes[1].record.parent.uri,shout.uri);assert.equal(writes[1].record.subject.uri,subject);
     check(await service.like(ctx,shout.uri,'v',mock));check(await service.like(ctx,shout.uri,'v',mock));
     assert.equal((await pool.query('SELECT count(*)::int AS n FROM shout_likes')).rows[0].n,1);
     check(await service.unlike(ctx,shout.uri,'v',mock));assert.equal((await pool.query('SELECT count(*)::int AS n FROM shout_likes')).rows[0].n,0);
     assert.ok(!((await service.remove(ctx,shout.xata_id,'v',mock)) instanceof Ok));
-    assert.equal((await pool.query('SELECT count(*)::int AS n FROM shouts')).rows[0].n,2);
-    check(await service.remove(ctx,shout.xata_id,'u',mock));assert.equal((await pool.query('SELECT count(*)::int AS n FROM shouts')).rows[0].n,0);
+    assert.equal((await pool.query('SELECT count(*)::int AS n FROM shouts')).rows[0].n,3);
+    check(await service.remove(ctx,shout.xata_id,'u',mock));assert.equal((await pool.query('SELECT count(*)::int AS n FROM shouts')).rows[0].n,1);
     const gif=new Input(new None(),new Some(new ShoutGif('https://gif.test/a',new None(),new None(),new Some(2),new Some(2))),toList([]));
     check(await service.create(ctx,gif,'v.test','u',mock));
     assert.equal((await pool.query('SELECT user_id FROM profile_shouts')).rows[0].user_id,'v');

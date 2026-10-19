@@ -65,6 +65,7 @@ export const assignment = (column,value) => ({column,value});
 export const assignmentExpression = assignment;
 const values = assignments => Object.fromEntries(assignments.toArray().map(({column,value})=>[columnProperty(column),value]));
 export const insert = (table, assignments) => ({kind:'insert',table,values:values(assignments)});
+export const insertMany = (table, rows) => ({kind:'insert',table,values:rows.toArray().map(values)});
 export const update = (table, assignments, where) => ({kind:'update',table,values:values(assignments),where});
 const deleteQuery = (table, where) => ({kind:'delete',table,where});
 export { deleteQuery as delete };

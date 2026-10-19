@@ -376,3 +376,22 @@ The Jetstream SDK patch in `../patches/` filters archive row kinds before wire
 validation, so unrelated sync records in mixed blocks do not stop commit-only
 backfills. Commit validation remains enabled. Run `bun install` after pulling
 changes to the patch (from the repository root for Gleam).
+
+## Song notifications
+
+A song like notifies the song record's owner and users who currently have that
+song in **Loved songs**. A new song shout or reply also notifies users who have
+previously shouted about the song. Passive scrobbles, playlists, and uploads do
+not subscribe users to notifications.
+
+Recipients are deduplicated and the actor is excluded. A direct reply keeps its
+reply notification; other song participants receive a song comment notification.
+Mentions do not add a second notification for someone already notified. Delivery
+uses batches of 200, with grouped unread counts and realtime events for each
+recipient's open sessions. These rules apply to new actions; existing likes and
+shouts are not replayed.
+
+After building, set `GLEAM_TEST_DATABASE_URL` and run
+`node --test test/notification_fanout_database.test.mjs` to check batched
+persistence and live delivery to multiple tabs against PostgreSQL. Its fixtures
+use temporary tables on a dedicated connection.

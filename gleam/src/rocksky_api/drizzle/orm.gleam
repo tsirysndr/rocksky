@@ -425,6 +425,13 @@ pub fn insert(table: Table(a), values: List(Assignment)) -> Mutation(a) {
   Mutation(insert_ffi(table.raw, values), table.decoder)
 }
 
+pub fn insert_many(
+  table: Table(a),
+  rows: List(List(Assignment)),
+) -> Mutation(a) {
+  Mutation(insert_many_ffi(table.raw, rows), table.decoder)
+}
+
 pub fn update(
   table: Table(a),
   values: List(Assignment),
@@ -587,6 +594,9 @@ fn assignment_expr_ffi(column: Raw, value: Raw) -> Assignment
 
 @external(javascript, "./orm_ffi.mjs", "insert")
 fn insert_ffi(table: Raw, values: List(Assignment)) -> RawQuery
+
+@external(javascript, "./orm_ffi.mjs", "insertMany")
+fn insert_many_ffi(table: Raw, rows: List(List(Assignment))) -> RawQuery
 
 @external(javascript, "./orm_ffi.mjs", "update")
 fn update_ffi(

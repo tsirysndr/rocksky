@@ -4,13 +4,15 @@ import gleam/int
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/string
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
-  all, and, count as db_count, desc, eq, eq_columns, field, from, in_array,
-  insert, left_join, limit as db_limit, lt, map, nullable, one, order_by, pair,
-  required, returning_one, run, select, set, update, where,
+  all, and, count as db_count, desc, eq, eq_columns, field, from, group_by,
+  in_array, insert_many, left_join, limit as db_limit, lt, map, nullable, one,
+  order_by, pair, reference, required, returning, run, select, set, update,
+  where,
 }
 import rocksky_api/drizzle/schema/albums as al
 import rocksky_api/drizzle/schema/notifications as n
@@ -160,42 +162,110 @@ pub fn create(
   shout: Option(String),
   uri: Option(String),
 ) -> Task(Option(notifications.Notification)) {
-  case recipient, actor {
-    Some(user_id), Some(actor_id)
-      if user_id != "" && actor_id != "" && user_id != actor_id
-    -> {
-      use result <- task.rescue({
-        let table = n.table()
-        use created <- task.then(
-          insert(table, [
-            set(n.user_id(table), user_id),
-            set(n.actor_id(table), actor_id),
-            set(n.type_(table), kind),
-            set(n.shout_id(table), shout),
-            set(n.subject_uri(table), uri),
-          ])
-          |> returning_one(ctx.db, "Notification not created"),
-        )
-        use count <- task.then(unread_count(ctx, user_id))
-        use views <- task.map(hydrate(ctx, [created]))
-        let payload = [
-          #("type", json.string("notification")),
-          #("unreadCount", json.int(count)),
-        ]
-        let payload = case views {
-          [view, ..] -> [
-            #("notification", models.encode_notification_view(view)),
-            ..payload
-          ]
-          [] -> payload
-        }
-        publish(ctx, user_id, json.object(payload))
-        Some(created)
+  use rows <- task.map(create_many(
+    ctx,
+    case recipient {
+      Some(id) -> [id]
+      None -> []
+    },
+    actor,
+    kind,
+    shout,
+    uri,
+  ))
+  list.first(rows) |> option.from_result
+}
+
+/// One notification per distinct recipient, with bounded inserts and batched
+/// unread counts/hydration. Realtime events fan out on each recipient's subject.
+pub fn create_many(
+  ctx: Context,
+  recipients: List(String),
+  actor: Option(String),
+  kind: String,
+  shout: Option(String),
+  uri: Option(String),
+) -> Task(List(notifications.Notification)) {
+  case actor {
+    None | Some("") -> task.ok([])
+    Some(actor) -> {
+      let recipients =
+        recipients
+        |> list.filter(fn(id) { id != "" && id != actor })
+        |> list.unique
+      create_batches(ctx, recipients, actor, kind, shout, uri)
+      |> task.rescue(fn(e) {
+        log.error("Failed to create notification: " <> error.describe(e))
+        task.ok([])
       })
-      log.error("Failed to create notification: " <> error.to_string(result))
-      task.ok(None)
     }
-    _, _ -> task.ok(None)
+  }
+}
+
+fn create_batches(ctx: Context, recipients, actor, kind, shout, uri) {
+  case recipients {
+    [] -> task.ok([])
+    _ -> {
+      let #(batch, rest) = list.split(recipients, 200)
+      let table = n.table()
+      let now = row.from_unix_ms(js.now_ms())
+      use created <- task.then(
+        insert_many(
+          table,
+          list.map(batch, fn(id) {
+            [
+              set(n.user_id(table), id),
+              set(n.actor_id(table), actor),
+              set(n.type_(table), kind),
+              set(n.shout_id(table), shout),
+              set(n.subject_uri(table), uri),
+              set(n.created_at(table), now),
+            ]
+          }),
+        )
+        |> returning(ctx.db),
+      )
+      use counts <- task.then(
+        select(
+          table,
+          pair(field("user", n.user_id(table)), field("count", db_count())),
+        )
+        |> where(
+          and([in_array(n.user_id(table), batch), eq(n.read(table), False)]),
+        )
+        |> group_by([reference(n.user_id(table))])
+        |> all(ctx.db),
+      )
+      use views <- task.then(hydrate(ctx, created))
+      let counts = dict.from_list(counts)
+      list.zip(created, views)
+      |> list.each(fn(entry) {
+        let #(notification, view) = entry
+        publish(
+          ctx,
+          notification.user_id,
+          json.object([
+            #("type", json.string("notification")),
+            #(
+              "unreadCount",
+              json.int(
+                dict.get(counts, notification.user_id) |> result.unwrap(0),
+              ),
+            ),
+            #("notification", models.encode_notification_view(view)),
+          ]),
+        )
+      })
+      use remaining <- task.map(create_batches(
+        ctx,
+        rest,
+        actor,
+        kind,
+        shout,
+        uri,
+      ))
+      list.append(created, remaining)
+    }
   }
 }
 
