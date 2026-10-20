@@ -173,6 +173,7 @@ async fn poll_once(
     let mut mirrored = 0usize;
     let mut skipped_nowplaying = 0usize;
     let mut skipped_dedup = 0usize;
+    let mut skipped_refused = 0usize;
 
     // Last.fm returns newest-first; iterate oldest-first so the watermark
     // moves monotonically.
@@ -253,6 +254,18 @@ async fn poll_once(
         );
         match rocksky::create_scrobble(http, &row.did, &track, Provider::Lastfm).await {
             Ok(_) => mirrored += 1,
+            // A refused payload never becomes valid, so skip the play rather
+            // than wedge every later one behind it.
+            Err(e) if rocksky::is_refusal(&e) => {
+                warn!(
+                    user_id = %row.user_id,
+                    title = %track.title,
+                    artist = %track.artist,
+                    error = %e,
+                    "Last.fm: skipped (submission refused)"
+                );
+                skipped_refused += 1;
+            }
             // Do not advance past a submission the durable queue did not accept.
             // Re-fetching prior successes is safe: their timestamped keys dedup.
             Err(e) => return Err(e),
@@ -268,6 +281,7 @@ async fn poll_once(
         mirrored,
         skipped_dedup,
         skipped_nowplaying,
+        skipped_refused,
         "Last.fm: poll complete"
     );
 

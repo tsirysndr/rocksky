@@ -183,6 +183,7 @@ async fn poll_once(
     let mut max_seen = watermark;
     let mut mirrored = 0usize;
     let mut skipped_dedup = 0usize;
+    let mut skipped_refused = 0usize;
 
     // ListenBrainz returns newest-first; iterate oldest-first.
     for listen in items.into_iter().rev() {
@@ -263,6 +264,18 @@ async fn poll_once(
         );
         match rocksky::create_scrobble(http, &row.did, &track, Provider::Listenbrainz).await {
             Ok(_) => mirrored += 1,
+            // A refused payload never becomes valid, so skip the play rather
+            // than wedge every later one behind it.
+            Err(e) if rocksky::is_refusal(&e) => {
+                warn!(
+                    user_id = %row.user_id,
+                    title = %track.title,
+                    artist = %track.artist,
+                    error = %e,
+                    "ListenBrainz: skipped (submission refused)"
+                );
+                skipped_refused += 1;
+            }
             Err(e) => return Err(e),
         }
 
@@ -275,6 +288,7 @@ async fn poll_once(
         user_id = %row.user_id,
         mirrored,
         skipped_dedup,
+        skipped_refused,
         "ListenBrainz: poll complete"
     );
 

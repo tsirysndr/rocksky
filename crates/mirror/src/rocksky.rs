@@ -47,6 +47,12 @@ pub async fn create_scrobble(
             %body,
             "createScrobble returned non-success"
         );
+        // 400 and 422 mean the payload itself is wrong, so re-posting it
+        // unchanged can never succeed. Everything else (auth, rate limits,
+        // upstream faults) clears on its own and must keep the watermark put.
+        if matches!(status.as_u16(), 400 | 422) {
+            return Err(Error::new(Refused { status, body }));
+        }
         return Err(anyhow::anyhow!(
             "createScrobble {} returned {}",
             url,
@@ -63,4 +69,25 @@ pub async fn create_scrobble(
         "mirrored scrobble"
     );
     Ok(())
+}
+
+/// A submission the API refused on its merits. Retrying the identical payload
+/// cannot succeed, so callers skip it instead of blocking every later play.
+#[derive(Debug)]
+pub struct Refused {
+    pub status: reqwest::StatusCode,
+    pub body: String,
+}
+
+impl std::fmt::Display for Refused {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "createScrobble refused the submission: {}", self.status)
+    }
+}
+
+impl std::error::Error for Refused {}
+
+/// Whether a failed submission can never succeed on retry.
+pub fn is_refusal(error: &Error) -> bool {
+    error.downcast_ref::<Refused>().is_some()
 }
