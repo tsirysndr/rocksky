@@ -24,6 +24,16 @@ impl Enricher {
         match self.matcher.match_track(&request).await {
             Ok(Some(c)) => {
                 // Only fill missing metadata from the selected recording/release.
+                if track.album.trim().is_empty() {
+                    if let Some(album) = c.album {
+                        track.album = album;
+                    }
+                }
+                if track.album_artist.trim().is_empty() {
+                    if let Some(album_artist) = c.album_artist {
+                        track.album_artist = album_artist;
+                    }
+                }
                 track.album_art = track.album_art.take().or(c.album_art);
                 track.isrc = track.isrc.take().or(c.identifiers.isrc);
                 track.mb_id = track
