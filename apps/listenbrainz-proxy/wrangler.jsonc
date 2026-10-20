@@ -1,0 +1,23 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "listenbrainz",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-04-27",
+	"observability": {
+		"enabled": true
+	},
+
+	/**
+	 * Upstream origin this Worker proxies, and the User-Agent it identifies
+	 * itself to ListenBrainz with. Override per-environment with
+	 * `wrangler deploy --var UPSTREAM_HOST:<host>` or an `env` block.
+	 */
+	"vars": {
+		"UPSTREAM_HOST": "api.listenbrainz.org",
+		"USER_AGENT": "rocksky/1.0 ( https://rocksky.app )"
+	}
+}

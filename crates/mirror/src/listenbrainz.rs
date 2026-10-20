@@ -5,7 +5,7 @@
 //! server-side.
 
 use rocksky_db::Backend;
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use anyhow::Error;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
@@ -24,6 +24,8 @@ use crate::{
     Provider,
 };
 
+pub const DEFAULT_API_URL: &str = "https://api.listenbrainz.org";
+
 const POLL_INTERVAL: Duration = Duration::from_secs(30);
 // Hard ceiling on a single `poll_once`. Normal runs finish in under a second;
 // reqwest's per-request timeout is 30s, so 90s comfortably absorbs even a
@@ -34,6 +36,16 @@ const RECENT_LIMIT: u32 = 50;
 // it on enable, but if it isn't we still want a sensible window instead of
 // "now" (which would skip every listen that happened before this task booted).
 const BACKFILL_HOURS: i64 = 24;
+
+/// ListenBrainz API root; point LISTENBRAINZ_API_URL at the listenbrainz-proxy
+/// Worker (apps/listenbrainz-proxy) to route calls through it.
+fn api_url() -> String {
+    env::var("LISTENBRAINZ_API_URL")
+        .ok()
+        .map(|url| url.trim().trim_end_matches('/').to_string())
+        .filter(|url| !url.is_empty())
+        .unwrap_or_else(|| DEFAULT_API_URL.to_string())
+}
 
 pub async fn run_user(
     pool: Backend,
@@ -149,7 +161,7 @@ async fn poll_once(
 ) -> Result<DateTime<Utc>, Error> {
     info!(user_id = %row.user_id, "ListenBrainz: polling listens");
 
-    let url = format!("https://api.listenbrainz.org/1/user/{username}/listens");
+    let url = format!("{}/1/user/{username}/listens", api_url());
     let mut req = http.get(&url).query(&[
         ("count", &RECENT_LIMIT.to_string()),
         ("min_ts", &watermark.timestamp().to_string()),
