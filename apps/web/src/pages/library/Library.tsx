@@ -51,7 +51,8 @@ import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { useInfiniteScrollSentinel } from "../../hooks/useInfiniteScrollSentinel";
 import { librarySearchOpenAtom } from "../../atoms/searchModal";
 import {
@@ -147,11 +148,11 @@ const Page = styled.div`
   margin-bottom: 150px;
 `;
 
-const ScrollToTopButton = styled.button`
+const ScrollToTopButton = styled.button<{ raised: boolean }>`
   position: fixed;
-  right: 24px;
-  bottom: calc(152px + env(safe-area-inset-bottom, 0px));
-  z-index: 1;
+  right: 22px;
+  bottom: calc(${({ raised }) => raised ? 152 : 24}px + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1061,6 +1062,7 @@ function downloadFavorites(creds: NavidromeCredentials, songs: NavidromeSong[]) 
 // ---------------------------------------------------------------------------
 
 export default function Library() {
+  const nowPlaying = useAtomValue(nowPlayingAtom);
   const [pageElement, setPageElement] = useState<HTMLDivElement | null>(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
 
@@ -1677,6 +1679,8 @@ export default function Library() {
         </Tabs>
         {showScrollToTop && (
           <ScrollToTopButton
+            data-library-scroll-to-top
+            raised={!!nowPlaying}
             type="button"
             aria-label="Scroll to top"
             title="Scroll to top"
