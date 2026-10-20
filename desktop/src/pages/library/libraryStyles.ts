@@ -13,6 +13,14 @@ export const tabOverrides = {
 };
 
 export const tabsOverrides = {
+  TabBar: {
+    style: {
+      position: "sticky" as const,
+      top: "80px",
+      zIndex: 1,
+      backgroundColor: "var(--color-background)",
+    },
+  },
   TabHighlight: { style: { backgroundColor: "var(--color-purple)" } },
   TabBorder: { style: { display: "none" } },
 };

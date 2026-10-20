@@ -30,6 +30,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import Main from "../../layouts/Main";
+import ScrollToTop from "../../components/ScrollToTop";
 import { shuffled } from "../../lib/shuffle";
 import {
   AlbumArtContainer,
@@ -551,6 +552,7 @@ export default function LocalLibrary({ sourceSwitcher }: { sourceSwitcher: React
             </MenuItem>
           </DropdownPortal>
         )}
+        <ScrollToTop />
       </Page>
     </Main>
   );

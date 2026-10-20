@@ -2,7 +2,6 @@ import styled from "@emotion/styled";
 import { shuffled } from "../../lib/shuffle";
 import {
   IconAlertTriangle,
-  IconArrowUp,
   IconArrowsShuffle,
   IconDots,
   IconDownload,
@@ -51,8 +50,8 @@ import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
-import { useAtomValue, useSetAtom } from "jotai";
-import { nowPlayingAtom } from "../../atoms/nowpaying";
+import { useSetAtom } from "jotai";
+import ScrollToTop from "../../components/ScrollToTop";
 import { useInfiniteScrollSentinel } from "../../hooks/useInfiniteScrollSentinel";
 import { librarySearchOpenAtom } from "../../atoms/searchModal";
 import {
@@ -146,29 +145,6 @@ const tabsOverrides = {
 const Page = styled.div`
   margin-top: 70px;
   margin-bottom: 150px;
-`;
-
-const ScrollToTopButton = styled.button<{ raised: boolean }>`
-  position: fixed;
-  right: 22px;
-  bottom: calc(${({ raised }) => raised ? 152 : 24}px + env(safe-area-inset-bottom, 0px));
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  &:hover { filter: brightness(1.1); }
-  &:focus-visible {
-    outline: 2px solid var(--color-text);
-    outline-offset: 4px;
-  }
 `;
 
 const Header = styled.div`
@@ -1062,28 +1038,6 @@ function downloadFavorites(creds: NavidromeCredentials, songs: NavidromeSong[]) 
 // ---------------------------------------------------------------------------
 
 export default function Library() {
-  const nowPlaying = useAtomValue(nowPlayingAtom);
-  const [pageElement, setPageElement] = useState<HTMLDivElement | null>(null);
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
-
-  useEffect(() => {
-    const container = pageElement?.closest("#app-container");
-    if (!container) return;
-    const onScroll = () => setShowScrollToTop(container.scrollTop > 300);
-    onScroll();
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
-  }, [pageElement]);
-
-  const scrollToTop = () => {
-    pageElement?.closest("#app-container")?.scrollTo({
-      top: 0,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
-    });
-  };
-
   const navigate = useNavigate();
   const { playNow, playNext, playLast } = useUploadPlayer();
   const credentials = useNavidromeCredentials();
@@ -1249,7 +1203,7 @@ export default function Library() {
 
   return (
     <Main>
-      <Page ref={setPageElement}>
+      <Page>
         <Header>
           <Title>My Library</Title>
           <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
@@ -1677,18 +1631,7 @@ export default function Library() {
             )}
           </Tab>
         </Tabs>
-        {showScrollToTop && (
-          <ScrollToTopButton
-            data-library-scroll-to-top
-            raised={!!nowPlaying}
-            type="button"
-            aria-label="Scroll to top"
-            title="Scroll to top"
-            onClick={scrollToTop}
-          >
-            <IconArrowUp size={22} aria-hidden="true" />
-          </ScrollToTopButton>
-        )}
+        <ScrollToTop />
       </Page>
     </Main>
   );

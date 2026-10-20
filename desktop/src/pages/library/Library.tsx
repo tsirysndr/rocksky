@@ -48,6 +48,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import type { NavidromePlaylist } from "../../api/navidrome";
 import { fetchNavidromePlaylist } from "../../api/navidrome";
 import Main from "../../layouts/Main";
+import ScrollToTop from "../../components/ScrollToTop";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import PlaylistSearch from "../../components/PlaylistSearch";
@@ -1363,6 +1364,7 @@ export default function Library({ sourceSwitcher }: { sourceSwitcher?: ReactNode
             )}
           </Tab>
         </Tabs>
+        <ScrollToTop />
       </Page>
     </Main>
   );
