@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { shuffled } from "../../lib/shuffle";
 import {
   IconAlertTriangle,
+  IconArrowUp,
   IconArrowsShuffle,
   IconDots,
   IconDownload,
@@ -125,6 +126,14 @@ const tabOverrides = {
 };
 
 const tabsOverrides = {
+  TabBar: {
+    style: {
+      position: "sticky" as const,
+      top: "80px",
+      zIndex: 1,
+      backgroundColor: "var(--color-background)",
+    },
+  },
   TabHighlight: { style: { backgroundColor: "var(--color-purple)" } },
   TabBorder: { style: { display: "none" } },
 };
@@ -136,6 +145,29 @@ const tabsOverrides = {
 const Page = styled.div`
   margin-top: 70px;
   margin-bottom: 150px;
+`;
+
+const ScrollToTopButton = styled.button`
+  position: fixed;
+  right: 24px;
+  bottom: calc(152px + env(safe-area-inset-bottom, 0px));
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  &:hover { filter: brightness(1.1); }
+  &:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 4px;
+  }
 `;
 
 const Header = styled.div`
@@ -1029,6 +1061,27 @@ function downloadFavorites(creds: NavidromeCredentials, songs: NavidromeSong[]) 
 // ---------------------------------------------------------------------------
 
 export default function Library() {
+  const [pageElement, setPageElement] = useState<HTMLDivElement | null>(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+
+  useEffect(() => {
+    const container = pageElement?.closest("#app-container");
+    if (!container) return;
+    const onScroll = () => setShowScrollToTop(container.scrollTop > 300);
+    onScroll();
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [pageElement]);
+
+  const scrollToTop = () => {
+    pageElement?.closest("#app-container")?.scrollTo({
+      top: 0,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  };
+
   const navigate = useNavigate();
   const { playNow, playNext, playLast } = useUploadPlayer();
   const credentials = useNavidromeCredentials();
@@ -1194,7 +1247,7 @@ export default function Library() {
 
   return (
     <Main>
-      <Page>
+      <Page ref={setPageElement}>
         <Header>
           <Title>My Library</Title>
           <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
@@ -1622,6 +1675,16 @@ export default function Library() {
             )}
           </Tab>
         </Tabs>
+        {showScrollToTop && (
+          <ScrollToTopButton
+            type="button"
+            aria-label="Scroll to top"
+            title="Scroll to top"
+            onClick={scrollToTop}
+          >
+            <IconArrowUp size={22} aria-hidden="true" />
+          </ScrollToTopButton>
+        )}
       </Page>
     </Main>
   );
