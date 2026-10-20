@@ -57,6 +57,33 @@ cargo build --release -p rockskyd --no-default-features --features submissions-s
 Other daemon services still have their existing database dependencies. The feature
 flags above select the **durable queue** backend, not the entire appview backend.
 
+## Local queue benchmark
+
+Use a disposable local PostgreSQL database named `rocksky_queue_bench`:
+
+```sh
+cargo run --release --locked -p rocksky-submissions --example queue_bench -- \
+  postgres://queuebench@127.0.0.1:55439/rocksky_queue_bench 20000 2
+```
+
+The arguments after the URL are jobs per case and repetitions. The benchmark
+**truncates the queue tables between cases** and refuses a remote host or another
+database name. It uses the actual queue and worker implementations, their default
+10-connection queue pool, and 8, 32, and 128 worker slots. Cases cover a no-op
+handler, a checkpoint lookup/write without application work, and that same
+checkpoint handler with fair scheduling (64 actors, per-actor cap 4, idle borrowing).
+
+Each case enqueues jobs through 32 concurrent producers, then drains the backlog.
+CSV output separates enqueue throughput, durably completed jobs per second, and
+jobs divided by combined enqueue/drain time. Producers and consumers do not run
+simultaneously; these are finite backlog measurements, not sustained streaming or
+HTTP throughput. Completion is checked in PostgreSQL after handlers return, with
+up to approximately 10 ms of polling overhead. A 500-job warmup is marked trial 0.
+Cases refresh planner statistics before draining; startup, truncation, and analyze
+time are excluded. Failures or retries invalidate a case. No PDS, catalog, OAuth,
+network API, or external indexing work runs. Durability settings are printed with
+the results; interpret local storage results in the context of those settings.
+
 ## systemd
 
 The repository includes [`rocksky-submissions.service`](../../systemd/rocksky-submissions.service).
