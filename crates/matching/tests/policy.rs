@@ -679,3 +679,53 @@ fn shared_recording_copies_still_obey_requested_album() {
     r.album = Some("Wrong album".into());
     assert_eq!(resolve(&r, copies).unwrap().status, Status::Unmatched);
 }
+
+#[test]
+fn a_stale_identifier_falls_back_to_text_matching() {
+    // Last.fm ships merged and outdated MBIDs. When no provider carries the
+    // supplied ID, it is unusable evidence rather than grounds to reject an
+    // otherwise clean title/artist match.
+    let mut r = request();
+    r.identifiers.musicbrainz_recording_id = Some("cd267b47-6491-41a7-b721-5bc73f0a1d5d".into());
+    let mut c = track("a", Some("Thriller"));
+    c.identifiers.spotify_track_id = Some("1OOtq8tRnDM8kG2gqUPjAj".into());
+    let resolved = resolve(&r, vec![c]).unwrap();
+    assert_eq!(resolved.status, Status::Matched);
+    assert_eq!(
+        resolved.track.and_then(|t| t.album),
+        Some("Thriller".into())
+    );
+}
+
+#[test]
+fn a_corroborated_identifier_still_rejects_the_unverified() {
+    // Once any candidate confirms the supplied ID, it is real identity
+    // evidence again and candidates that cannot confirm it stay rejected.
+    let mb = "7a9b8875-1dff-4589-b8a3-ac50b8752602";
+    let mut r = request();
+    r.identifiers.musicbrainz_recording_id = Some(mb.into());
+
+    let mut verified = track("verified", Some("Thriller"));
+    verified.identifiers.musicbrainz_recording_id = Some(mb.into());
+    let mut unverified = track("unverified", Some("Greatest Hits"));
+    unverified.identifiers.spotify_track_id = Some("1OOtq8tRnDM8kG2gqUPjAj".into());
+
+    let resolved = resolve(&r, vec![verified, unverified]).unwrap();
+    assert_eq!(resolved.status, Status::Matched);
+    assert_eq!(resolved.track.map(|t| t.id), Some("verified".into()));
+    assert!(resolved
+        .rejected
+        .iter()
+        .any(|r| r.id == "unverified" && r.reasons.iter().any(|x| x == "identifiers_unverified")));
+}
+
+#[test]
+fn a_conflicting_identifier_is_still_rejected() {
+    // A candidate that carries a different value for the same scheme
+    // contradicts the request outright; that is never a fallback case.
+    let mut r = request();
+    r.identifiers.musicbrainz_recording_id = Some("7a9b8875-1dff-4589-b8a3-ac50b8752602".into());
+    let mut c = track("a", Some("Thriller"));
+    c.identifiers.musicbrainz_recording_id = Some("cd267b47-6491-41a7-b721-5bc73f0a1d5d".into());
+    assert_eq!(status(&r, c), Status::Unmatched);
+}

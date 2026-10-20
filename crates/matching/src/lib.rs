@@ -9,7 +9,7 @@ pub mod service;
 pub mod spotify_auth;
 pub mod startup;
 
-pub const POLICY_VERSION: &str = "2";
+pub const POLICY_VERSION: &str = "3";
 
 use rocksky_core::credits::fold;
 use serde::{Deserialize, Serialize};
@@ -392,6 +392,23 @@ pub fn resolve(
         warnings: vec![],
     };
     let artists = artist_set(&request.artists);
+    // A supplied identifier is only identity evidence when some candidate can
+    // corroborate it. Stale and merged IDs reach us routinely (Last.fm ships
+    // both), and treating those as a hard requirement rejects every candidate
+    // from providers that simply do not carry that identifier scheme.
+    let identifiers_corroborated = candidates.iter().any(|candidate| {
+        request
+            .identifiers
+            .values()
+            .into_iter()
+            .zip(candidate.identifiers.values())
+            .any(|((kind, wanted), (_, actual))| match (wanted, actual) {
+                (Some(wanted), Some(actual)) => {
+                    id_normalize(kind, wanted) == id_normalize(kind, actual)
+                }
+                _ => false,
+            })
+    });
     let mut seen = BTreeSet::new();
     for candidate in candidates {
         let mut reasons = vec![];
@@ -445,7 +462,7 @@ pub fn resolve(
             .values()
             .iter()
             .any(|(_, v)| v.is_some());
-        if has_explicit_id && id_hits == 0 {
+        if has_explicit_id && id_hits == 0 && identifiers_corroborated {
             reasons.push("identifiers_unverified".into());
         }
         let same_title = titles_match(&request.title, &candidate.title);
