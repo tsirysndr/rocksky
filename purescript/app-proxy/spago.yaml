@@ -1,0 +1,14 @@
+package:
+  name: rocksky-app-proxy
+  description: Rocksky Cloudflare app proxy
+  dependencies:
+    - prelude
+    - aff
+    - aff-promise
+    - arrays
+    - effect
+    - either
+    - foldable-traversable
+    - maybe
+    - nullable
+    - strings

@@ -1,0 +1,34 @@
+module Rocksky.AppProxy.Metadata where
+
+metadata
+  :: { redirect_uris :: Array String
+     , response_types :: Array String
+     , grant_types :: Array String
+     , scope :: String
+     , token_endpoint_auth_method :: String
+     , token_endpoint_auth_signing_alg :: String
+     , jwks_uri :: String
+     , application_type :: String
+     , client_id :: String
+     , client_name :: String
+     , client_uri :: String
+     , dpop_bound_access_tokens :: Boolean
+     }
+metadata =
+  { redirect_uris: [ "https://rocksky.app/oauth/callback" ]
+  , response_types: [ "code" ]
+  , grant_types: [ "authorization_code", "refresh_token" ]
+  , scope:
+      "atproto repo:app.rocksky.album repo:app.rocksky.artist repo:app.rocksky.graph.follow repo:app.rocksky.like repo:app.rocksky.playlist repo:app.rocksky.playlist.song repo:app.rocksky.scrobble repo:app.rocksky.shout repo:app.rocksky.song repo:app.rocksky.feed.generator repo:fm.teal.feed.play repo:fm.teal.actor.status repo:fm.teal.alpha.feed.play repo:fm.teal.alpha.actor.status repo:app.rocksky.actor.status repo:app.rocksky.rockbox.audio.settings repo:app.rocksky.equalizer repo:community.lexicon.calendar.rsvp"
+  , token_endpoint_auth_method: "private_key_jwt"
+  , token_endpoint_auth_signing_alg: "ES256"
+  , jwks_uri: "https://rocksky.app/jwks.json"
+  , application_type: "web"
+  , client_id: "https://rocksky.app/oauth-client-metadata.json"
+  , client_name: "Rocksky"
+  , client_uri: "https://rocksky.app"
+  , dpop_bound_access_tokens: true
+  }
+
+jwks :: String
+jwks = """{"keys":[{"kty":"EC","use":"sig","alg":"ES256","kid":"2dfa3fd9-57b3-4738-ac27-9e6dadec13b7","crv":"P-256","x":"V_00KDnoEPsNqbt0y2Ke8v27Mv9WP70JylDUD5rvIek","y":"HAyjaQeA2DU6wjZO0ggTadUS6ij1rmiYTxzmWeBKfRc"},{"kty":"EC","use":"sig","alg":"ES256","kid":"5e816ff2-6bff-4177-b1c0-67ad3cd3e7cd","crv":"P-256","x":"YwEY5NsoYQVB_G7xPYMl9sUtxRbcPFNffnZcTS5nbPQ","y":"5n5mybPvISyYAnRv1Ii1geqKfXv2GA8p9Xemwx2a8CM"},{"kty":"EC","use":"sig","kid":"a1067a48-a54a-43a0-9758-4d55b51fdd8b","crv":"P-256","x":"yq17Nd2DGcjP1i9I0NN3RBmgSbLQUZOtG6ec5GaqzmU","y":"ieIU9mcfaZwAW5b3WgJkIRgddymG_ckcZ0n1XjbEIvc"}]}"""

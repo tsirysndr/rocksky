@@ -17,7 +17,7 @@
     "prod:views": "node --enable-source-maps api/dist/views.js",
     "script": "node bin/run.js",
     "test": "spago test",
-    "format": "purs-tidy format-in-place 'api/src/**/*.purs' 'api/test/**/*.purs' 'packages/*/src/**/*.purs'",
+    "format": "purs-tidy format-in-place 'api/src/**/*.purs' 'api/test/**/*.purs' 'packages/*/src/**/*.purs' 'app-proxy/src/**/*.purs'",
     "test:xrpc": "spago build -p rocksky-api && node bin/test-xrpc.js",
     "test:teal": "spago build -p rocksky-api && node bin/test-teal.js",
     "test:typesense": "spago build -p rocksky-api && node bin/test-typesense.js",
@@ -89,7 +89,10 @@
     "backfill:jetstream": "node bin/run.js Rocksky.Scripts.BackfillJetstream",
     "test:jetstream-backfill": "bun run build && node bin/test-jetstream-backfill.js",
     "repair:artist-pictures": "node bin/run.js Rocksky.Scripts.RepairArtistPictures",
-    "test:artist-pictures": "node --test ../tools/db/artist-pictures.test.mjs"
+    "test:artist-pictures": "node --test ../tools/db/artist-pictures.test.mjs",
+    "build:app-proxy": "spago build -p rocksky-app-proxy",
+    "bundle:app-proxy": "bun run build:app-proxy && esbuild app-proxy/worker.js --bundle --format=esm --platform=browser --outfile=app-proxy/dist/worker.js",
+    "test:app-proxy": "spago build -p rocksky-app-proxy && node bin/test-app-proxy.js"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",

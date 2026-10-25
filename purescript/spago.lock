@@ -764,6 +764,26 @@
           ]
         }
       },
+      "rocksky-app-proxy": {
+        "path": "app-proxy",
+        "core": {
+          "dependencies": [
+            "aff",
+            "aff-promise",
+            "arrays",
+            "effect",
+            "either",
+            "foldable-traversable",
+            "maybe",
+            "nullable",
+            "prelude",
+            "strings"
+          ]
+        },
+        "test": {
+          "dependencies": []
+        }
+      },
       "rsql": {
         "path": "packages/rsql",
         "core": {

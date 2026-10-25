@@ -384,3 +384,11 @@ After building, run `TEST_DATABASE_URL=postgres://... node bin/test-notification
 to check the recipient rules and batched delivery against PostgreSQL. The test
 uses temporary tables on its own connection. It is also included in
 `bun run test:shouts-likes` and skips when `TEST_DATABASE_URL` is unset.
+
+## App proxy Worker
+
+The `app-proxy/` package ports `../apps/app-proxy` to PureScript for Cloudflare
+Workers. Build with `bun run build:app-proxy`, run its regression suite with
+`bun run test:app-proxy`, and create a standalone Worker bundle with
+`bun run bundle:app-proxy`. See [app-proxy/README.md](app-proxy/README.md) for
+module layout, environment bindings, and Wrangler commands.
