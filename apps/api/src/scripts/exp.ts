@@ -11,7 +11,12 @@ await updateExpiresAt(db);
 await refreshSessionsAboutToExpire(db, ctx);
 
 // run every 1 minute
-cron.schedule("* * * * *", async () => {
-  consola.info("Running session refresh job...");
-  await refreshSessionsAboutToExpire(db, ctx);
-});
+// UTC so a DST fall-back cannot repeat the local hour and spin the scheduler.
+cron.schedule(
+  "* * * * *",
+  async () => {
+    consola.info("Running session refresh job...");
+    await refreshSessionsAboutToExpire(db, ctx);
+  },
+  { timezone: "UTC" },
+);
