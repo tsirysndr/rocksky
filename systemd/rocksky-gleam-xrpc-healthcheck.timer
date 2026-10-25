@@ -1,0 +1,11 @@
+[Unit]
+Description=Probe the Rocksky Gleam XRPC API every minute
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=rocksky-gleam-xrpc-healthcheck.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Health check for the Rocksky Gleam XRPC API
+After=rocksky-gleam-xrpc.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/github/rocksky/gleam
+ExecStart=/bin/bash deploy/healthcheck.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-gleam-xrpc-healthcheck
