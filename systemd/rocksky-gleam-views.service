@@ -1,0 +1,26 @@
+[Unit]
+Description=Rocksky Materialized View Refresher (Gleam)
+After=network-online.target
+Wants=network-online.target
+# One refresher at a time: a concurrent REFRESH of the same view only contends.
+Conflicts=rocksky-xrpc-views.service rocksky-purescript-views.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/gleam
+ExecStartPre=/bin/bash -ic 'exec /bin/bash deploy/build-production.sh'
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- env NODE_ENV=production node entry/views.mjs'
+TimeoutStartSec=15min
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-gleam-views
+Environment=HOME=/root
+Environment=USER=root
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/default/rocksky-gleam
+
+[Install]
+WantedBy=multi-user.target

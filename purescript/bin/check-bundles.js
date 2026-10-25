@@ -5,7 +5,7 @@ import {spawnSync} from 'node:child_process';
 const envSource=await readFile(new URL('../api/src/Rocksky/Lib/Env.purs',import.meta.url),'utf8');
 const env={...process.env,NODE_ENV:'test'};
 for(const [,key] of envSource.matchAll(/"([A-Z0-9_]+)": str required/g))env[key]='bundle-smoke-test';
-for(const name of ['index','server']){
+for(const name of ['index','server','views']){
  const file=new URL(`../api/dist/${name}.js`,import.meta.url);
  const source=await readFile(file,'utf8');
  assert.equal([...source.matchAll(/^main\(\);$/gm)].length,1,'exactly one entrypoint invocation');

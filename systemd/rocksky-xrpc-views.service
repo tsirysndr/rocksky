@@ -1,0 +1,24 @@
+[Unit]
+Description=Rocksky Materialized View Refresher (TypeScript)
+After=network.target
+Wants=network-online.target
+# One refresher at a time: a concurrent REFRESH of the same view only contends.
+Conflicts=rocksky-gleam-views.service rocksky-purescript-views.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/apps/api
+ExecStart=/bin/bash -ic 'exec doppler run -- bun run prod:views'
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-xrpc-views
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+[Install]
+WantedBy=multi-user.target

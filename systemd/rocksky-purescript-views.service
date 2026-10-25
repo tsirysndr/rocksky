@@ -1,0 +1,31 @@
+[Unit]
+Description=Rocksky Materialized View Refresher (PureScript)
+After=network-online.target
+Wants=network-online.target
+# One refresher at a time: a concurrent REFRESH of the same view only contends.
+Conflicts=rocksky-gleam-views.service rocksky-xrpc-views.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/purescript
+# Use the tools installed on the host. Secrets are only needed at runtime.
+ExecStartPre=/bin/bash -ic 'exec bash bin/build-production.sh'
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- bun run prod:views'
+# Rebuild on restart; allow time for the initial native/compiler dependency build.
+TimeoutStartSec=30min
+TimeoutStopSec=60
+Restart=always
+RestartSec=10
+KillMode=control-group
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-purescript-views
+
+Environment=HOME=/root
+Environment=USER=root
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/default/rocksky-purescript
+
+[Install]
+WantedBy=multi-user.target
