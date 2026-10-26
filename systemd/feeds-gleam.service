@@ -2,7 +2,7 @@
 Description=Rocksky Feed Generator (Gleam)
 After=network-online.target
 Wants=network-online.target
-Conflicts=rocksky-feeds.service
+Conflicts=rocksky-feeds.service feeds-purescript.service
 
 [Service]
 Type=simple

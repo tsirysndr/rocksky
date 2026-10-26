@@ -107,6 +107,7 @@ sudo systemctl enable --now feeds-gleam.service
 sudo systemctl status feeds-gleam.service
 ```
 
-Run these commands from the repository root. The units conflict to prevent two
-feed generators from occupying the same port. The current deployment workflow
+Run these commands from the repository root. The Gleam unit conflicts with both `rocksky-feeds.service` and
+`feeds-purescript.service` to prevent competing feed generators from occupying
+the same port. The current deployment workflow
 still restarts `rocksky-feeds`; update that workflow when switching production.
