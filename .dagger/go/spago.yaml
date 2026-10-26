@@ -1,0 +1,14 @@
+package:
+  name: dagger-module
+  dependencies:
+    - aff
+    - arrays
+    - exceptions
+    - maybe
+    - strings
+    - dagger-sdk
+    - effect
+    - prelude
+workspace:
+  packageSet:
+    registry: 77.8.0

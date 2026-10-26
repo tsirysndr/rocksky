@@ -1,0 +1,4 @@
+/.spago
+/output
+/node_modules
+/.env

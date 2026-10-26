@@ -1,0 +1,14 @@
+# PureScript SDK and module scopes for local development and GitHub Actions.
+[modules.purescript]
+source = ".dagger/sdk/purescript"
+
+[sdks.purescript]
+module = "purescript"
+
+[sdks.purescript.scopes.".dagger/go"]
+is-module = true
+name = "go-checks"
+
+[sdks.purescript.scopes.".dagger/typescript"]
+is-module = true
+name = "typescript-checks"
