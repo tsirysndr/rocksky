@@ -401,3 +401,11 @@ with `(cd cli && bun install --frozen-lockfile)`, build with `bun run build:cli`
 and run `node cli/index.js --help` (or omit arguments for the TUI).
 Run `bun run test:cli` for regressions. See [cli/README.md](cli/README.md)
 for code boundaries, configuration, and native requirements.
+
+## Feed generator
+
+The `feeds/` package ports `../apps/feeds` to PureScript and Node.js, using the
+shared Drizzle bindings and schemas. Build with `bun run build:feeds`, start
+with `bun run start:feeds`, and test with `bun run test:feeds`. It preserves all
+52 feeds and their HTTP endpoints. See [feeds/README.md](feeds/README.md) for
+configuration, telemetry, and the optional PostgreSQL integration test.
