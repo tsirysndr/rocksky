@@ -562,18 +562,25 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onLike = () => {
-    if (!nowPlaying) return;
-    setLiked((prev) => ({ ...prev, [nowPlaying.songUri]: true }));
-    like(nowPlaying.songUri);
-    setNowPlaying((prev) => prev ? { ...prev, liked: true } : prev);
+  const likePending = useRef(false);
+  const toggleLike = async (value: boolean) => {
+    if (!nowPlaying?.songUri || likePending.current) return;
+    const uri = nowPlaying.songUri;
+    const previous = liked[uri] ?? !!nowPlaying.liked;
+    likePending.current = true;
+    setLiked((prev) => ({ ...prev, [uri]: value }));
+    setNowPlaying((prev) => prev?.songUri === uri ? { ...prev, liked: value } : prev);
+    try {
+      await (value ? like(uri) : unlike(uri));
+    } catch {
+      setLiked((prev) => ({ ...prev, [uri]: previous }));
+      setNowPlaying((prev) => prev?.songUri === uri ? { ...prev, liked: previous } : prev);
+    } finally {
+      likePending.current = false;
+    }
   };
-  const onDislike = () => {
-    if (!nowPlaying) return;
-    setLiked((prev) => ({ ...prev, [nowPlaying.songUri]: false }));
-    unlike(nowPlaying.songUri);
-    setNowPlaying((prev) => prev ? { ...prev, liked: false } : prev);
-  };
+  const onLike = () => { void toggleLike(true); };
+  const onDislike = () => { void toggleLike(false); };
 
   const onPlayPause = async () => {
     if (!nowPlaying) return;

@@ -7,7 +7,7 @@ import {
   type StoryItem,
 } from "../../../shared/browser/storyModel";
 import { getSongByUri, getAlbum } from "../api/library";
-import { like, unlike, likeTrackById, unlikeTrackById } from "../api/likes";
+import useLike from "../hooks/useLike";
 import useShout from "../hooks/useShout";
 import { resolveMentionFacets } from "../lib/richtext";
 import SignInModal from "./SignInModal";
@@ -25,6 +25,7 @@ export default function StoryViewer({
   const [signIn, setSignIn] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { like, unlike, likeTrackById, unlikeTrackById } = useLike();
   const { shout } = useShout();
 
   return (
@@ -63,7 +64,6 @@ export default function StoryViewer({
               ? likeTrackById(story.trackId)
               : unlikeTrackById(story.trackId));
           else throw new Error("Track unavailable");
-          void queryClient.invalidateQueries({ queryKey: ["stories"] });
         }}
         renderMediaPicker={(pickerProps) => <MediaPicker {...pickerProps} />}
         onPostShout={async (uri, message, gif) => {

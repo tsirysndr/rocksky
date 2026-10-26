@@ -4,10 +4,7 @@ import { IconMusic } from "@tabler/icons-react";
 import InteractionBar from "./InteractionBar";
 import useLike from "../../hooks/useLike";
 import SignInModal from "../SignInModal";
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAtomValue } from "jotai";
-import { feedGeneratorUriAtom } from "../../atoms/feed";
+import { useEffect, useState } from "react";
 
 const Cover = styled.img<{ size?: number }>`
   border-radius: 8px;
@@ -68,36 +65,34 @@ export type SongCoverProps = {
 };
 
 function SongCover(props: SongCoverProps) {
-  const queryClient = useQueryClient();
-  const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [liked, setLiked] = useState(props.liked);
   const { like, unlike } = useLike();
   const [likesCount, setLikesCount] = useState(props.likesCount);
   const { title, artist, cover, size, uri, withLikeButton } = props;
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    setLiked(props.liked);
+    setLikesCount(props.likesCount);
+  }, [uri, props.liked, props.likesCount]);
   const handleLike = async () => {
     if (!uri) return;
     if (!localStorage.getItem("token")) {
       setIsSignInOpen(true);
       return;
     }
-    if (liked) {
-      setLiked(false);
-      if (likesCount !== undefined && likesCount > 0) {
-        setLikesCount(likesCount - 1);
-      }
-      await unlike(uri);
-    } else {
-      setLiked(true);
-      if (likesCount !== undefined) {
-        setLikesCount(likesCount + 1);
-      }
-      await like(uri);
+    if (pending) return;
+    setPending(true);
+    setLiked(!liked);
+    if (likesCount !== undefined) setLikesCount(Math.max(0, likesCount + (liked ? -1 : 1)));
+    try {
+      await (liked ? unlike(uri) : like(uri));
+    } catch {
+      setLiked(liked);
+      setLikesCount(likesCount);
+    } finally {
+      setPending(false);
     }
-
-    await queryClient.invalidateQueries({
-      queryKey: ["infiniteFeed", feedUri],
-    });
   };
   return (
     <CoverWrapper>

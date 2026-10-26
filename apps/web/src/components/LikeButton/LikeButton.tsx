@@ -1,6 +1,5 @@
 import styled from "@emotion/styled";
 import { useRef, useState } from "react";
-import { likeTrackById, unlikeTrackById } from "../../api/likes";
 import useLike from "../../hooks/useLike";
 import HeartFilled from "../Icons/Heart";
 import HeartOutline from "../Icons/HeartOutline";
@@ -55,7 +54,7 @@ function LikeButton({ uri, trackId, liked, withLabel }: Props) {
     if (!pending && !!liked !== isLiked) setIsLiked(!!liked);
   }
   const [signInOpen, setSignInOpen] = useState(false);
-  const { like, unlike } = useLike();
+  const { like, unlike, likeTrackById, unlikeTrackById } = useLike();
 
   if (!uri && !trackId) return null;
 

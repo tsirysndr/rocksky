@@ -42,6 +42,12 @@ function SongCard({ song }: { song: Record<string, unknown> }) {
     ? `/${songUri.split("at://")[1].replace("app.rocksky.", "")}`
     : null;
 
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    setLiked(!!song.liked);
+    setLikesCount((song.likesCount as number) || 0);
+  }, [songUri, song.liked, song.likesCount]);
+
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -49,14 +55,17 @@ function SongCard({ song }: { song: Record<string, unknown> }) {
       setIsSignInOpen(true);
       return;
     }
-    if (liked) {
-      setLiked(false);
-      setLikesCount((c) => Math.max(0, c - 1));
-      unlike(songUri);
-    } else {
-      setLiked(true);
-      setLikesCount((c) => c + 1);
-      like(songUri);
+    if (!songUri || pending) return;
+    setPending(true);
+    setLiked(!liked);
+    setLikesCount(Math.max(0, likesCount + (liked ? -1 : 1)));
+    try {
+      await (liked ? unlike(songUri) : like(songUri));
+    } catch {
+      setLiked(liked);
+      setLikesCount(likesCount);
+    } finally {
+      setPending(false);
     }
   };
 

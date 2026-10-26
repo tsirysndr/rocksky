@@ -1,6 +1,6 @@
 import { IconHeart, IconHeartFilled } from "@tabler/icons-react";
 import { useRef, useState } from "react";
-import { like, unlike } from "../../api/likes";
+import useLike from "../../hooks/useLike";
 import SignInModal from "../SignInModal";
 
 type Props = {
@@ -12,6 +12,7 @@ type Props = {
 };
 
 export default function LikeButton({ uri, liked, withLabel }: Props) {
+  const { like, unlike } = useLike();
   const [isLiked, setIsLiked] = useState(!!liked);
   const [pending, setPending] = useState(false);
 
