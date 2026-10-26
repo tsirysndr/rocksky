@@ -1,0 +1,32 @@
+[Unit]
+Description=Rocksky Feed Generator (PureScript)
+After=network-online.target
+Wants=network-online.target
+# Both implementations bind the configured feed-generator port.
+Conflicts=rocksky-feeds.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/purescript
+# Install workspace dependencies before enabling this service.
+# Build without runtime secrets; use the tools installed on the host.
+ExecStartPre=/bin/bash -ic 'exec bun run build:feeds'
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- node feeds/index.js'
+TimeoutStartSec=30min
+TimeoutStopSec=60
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=feeds-purescript
+
+Environment=HOME=/root
+Environment=USER=root
+Environment=NODE_ENV=production
+Environment=OTEL_SERVICE_NAME=rocksky-feeds
+EnvironmentFile=-/etc/default/feeds-purescript
+
+[Install]
+WantedBy=multi-user.target
