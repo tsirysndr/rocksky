@@ -170,8 +170,10 @@ const retrieve = ({
       // Latest-scrobble-per-user over the whole table is a full sort of
       // scrobbles; bound it to recent activity and only pay the unbounded
       // scan when the window can't fill the page.
-      let rows = await fetchRows(30);
-      if (rows.length < size) {
+      // Feed skeletons already bound the candidates; include old entries
+      // immediately instead of repeating the query for a short page.
+      let rows = await fetchRows(feedUris ? undefined : 30);
+      if (!feedUris && rows.length < size) {
         rows = await fetchRows();
       }
 
@@ -225,8 +227,10 @@ const resolveFeedScrobbleUris = async (
   if (!feed) {
     throw new Error(`Feed not found`);
   }
-  const feedUrl = env.PUBLIC_URL.includes("localhost")
-    ? "http://localhost:8002"
+  const isOwnFeedgen = env.PUBLIC_URL.includes("localhost") ||
+    feed.did === env.ROCKSKY_FEEDGEN_DID;
+  const feedUrl = isOwnFeedgen
+    ? `http://localhost:${env.ROCKSKY_FEEDGEN_PORT}`
     : `https://${feed.did.split("did:web:")[1]}`;
   const response = await axios.get<{
     cursor?: string;

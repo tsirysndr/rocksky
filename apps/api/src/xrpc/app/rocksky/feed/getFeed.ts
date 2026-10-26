@@ -1,4 +1,3 @@
-import type { HandlerAuth } from "@atproto/xrpc-server";
 import axios from "axios";
 import { consola } from "consola";
 import type { Context } from "context";
@@ -22,8 +21,7 @@ const cacheKey = (params: QueryParams, version: number, did?: string) =>
   `feed:getFeed:v2:${did ?? "anon"}:${params.feed}:${version}:${params.limit ?? ""}:${params.cursor ?? ""}`;
 
 export default function (server: Server, ctx: Context) {
-  const getFeed = (params: QueryParams, auth: HandlerAuth) => {
-    const did = auth.credentials?.did;
+  const getFeed = (params: QueryParams, did?: string) => {
 
     return pipe(
       Effect.tryPromise({
@@ -68,10 +66,21 @@ export default function (server: Server, ctx: Context) {
       }),
     );
   };
+  // Only share in-flight work; Redis still controls expiry and versions.
+  const runFeed = (params: QueryParams, did?: string) =>
+    Effect.runPromise(getFeed(params, did));
+  const pending = new Map<string, ReturnType<typeof runFeed>>();
   server.app.rocksky.feed.getFeed({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
-      const result = await Effect.runPromise(getFeed(params, auth));
+      const did = auth.credentials?.did;
+      const key = JSON.stringify([params.feed, params.limit, params.cursor, did]);
+      let request = pending.get(key);
+      if (!request) {
+        request = runFeed(params, did).finally(() => pending.delete(key));
+        pending.set(key, request);
+      }
+      const result = await request;
       return {
         encoding: "application/json",
         body: result,
