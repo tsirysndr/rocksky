@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "crates/xataid-extension/**"
+      - ".dagger/**"
+      - "dagger.toml"
+      - "dagger.lock"
       - ".github/workflows/docker-build-and-push-postgres.yml"
 
 jobs:
@@ -15,37 +18,20 @@ jobs:
       contents: read
       packages: write
 
+    defaults:
+      run:
+        working-directory: .dagger
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker
-        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Build and Publish image to Docker Hub
-        uses: fluentci-io/setup-fluentci@v5
-        with:
-          wasm: true
-          plugin: buildx
-          args: |
-            build_cloud --platform linux/amd64,linux/arm64 -t tsiry/postgres-xataid:latest crates/xataid-extension "--build-arg GITHUB_TOKEN=\"${GITHUB_ACCESS_TOKEN}\"" --push
+      - uses: actions/checkout@v4
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: Build and publish both PostgreSQL architectures (PureScript Dagger)
         env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUILDX_BUILDER: tsiry/rockbox-builder
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to Github Container Registry
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GH_USER: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker pull tsiry/postgres-xataid:latest
-          docker tag tsiry/postgres-xataid:latest ghcr.io/tsirysndr/postgres-xataid:${{ github.sha }}
-          docker tag tsiry/postgres-xataid:latest ghcr.io/tsirysndr/postgres-xataid:latest
-          docker push ghcr.io/tsirysndr/postgres-xataid:latest
+          dagger api call -m ops publish-postgres --source ../crates/xataid-extension \
+            --docker-user "$DOCKER_USER" --docker-password env://DOCKER_PASSWORD \
+            --github-user "$GH_USER" --github-token env://GH_TOKEN

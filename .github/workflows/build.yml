@@ -32,6 +32,7 @@ jobs:
               - '.github/workflows/build.yml'
             rockskyd:
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - 'crates/**'
@@ -62,10 +63,15 @@ jobs:
         working-directory: .dagger
         run: bash install-dagger.sh
       - name: Build rockskyd release binary (PureScript Dagger)
-        working-directory: .dagger
-        run: |
-          mkdir -p ../target/release
-          dagger api call -m rust rockskyd --source .. --output ../target/release/rockskyd
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-rockskyd
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rockskyd-release-amd64
+          command: |
+            mkdir -p ../target/release
+            dagger api call -m rust rockskyd --source .. --output ../target/release/rockskyd
+
       - name: Upload rockskyd binary
         uses: actions/upload-artifact@v4
         with:
@@ -87,63 +93,31 @@ jobs:
        needs.changes.outputs.mb == 'true')
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Download rockskyd binary
         if: needs.changes.outputs.rockskyd == 'true'
         uses: actions/download-artifact@v4
         with:
           name: rockskyd
           path: target/release
-      - name: Setup SSH
+      - name: Install pinned Dagger CLI
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Deploy selected services (PureScript Dagger)
+        working-directory: .dagger
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          DEPLOY_API: ${{ needs.changes.outputs.api }}
+          DEPLOY_ROCKSKYD: ${{ needs.changes.outputs.rockskyd }}
+          DEPLOY_EMBED: ${{ needs.changes.outputs.embed }}
+          DEPLOY_FEEDS: ${{ needs.changes.outputs.feeds }}
+          DEPLOY_WS: ${{ needs.changes.outputs.ws }}
+          DEPLOY_MB: ${{ needs.changes.outputs.mb }}
+          DEPLOY_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
-          echo "$SSH_PUBLIC_KEY"  | base64 -d > ~/.ssh/id_ed25519.pub
-          chmod 600 ~/.ssh/id_ed25519
-          chmod 644 ~/.ssh/id_ed25519.pub
-          ssh-keyscan -H ssh.rocksky.app >> ~/.ssh/known_hosts
-      - name: Pull latest on server
-        run: |
-          ssh root@ssh.rocksky.app 'cd /root/github/rocksky && git pull origin main && mkdir -p target/release'
-      - name: Build apps/api on server and restart
-        if: needs.changes.outputs.api == 'true'
-        env:
-          API_SERVICES: rocksky rocksky-xrpc
-        run: |
-          ssh root@ssh.rocksky.app "set -e; \
-            cd /root/github/rocksky/apps/api && \
-            /bin/bash -ic 'bun install --frozen-lockfile && bun run build'; \
-            systemctl restart $API_SERVICES; \
-            systemctl --no-pager --lines=0 status $API_SERVICES"
-      - name: Deploy rockskyd binary
-        if: needs.changes.outputs.rockskyd == 'true'
-        env:
-          ROCKSKYD_SERVICES: rocksky-jetstream rocksky-scrobbler rocksky-spotify rocksky-webscrobbler rocksky-navidrome rocksky-matching
-        run: |
-          chmod +x target/release/rockskyd
-          scp target/release/rockskyd root@ssh.rocksky.app:/root/github/rocksky/target/release/rockskyd.new
-          ssh root@ssh.rocksky.app "set -e; \
-            systemctl stop $ROCKSKYD_SERVICES; \
-            mv /root/github/rocksky/target/release/rockskyd.new /root/github/rocksky/target/release/rockskyd; \
-            chmod +x /root/github/rocksky/target/release/rockskyd; \
-            systemctl start $ROCKSKYD_SERVICES; \
-            systemctl --no-pager --lines=0 status $ROCKSKYD_SERVICES"
-      - name: Restart rocksky-embed
-        if: needs.changes.outputs.embed == 'true'
-        run: |
-          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-embed; systemctl --no-pager --lines=0 status rocksky-embed'
-      - name: Restart rocksky-feeds
-        if: needs.changes.outputs.feeds == 'true'
-        run: |
-          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-feeds; systemctl --no-pager --lines=0 status rocksky-feeds'
-      - name: Restart rocksky-ws
-        if: needs.changes.outputs.ws == 'true'
-        run: |
-          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-ws; systemctl --no-pager --lines=0 status rocksky-ws'
-      - name: Restart rocksky-mb
-        if: needs.changes.outputs.mb == 'true'
-        run: |
-          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-mb; systemctl --no-pager --lines=0 status rocksky-mb'
+          mkdir -p ../target/release
+          dagger api call -m ops deploy --scripts ops/scripts --artifacts ../target/release \
+            --private-key env://SSH_PRIVATE_KEY --public-key env://SSH_PUBLIC_KEY \
+            --api "$DEPLOY_API" --rockskyd "$DEPLOY_ROCKSKYD" --embed "$DEPLOY_EMBED" \
+            --feeds "$DEPLOY_FEEDS" --ws "$DEPLOY_WS" --mb "$DEPLOY_MB" --run-id "$DEPLOY_RUN"
