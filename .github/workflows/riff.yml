@@ -4,73 +4,29 @@ on:
   push:
     paths:
       - "riff/**"
+      - ".dagger/**"
+      - "dagger.toml"
+      - "dagger.lock"
       - ".github/workflows/riff.yml"
   pull_request:
     paths:
       - "riff/**"
+      - ".dagger/**"
+      - "dagger.toml"
+      - "dagger.lock"
       - ".github/workflows/riff.yml"
 
-# riff is its own cargo workspace (excluded from the root one), so every cargo
-# invocation runs from riff/.
 defaults:
   run:
-    working-directory: riff
+    working-directory: .dagger
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      # Cache Rust build artifacts. cargo.sh downloads and verifies the matching
-      # prebuilt static DuckDB release, then configures Cargo's linker paths.
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: riff
-          shared-key: riff
-          cache-on-failure: true
-
-      - name: cargo fmt
-        run: cargo fmt --all -- --check
-
-      - name: cargo clippy
-        run: ./cargo.sh clippy --release --all-targets -- -D warnings
-
-      - name: cargo test
-        run: ./cargo.sh test --release --all-targets
-
-      # The unit and e2e tests drive the app in-process. This step exercises the
-      # real binary over a real socket: CLI parsing, view registration at
-      # startup, and the HTTP surface a client actually talks to.
-      - name: smoke test the binary
-        run: |
-          set -euo pipefail
-          ./cargo.sh run --release --bin riff-fixtures -- --out testdata
-          ./cargo.sh run --release --bin riff -- --host 127.0.0.1 --port 8092 &
-          server=$!
-          trap 'kill $server 2>/dev/null || true' EXIT
-
-          for _ in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:8092/health >/dev/null; then break; fi
-            sleep 1
-          done
-          curl -sf http://127.0.0.1:8092/health | jq -e '.status == "ok"'
-
-          echo "--- GET / ---"
-          curl -sf http://127.0.0.1:8092/
-
-          # The query shape apps/api's matchSong actually sends.
-          curl -sfG http://127.0.0.1:8092/v1/search \
-            --data-urlencode 'type=track' \
-            --data-urlencode 'q=track:"Neon Tide" artist:"Kova Lune"' \
-            | jq -e '.tracks.items[0].name == "Neon Tide"'
-
-          curl -sf http://127.0.0.1:8092/v1/albums/riffalb000000000000003 \
-            | jq -e '.total_tracks == 6 and (.tracks.items | length) == 6'
-
-          curl -sf http://127.0.0.1:8092/v1/audio-features/rifftrk000000000000010 \
-            | jq -e '(.danceability | type) == "number"'
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: Riff lint, tests, and HTTP smoke checks (PureScript Dagger)
+        run: dagger api call -m rust riff --source ../riff

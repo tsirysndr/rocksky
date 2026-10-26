@@ -1,7 +1,7 @@
 # Rocksky CI in PureScript
 
-Four Dagger modules port ten jobs from `.github/workflows/tests.yml` and
-`.github/workflows/ci.yml`. The workflows retain their triggers and job names;
+Four Dagger modules port twelve jobs from `.github/workflows/tests.yml`,
+`.github/workflows/ci.yml`, and `.github/workflows/riff.yml`. The workflows retain their triggers and job names;
 `tests.yml` retains its path filters and concurrency. PureScript owns the
 container setup and commands.
 
@@ -17,6 +17,11 @@ container setup and commands.
 | `elixir` | `remote-ws` | `tests.yml: remote-ws` | Elixir 1.18 / OTP 27 relay tests |
 | `rust` | `matching` | `tests.yml: matching` | Locked release-mode matching regression suite |
 | `typescript` | `api-contracts` | `tests.yml: api-contracts` | Contract audits and API tests with PostgreSQL 16 |
+| `rust` | `submissions` | `tests.yml: submissions` | Dashboard checks, backend matrix, ingestion, and crash recovery |
+| `rust` | `riff` | `riff.yml: test` | Formatting, Clippy, tests, and real HTTP smoke checks |
+
+All test jobs in `tests.yml` now call PureScript Dagger functions. GitHub Actions
+still owns change detection and job scheduling.
 
 ## Run locally
 
@@ -36,6 +41,8 @@ cd .dagger
 ./bin/dagger api call -m rust sdk --source ../sdk/rust
 ./bin/dagger api call -m rust tracklist --source ..
 ./bin/dagger api call -m rust matching --source ..
+./bin/dagger api call -m rust submissions --source ..
+./bin/dagger api call -m rust riff --source ../riff
 ./bin/dagger api call -m elixir remote-ws --source ../remote-ws
 ./bin/dagger api call -m typescript api-contracts --source ..
 ```
@@ -43,8 +50,8 @@ cd .dagger
 Run from `.dagger`: its deliberately empty `.env` stops the beta CLI from reading
 application credentials in the repository's `.env`. Do not put secrets in this
 file. `source` is the selected project directory; services also take `otel` explicitly.
-Most functions accept a narrow project directory. `rust tracklist` and
-`rust matching` take the repository root because Cargo resolves every workspace
+Most functions accept a narrow project directory. `rust tracklist`,
+`rust matching`, and `rust submissions` take the repository root because Cargo resolves every workspace
 member; only `Cargo.toml`, `Cargo.lock`, and `crates/` enter their build containers.
 `typescript api-contracts` also takes the root to retain the complete Bun workspace,
 patches, and shared fixtures. Root inputs can upload more data; use a clean checkout.
@@ -102,6 +109,26 @@ its test-only database URL to the query tests. No production credentials are
 needed. Git metadata, Dagger files, host dependencies, Rust targets, and `.env`
 files are excluded from the container. Workspace manifests and patches also
 trigger this job, since they affect the frozen install.
+
+`rust submissions` runs the dashboard's frozen Bun install, tests, and
+`check:dist`, then preserves the PostgreSQL/SQLite feature matrix, Jetstream
+ingestion tests, default worker build, and Python HTTP/crash-recovery checks.
+Node 22, Bun 1.4.2, Python, and the PostgreSQL client run inside the Rust container.
+Dagger provides a fresh PostgreSQL 16 service with a `submissions_test` database.
+Database environment variables are scoped to the same commands as the old workflow.
+
+The dashboard check creates a temporary Git index containing the input `dist/`
+files before rebuilding. The existing `check:dist` script then detects changed,
+deleted, or newly generated assets without needing host Git metadata. In CI the
+input is the checked-out commit; locally it is the supplied working tree snapshot.
+
+`rust riff` takes only `riff/`, which is a standalone Cargo workspace. It runs
+formatting, Clippy with warnings denied, release tests, and `scripts/ci-smoke.sh`.
+The smoke script retains the workflow's fixture generation and checks health,
+the home page, track search, album contents, and audio features against a real
+background process. Its exit trap stops that process. The existing `cargo.sh`
+verifies the static DuckDB release; its download and Rust outputs share the
+Riff-specific target cache. Python, curl, and jq are installed in the container.
 
 ## SDK and generated bindings
 
