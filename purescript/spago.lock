@@ -784,6 +784,43 @@
           "dependencies": []
         }
       },
+      "rocksky-cli": {
+        "path": "cli",
+        "core": {
+          "dependencies": [
+            "aff",
+            "aff-promise",
+            "arrays",
+            "console",
+            "control",
+            "datetime",
+            "effect",
+            "either",
+            "exceptions",
+            "foldable-traversable",
+            "foreign",
+            "foreign-object",
+            "integers",
+            "js-uri",
+            "lists",
+            "maybe",
+            "node-fetch",
+            "now",
+            "nullable",
+            "numbers",
+            "ordered-collections",
+            "parallel",
+            "prelude",
+            "refs",
+            "rocksky-api",
+            "strings",
+            "tuples"
+          ]
+        },
+        "test": {
+          "dependencies": []
+        }
+      },
       "rsql": {
         "path": "packages/rsql",
         "core": {
@@ -1668,6 +1705,15 @@
         "prelude",
         "tuples",
         "unfoldable"
+      ]
+    },
+    "console": {
+      "type": "registry",
+      "version": "6.1.0",
+      "integrity": "sha256-3T5PPz1mATZmV0C4GzkCkpLlCa5xG7u8ZNgnLrrrI1Q=",
+      "dependencies": [
+        "effect",
+        "prelude"
       ]
     },
     "const": {

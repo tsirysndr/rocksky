@@ -1,0 +1,14 @@
+import {playerController} from '../../cli/runtime/tui/player.js';
+import * as Cache from '../../cli/runtime/tui/trackCache.js';
+import {getCreds} from '../../cli/runtime/tui/navidrome.js';
+export const isCached=item=>()=>Cache.isCached(item);
+export const cachePath=item=>Cache.cachePath(item)??'';
+export const cacheId=item=>Cache.cacheId(item)??'';
+export const cacheTrackImpl=token=>item=>()=>Cache.cacheTrack(token,item);
+export const getCredsImpl=token=>()=>getCreds(token);
+export const callImpl=name=>args=>async()=>{await playerController[name](...args);};
+export const status=()=>playerController.status();
+export const queue=()=>playerController.queueItems;
+export const restored=()=>playerController.restored;
+export const clearRestored=()=>{playerController.restored=null;};
+export const sameItem=left=>right=>left===right;

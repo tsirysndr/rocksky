@@ -1,0 +1,31 @@
+package:
+  name: rocksky-cli
+  description: Rocksky command-line client, terminal player, and integrations
+  dependencies:
+    - aff
+    - aff-promise
+    - arrays
+    - control
+    - console
+    - effect
+    - datetime
+    - either
+    - exceptions
+    - foldable-traversable
+    - foreign
+    - foreign-object
+    - integers
+    - js-uri
+    - lists
+    - maybe
+    - nullable
+    - numbers
+    - now
+    - ordered-collections
+    - parallel
+    - prelude
+    - refs
+    - strings
+    - tuples
+    - node-fetch
+    - rocksky-api
