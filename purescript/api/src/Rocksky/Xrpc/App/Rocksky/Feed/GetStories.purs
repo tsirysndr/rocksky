@@ -69,8 +69,13 @@ retrieve ctx params did = do
           # leftJoin T.users (SQL.eq (toSQL T.scrobblesC.userId) (toSQL T.usersC.id))
           # where_ (SQL.template ["", " IN (SELECT DISTINCT ON (inner_s.user_id) inner_s.xata_id FROM scrobbles inner_s ", " ORDER BY inner_s.user_id, inner_s.timestamp DESC, inner_s.xata_id DESC)"] [toSQL T.scrobblesC.id, innerWhere])
           # orderBy [SQL.desc (toSQL T.scrobblesC.timestamp)] # limit size) :: Aff (Array Story)
-    recent <- fetchRows true
-    rows <- if A.length recent < size then fetchRows false else pure recent
+    -- The feed service already bounds the candidates. Include older entries
+    -- in one query instead of retrying when there are fewer unique users.
+    rows <- case uris of
+      Just _ -> fetchRows false
+      Nothing -> do
+        recent <- fetchRows true
+        if A.length recent < size then fetchRows false else pure recent
     let ids = A.filter (_ /= "") (A.mapMaybe (toMaybe <<< _.trackId) rows)
     likes :: Array { trackId :: String, count :: Int, liked :: Boolean } <- if A.null ids then pure [] else run ctx.db
       (selectFieldsFrom { trackId: toSQL T.lovedTracksC.trackId, count: SQL.raw "count(*)::int"

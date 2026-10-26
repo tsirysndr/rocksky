@@ -20,9 +20,8 @@ import Rocksky.Schema as T
 import Rocksky.Schema.Feeds (SelectFeed)
 
 baseUrl :: Boolean -> String -> String
-baseUrl stories did =
-  if contains (Pattern "localhost") env."PUBLIC_URL" then "http://localhost:" <> if stories then "8002" else show env."ROCKSKY_FEEDGEN_PORT"
-  else if not stories && did == env."ROCKSKY_FEEDGEN_DID" then "http://localhost:" <> show env."ROCKSKY_FEEDGEN_PORT"
+baseUrl _ did =
+  if contains (Pattern "localhost") env."PUBLIC_URL" || did == env."ROCKSKY_FEEDGEN_DID" then "http://localhost:" <> show env."ROCKSKY_FEEDGEN_PORT"
   else "https://" <> fromMaybe "undefined" (index (split (Pattern "did:web:") did) 1)
 
 fetch :: Context -> Boolean -> String -> Foreign -> Aff Foreign

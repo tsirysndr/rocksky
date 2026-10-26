@@ -27,6 +27,7 @@ import Rocksky.Lexicon (Server)
 import Rocksky.Lib.Aff (recoverWith, retryTransientDb, timeoutMs)
 import Rocksky.Lib.FeedCache (getFeedVersion)
 import Rocksky.Lib.Foreign as F
+import Rocksky.Lib.QueryCache (queryCache)
 import Rocksky.Schema as T
 import Rocksky.Schema.Scrobbles (SelectScrobble)
 import Rocksky.Schema.Tracks (SelectTrack)
@@ -90,7 +91,10 @@ hydrate ctx uris cursor did = do
   pure (F.toForeign { feed, cursor })
 
 register :: Server -> Context -> Effect Unit
-register server ctx = Xrpc.method server "app.rocksky.feed.getFeed"
-  { auth: Just ctx.authVerifier
-  , handler: \input -> Xrpc.Json <$> recoverWith (F.toForeign { scrobbles: [] :: Array Foreign })
-      (timeoutMs 10000 (retryTransientDb (getFeed ctx (Util.params input) (Util.authDid input)))) }
+register server ctx = do
+  -- Share concurrent work only; Redis still controls expiry and versions.
+  pending <- queryCache (\key -> timeoutMs 10000 (retryTransientDb (getFeed ctx key.params key.did))) 0 100
+  Xrpc.method server "app.rocksky.feed.getFeed"
+    { auth: Just ctx.authVerifier
+    , handler: \input -> Xrpc.Json <$> recoverWith (F.toForeign { scrobbles: [] :: Array Foreign })
+        (pending { params: Util.params input, did: Util.authDid input }) }

@@ -18,7 +18,8 @@ const {Just,Nothing}=await import('../output/Data.Maybe/index.js');
 const run=aff=>fromAff(aff)();const none=Nothing.value;const dialect=new PgDialect();
 function mock(responses){const queries=[],projections=[];const db={select(projection){projections.push(projection);let table;const q={from(t){table=getTableName(t);return q},leftJoin(){return q},innerJoin(){return q},where(c){queries.push({table,sql:dialect.sqlToQuery(c)});return q},orderBy(){return q},groupBy(){return q},limit(n){queries.push({limit:n});return q},async execute(){assert.ok(responses[table]?.length,'Unexpected read '+table);return responses[table].shift()}};return q}};return {db,queries,projections,done(){for(const rows of Object.values(responses))assert.equal(rows.length,0)}};}
 const date=new Date('2026-01-01T00:00:00Z');const feed={id:'f',uri:'at://did:web:rocksky.test/app.rocksky.feed.generator/all',did:'did:web:rocksky.test',displayName:'All',description:null,avatar:null};
-assert.equal(Skeleton.baseUrl(false)(feed.did),'http://localhost:8003');assert.equal(Skeleton.baseUrl(true)(feed.did),'https://rocksky.test');assert.equal(Skeleton.baseUrl(false)('did:web:external.test'),'https://external.test');
+assert.equal(Skeleton.baseUrl(false)(feed.did),'http://localhost:8003');assert.equal(Skeleton.baseUrl(true)(feed.did),'http://localhost:8003');assert.equal(Skeleton.baseUrl(false)('did:web:external.test'),'https://external.test');
+assert.equal(Skeleton.baseUrl(true)('did:web:external.test'),'https://external.test');
 assert.notEqual(Feed.cacheKey({feed:feed.uri})(1)(none),Feed.cacheKey({feed:feed.uri})(1)(new Just('did:viewer')));
 assert.notEqual(Feed.cacheKey({feed:feed.uri})(1)(none),Feed.cacheKey({feed:feed.uri})(2)(none));
 {
@@ -57,7 +58,30 @@ try{
  {
   skeleton={feed:[]};const m=mock({feeds:[[feed]]});assert.deepEqual(await run(Stories.retrieve({db:m.db})({feed:feed.uri,following:true})(new Just('did:viewer'))),{stories:[]});m.done();
  }
+ {
+  skeleton={feed:[{scrobble:'old-scrobble'}]};
+  const row={trackId:null,timestamp:new Date('2020-01-01'),uri:'old-scrobble'};
+  const m=mock({feeds:[[feed]],scrobbles:[[row]]});
+  const result=await run(Stories.retrieve({db:m.db})({feed:feed.uri,size:80})(none));
+  assert.equal(result.stories[0].uri,'old-scrobble');
+  assert.equal(requests.at(-1).url,'http://localhost:8003/xrpc/app.rocksky.feed.getFeedSkeleton');
+  const statements=m.queries.filter(q=>q.table==='scrobbles');assert.equal(statements.length,1);
+  assert.doesNotMatch(statements[0].sql.sql,/make_interval/);assert.ok(statements[0].sql.params.includes('old-scrobble'));m.done();
+ }
  const server=createServer(await run(loadLexicons)),methods=new Map();server.method=(id,config)=>{methods.set(id,config);return server};
+ {
+  skeleton={feed:[],cursor:'next'};
+  const m=mock({feeds:[[feed],[feed],[feed]],scrobbles:[[],[],[]]});const cache=new Map();let version=0;
+  Feed.register(server)({db:m.db,authVerifier:()=>{},redis:{
+   async get(key){await new Promise(resolve=>setTimeout(resolve,5));return key.startsWith('feed:ver:')?String(version):cache.get(key)??null},
+   async setEx(key,ttl,value){assert.equal(ttl,30);cache.set(key,value)}
+  }})();
+  const call=methods.get('app.rocksky.feed.getFeed').handler;const before=requests.length;
+  const responses=await Promise.all(Array.from({length:8},()=>call({params:{feed:feed.uri,limit:30}})));
+  assert.equal(requests.length-before,1);assert.ok(responses.every(r=>r.body.cursor==='next'));
+  version++;await call({params:{feed:feed.uri,limit:30}});assert.equal(requests.length-before,2);
+  await call({params:{feed:feed.uri,limit:31}});assert.equal(requests.length-before,3);m.done();
+ }
  Stories.register(server)({authVerifier:()=>{}})();await assert.rejects(methods.get('app.rocksky.feed.getStories').handler({params:{following:true}}),/Authentication required/);
  {
   const m=mock({feeds:[[],[{feeds:feed,users:{id:'u',did:'did:u',handle:'u.test',displayName:'U',avatar:null}}]]});
