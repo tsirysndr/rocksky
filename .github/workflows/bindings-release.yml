@@ -50,17 +50,16 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG"
-      - name: Ensure release exists (auto-creates the tag)
+      - name: Install pinned Dagger CLI
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Ensure release exists (PureScript Dagger)
+        working-directory: .dagger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --title "Rocksky binding libraries ($TAG)" \
-              --notes "Native binding libraries (librocksky_uniffi + rocksky_nif) for the Rocksky SDKs. Managed by bindings-release.yml." \
-              --target "$GITHUB_SHA" --prerelease
-          fi
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: dagger api call -m ops ensure-release --scripts ops/scripts --project bindings --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -81,12 +80,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: runner.os != 'Linux'
       - name: Build native libs (${{ matrix.target }})
+        if: runner.os != 'Linux'
         run: bash "$WORKDIR/build-native.sh" "${{ matrix.target }}"
+      - name: Install pinned Dagger CLI
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Build Linux binding libraries (PureScript Dagger)
+        if: runner.os == 'Linux'
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-bindings-release
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-bindings-release-${{ matrix.target }}
+          command: |
+            dagger api call -m rust bindings-release --source .. --target "$RELEASE_TARGET" --output ../sdk/scripts/dist
+
       - name: Upload to release
+        if: runner.os != 'Linux'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ needs.prepare-release.outputs.tag }}" "$WORKDIR"/dist/* --clobber
+      - name: Upload binding libraries (PureScript Dagger)
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: dagger api call -m ops upload-release --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   # BSDs — best-effort, built inside a cross-platform-actions VM. No system deps:
   # the SDK crates use rustls (no OpenSSL). RocksDB (dedup feature) is not built here.
@@ -122,7 +148,14 @@ jobs:
             export CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_PROFILE_RELEASE_STRIP=symbols
             bash sdk/scripts/build-native.sh ${{ matrix.target }}
             ls -l sdk/scripts/dist
-      - name: Upload to release
+      - name: Install pinned Dagger CLI
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Upload binding libraries (PureScript Dagger)
+        if: runner.os == 'Linux'
+        working-directory: .dagger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ needs.prepare-release.outputs.tag }}" "$WORKDIR"/dist/* --clobber
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: dagger api call -m ops upload-release --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"

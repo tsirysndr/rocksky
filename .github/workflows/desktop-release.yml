@@ -45,40 +45,16 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#desktop-v}" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG (version ${TAG#desktop-v})"
-      - name: Ensure release exists (auto-creates the tag)
+      - name: Install pinned Dagger CLI
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Ensure release exists (PureScript Dagger)
+        working-directory: .dagger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          gh release view "$TAG" >/dev/null 2>&1 && exit 0
-          cat > notes.md <<'EOF'
-          Rocksky desktop player.
-
-          ## macOS
-
-          ```sh
-          brew install --cask tsirysndr/tap/rocksky
-          ```
-
-          The app is **ad-hoc signed and not notarized** (no Apple Developer
-          account yet), so the first launch is blocked. Open it once, then go to
-          **System Settings → Privacy & Security** and click **Open Anyway** next
-          to the Rocksky message. Or clear the quarantine flag yourself:
-
-          ```sh
-          xattr -dr com.apple.quarantine /Applications/Rocksky.app
-          ```
-
-          ## Linux
-
-          Grab the `.deb`, `.rpm`, or `.AppImage` below.
-
-          Managed by `.github/workflows/desktop-release.yml`.
-          EOF
-          gh release create "$TAG" \
-            --title "Rocksky Desktop ${TAG#desktop-v}" \
-            --notes-file notes.md \
-            --target "$GITHUB_SHA"
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: dagger api call -m ops ensure-release --scripts ops/scripts --project desktop --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -95,49 +71,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libasound2-dev \
-            libpcsclite-dev \
-            libxdo-dev \
-            libssl-dev \
-            libfribidi0 \
-            libharfbuzz0b \
-            libgles2 \
-            build-essential \
-            pkg-config \
-            patchelf \
-            rpm \
-            file \
-            binutils \
-            squashfs-tools \
-            python3 \
-            xvfb \
-            xauth \
-            x11-utils \
-            dbus-x11
 
       - uses: oven-sh/setup-bun@v2
+        if: runner.os != 'Linux'
         with:
           bun-version: 1.2.15
 
       - uses: dtolnay/rust-toolchain@stable
+        if: runner.os != 'Linux'
         with:
           targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
+        if: runner.os != 'Linux'
         with:
           workspaces: desktop/src-tauri
           shared-key: desktop-${{ matrix.target }}
           cache-on-failure: true
 
       - name: Install workspace dependencies
+        if: runner.os != 'Linux'
         working-directory: .
         run: bun install --frozen-lockfile
 
@@ -145,10 +98,12 @@ jobs:
       # is gitignored — without this the frontend's `tsc -b` cannot find the
       # module and every SDK-derived type collapses to an error.
       - name: Build @rocksky/sdk
+        if: runner.os != 'Linux'
         working-directory: sdk/typescript
         run: bun run build
 
       - name: Stamp version from tag
+        if: runner.os != 'Linux'
         env:
           VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
@@ -156,11 +111,9 @@ jobs:
           mv /tmp/conf.json src-tauri/tauri.conf.json
           echo "bundle version: $(jq -r .version src-tauri/tauri.conf.json)"
 
-      - name: Prepare portable AppImage launcher and libraries
-        if: runner.os == 'Linux'
-        run: bash scripts/prepare-appimage.sh "$RUNNER_TEMP/rocksky-appimage.json"
 
       - name: tauri build
+        if: runner.os != 'Linux'
         env:
           # Ad-hoc signing: no Apple Developer identity, no notarization. The
           # explicit codesign pass below is what actually guarantees it — this
@@ -183,24 +136,6 @@ jobs:
             --bundles ${{ matrix.bundles }} \
             "${extra_config[@]}"
 
-      - name: Verify AppImage permissions, dependencies, and startup
-        if: runner.os == 'Linux'
-        env:
-          LIBGL_ALWAYS_SOFTWARE: "1"
-        run: |
-          set -euo pipefail
-          images=(src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage)
-          [ "${#images[@]}" -eq 1 ] && [ -f "${images[0]}" ]
-          image="$(realpath "${images[0]}")"
-          stage="$(mktemp -d)"
-          # The runtime's --appimage-extract creates directories with 0700,
-          # regardless of their stored mode. Inspect actual SquashFS modes.
-          offset="$("$image" --appimage-offset)"
-          [[ "$offset" =~ ^[0-9]+$ ]]
-          unsquashfs -no-progress -o "$offset" -d "$stage/squashfs-root" "$image" >/dev/null
-          python3 scripts/check-appimage.py "$stage/squashfs-root"
-          dbus-run-session -- xvfb-run -a \
-            python3 scripts/smoke-appimage.py "$stage/squashfs-root/AppRun"
 
       - name: Package macOS bundle (ad-hoc signed)
         if: runner.os == 'macOS'
@@ -224,18 +159,9 @@ jobs:
 
           ditto -c -k --sequesterRsrc --keepParent "$APP" "Rocksky_${VERSION}_${ARCH}.app.zip"
 
-      - name: Collect Linux bundles
-        if: runner.os == 'Linux'
-        env:
-          VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: |
-          set -euo pipefail
-          BUNDLE="src-tauri/target/${{ matrix.target }}/release/bundle"
-          cp "$BUNDLE"/deb/*.deb "Rocksky_${VERSION}_amd64.deb"
-          cp "$BUNDLE"/rpm/*.rpm "Rocksky_${VERSION}_x86_64.rpm"
-          cp "$BUNDLE"/appimage/*.AppImage "Rocksky_${VERSION}_amd64.AppImage"
 
       - name: Checksums
+        if: runner.os != 'Linux'
         run: |
           set -euo pipefail
           for f in Rocksky_*; do
@@ -244,8 +170,35 @@ jobs:
           done
           ls -l Rocksky_*
 
+      - name: Install pinned Dagger CLI
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Build and verify Linux desktop bundles (PureScript Dagger)
+        if: runner.os == 'Linux'
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+          KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
+        uses: ./.github/actions/dagger
+        with:
+          module: ops
+          key: ops-desktop-release
+          volumes: rocksky-desktop-cargo-registry,rocksky-desktop-cargo-git,rocksky-desktop-bun,rocksky-desktop-tauri,rocksky-desktop-release-amd64
+          command: |
+            dagger api call -m ops desktop-release --source .. --version "$VERSION" --klipy-key env://KLIPY_API_KEY --output "$RUNNER_TEMP/desktop-assets"
+
       - name: Upload to release
+        if: runner.os != 'Linux'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ needs.prepare-release.outputs.tag }}" Rocksky_* --clobber
+
+      - name: Upload Linux desktop bundles (PureScript Dagger)
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: dagger api call -m ops upload-release --assets "$RUNNER_TEMP/desktop-assets" --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"

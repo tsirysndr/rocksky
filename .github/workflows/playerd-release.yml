@@ -40,17 +40,16 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG"
-      - name: Ensure release exists (auto-creates the tag)
+      - name: Install pinned Dagger CLI
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Ensure release exists (PureScript Dagger)
+        working-directory: .dagger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --title "playerd ${TAG#playerd-}" \
-              --notes "Rocksky remote player daemon. Managed by playerd-release.yml." \
-              --target "$GITHUB_SHA"
-          fi
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: dagger api call -m ops ensure-release --scripts ops/scripts --project playerd --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -70,33 +69,64 @@ jobs:
       CARGO_PROFILE_RELEASE_STRIP: symbols
     steps:
       - uses: actions/checkout@v4
-      - name: Install system dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config dbus
       - uses: dtolnay/rust-toolchain@stable
+        if: runner.os != 'Linux'
       - uses: Swatinem/rust-cache@v2
+        if: runner.os != 'Linux'
         with:
           workspaces: playerd
           shared-key: playerd-${{ matrix.target }}
           cache-on-failure: true
       - name: cargo build --release
+        if: runner.os != 'Linux'
         run: cargo build --release --locked
       - name: Test playerd and playback engine
+        if: runner.os != 'Linux'
         run: |
           cargo test --release --locked --bin playerd
           cargo test --release --locked -p rockbox-playback --lib
-      - name: Test Linux MPRIS on an isolated session bus
+      - name: Install pinned Dagger CLI
         if: runner.os == 'Linux'
-        run: dbus-run-session -- cargo test --release --locked --bin playerd mpris::tests -- --ignored
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Build and test Linux playerd (PureScript Dagger)
+        if: runner.os == 'Linux'
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-playerd-release
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-playerd-release-${{ matrix.target }}
+          command: |
+            mkdir -p ../playerd/target/release
+            dagger api call -m rust playerd-release --source .. --target "$RELEASE_TARGET" --output ../playerd/target/release/playerd
+
       - name: Package tarball
+        if: runner.os != 'Linux'
         run: |
           TAG="${{ needs.prepare-release.outputs.tag }}"
           ASSET="playerd-${TAG#playerd-}-${{ matrix.target }}.tar.gz"
           tar -C target/release -czf "$ASSET" playerd
           shasum -a 256 "$ASSET" > "$ASSET.sha256"
       - name: Upload to release
+        if: runner.os != 'Linux'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ needs.prepare-release.outputs.tag }}" \
             playerd-*.tar.gz playerd-*.tar.gz.sha256 --clobber
+
+      - name: Package and upload Linux release (PureScript Dagger)
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          dagger api call -m ops package-release --binary "../playerd/target/release/playerd" \
+            --project playerd --tag "$RELEASE_TAG" --target "$RELEASE_TARGET" --output "$RUNNER_TEMP/release-assets"
+          dagger api call -m ops upload-release --assets "$RUNNER_TEMP/release-assets" \
+            --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"

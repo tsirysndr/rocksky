@@ -39,17 +39,16 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG"
-      - name: Ensure release exists (auto-creates the tag)
+      - name: Install pinned Dagger CLI
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Ensure release exists (PureScript Dagger)
+        working-directory: .dagger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --title "rocksky-mcp ${TAG#rocksky-mcp-}" \
-              --notes "Model Context Protocol server for Rocksky. Managed by rocksky-mcp-release.yml." \
-              --target "$GITHUB_SHA"
-          fi
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: dagger api call -m ops ensure-release --scripts ops/scripts --project rocksky-mcp --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -92,15 +91,21 @@ jobs:
         run: bash install-dagger.sh
       - name: Build Linux MCP release binary (PureScript Dagger)
         if: runner.os == 'Linux'
-        working-directory: .dagger
         env:
           RELEASE_TARGET: ${{ matrix.target }}
-        run: |
-          mkdir -p "../rocksky-mcp/target/$RELEASE_TARGET/release"
-          dagger api call -m rust mcp-release --source .. --target "$RELEASE_TARGET" \
-            --output "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp"
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-mcp-release
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-mcp-release-${{ matrix.target }}
+          command: |
+            mkdir -p "../rocksky-mcp/target/$RELEASE_TARGET/release"
+            dagger api call -m rust mcp-release --source .. --target "$RELEASE_TARGET" \
+              --output "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp"
+
       # Native macOS and Windows builds and all release packaging stay on the runner.
       - name: Package tarball
+        if: runner.os != 'Linux'
         shell: bash
         run: |
           TAG="${{ needs.prepare-release.outputs.tag }}"
@@ -113,9 +118,24 @@ jobs:
             sha256sum "$ASSET" > "$ASSET.sha256"
           fi
       - name: Upload to release
+        if: runner.os != 'Linux'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ needs.prepare-release.outputs.tag }}" \
             rocksky-mcp-*.tar.gz rocksky-mcp-*.tar.gz.sha256 --clobber
+
+      - name: Package and upload Linux release (PureScript Dagger)
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          dagger api call -m ops package-release --binary "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp" \
+            --project rocksky-mcp --tag "$RELEASE_TAG" --target "$RELEASE_TARGET" --output "$RUNNER_TEMP/release-assets"
+          dagger api call -m ops upload-release --assets "$RUNNER_TEMP/release-assets" \
+            --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
