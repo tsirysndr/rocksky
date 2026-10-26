@@ -31,10 +31,31 @@ sdk client source = do
   void $ Container.sync environment
   pure "TypeScript SDK tests passed"
 
+-- tsx invokes Node, so provide Node as well as the pinned Bun installer.
+cli :: Client -> Directory -> Aff String
+cli client source = do
+  let
+    bun = Query.container client # Container.from "oven/bun:1.4.2"
+    environment = Query.container client
+      # Container.from "node:22-bookworm-slim"
+      # Container.withFile "/usr/local/bin/bun" (Container.file "/usr/local/bin/bun" bun)
+      # Container.withMountedCache "/root/.bun/install/cache" (Query.cacheVolume "rocksky-cli-bun" client)
+      # Container.withWorkdir "/src"
+      # Container.withDirectoryWith "/src" source
+          (Container.defaultWithDirectoryOpts
+            { exclude = Just [ "node_modules", "dist", ".git", ".env", ".env.*" ] })
+      -- Preserve the existing non-frozen install; the CLI lockfile is historical.
+      # Container.withExec [ "bun", "install" ]
+      # Container.withExec [ "bun", "run", "test" ]
+  void $ Container.sync environment
+  pure "CLI smoke tests passed"
+
 main :: Effect Unit
 main = CI.runModule
   [ Module.object_ "TypescriptChecks" {}
       [ Module.function "sdk" "Install locked dependencies and run TypeScript SDK tests."
           (Module.argument "source") sdk
+      , Module.function "cli" "Install CLI dependencies and run its import parser smoke tests."
+          (Module.argument "source") cli
       ]
   ]
