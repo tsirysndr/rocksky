@@ -1,4 +1,3 @@
-import gleam/dynamic/decode
 import gleam/json
 import gleam/option.{None, Some}
 import gleam/string
@@ -8,8 +7,8 @@ import rocksky_api/atproto/identity
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
-  all_columns, eq, eq_columns, field, from, inner_join, one, returning_one,
-  select, set, update, where,
+  all_columns, eq, eq_columns, field, left_join, nested, nullable, one,
+  optional_selection, pair, returning_one, select, set, update, where,
 }
 import rocksky_api/drizzle/schema/spotify_accounts as sa
 import rocksky_api/drizzle/schema/spotify_tokens as st
@@ -20,7 +19,6 @@ import rocksky_api/lib/agent
 import rocksky_api/lib/bsky_profile
 import rocksky_api/lib/id_resolver
 import rocksky_api/lib/profile_user
-import rocksky_api/node/axios
 import rocksky_api/node/js
 import rocksky_api/node/nats
 import rocksky_api/node/xrpc_server.{type Server}
@@ -77,69 +75,49 @@ fn retrieve(ctx: Context, requested, caller) {
           ))
       }
   })
-  use endpoint <- task.then(case requested {
-    None | Some("") -> task.ok(None)
-    _ -> {
-      let url = case string.starts_with(did, "did:plc:") {
-        True -> ctx.env.plc_directory_url <> "/" <> did
-        False ->
-          "https://" <> string.drop_start(did, 8) <> "/.well-known/did.json"
-      }
-      use response <- task.map(
-        task.attempt_result(axios.get(
-          axios.global(),
-          url,
-          axios.default_options(),
-        )),
-      )
-      decode.run(
-        response.data,
-        decode.at(
-          ["service"],
-          decode.list(decode.field(
-            "serviceEndpoint",
-            decode.string,
-            decode.success,
-          )),
-        ),
-      )
-      |> option.from_result
-      |> option.then(fn(services) {
-        case services {
-          [first, ..] -> Some(first)
-          [] -> None
-        }
-      })
-    }
-  })
-  use agent <- task.then(case endpoint {
-    Some(endpoint) -> task.ok(Some(atp.atp_agent(endpoint)))
-    None -> agent.create(ctx, did) |> task.rescue(fn(_) { task.ok(None) })
-  })
   let users = u.table()
-  use existing <- task.then(
-    from(users) |> where(eq(u.did(users), did)) |> one(ctx.db),
-  )
-  use resolved <- task.then(bsky_profile.fetch(
-    ctx.env.bsky_appview_url,
-    did,
-    agent,
-  ))
-  use handle <- task.then(id_resolver.resolve_did_to_handle(ctx.resolver, did))
   let spotify = sa.table()
   let tokens = st.table()
-  use accounts <- task.then(task.all2(
-    select(spotify, all_columns(spotify))
-      |> inner_join(users, eq_columns(sa.user_id(spotify), u.id(users)))
+  // Public profile and identity work can run while the account row is read.
+  // The optional Spotify joins preserve users without either account record.
+  use gathered <- task.then(task.all2(
+    select(
+      users,
+      pair(
+        nested("user", all_columns(users)),
+        pair(
+          nested("spotify", all_columns(spotify)) |> optional_selection,
+          field("tokenId", nullable(st.id(tokens))),
+        ),
+      ),
+    )
+      |> left_join(spotify, eq_columns(sa.user_id(spotify), u.id(users)))
+      |> left_join(tokens, eq_columns(st.user_id(tokens), u.id(users)))
       |> where(eq(u.did(users), did))
       |> one(ctx.db),
-    select(tokens, field("id", st.id(tokens)))
-      |> inner_join(users, eq_columns(st.user_id(tokens), u.id(users)))
-      |> where(eq(u.did(users), did))
-      |> one(ctx.db),
+    task.all2(
+      id_resolver.resolve_did_to_handle(ctx.resolver, did),
+      bsky_profile.fetch_with_fallback(ctx.env.bsky_appview_url, did, fn() {
+        case requested {
+          None | Some("") -> agent.create(ctx, did)
+          _ -> {
+            use data <- task.map(
+              task.attempt_result(identity.resolve_atproto_data(
+                ctx.resolver,
+                did,
+              )),
+            )
+            Some(atp.atp_agent(data.pds))
+          }
+        }
+      }),
+    ),
   ))
-  use user <- task.map(refresh(ctx, did, handle, resolved, existing))
-  profile.Detailed(user, accounts.0, accounts.1 != None)
+  let existing = option.map(gathered.0, fn(r) { r.0 })
+  let spotify = option.then(gathered.0, fn(r) { r.1.0 })
+  let connected = option.then(gathered.0, fn(r) { r.1.1 }) != None
+  use user <- task.map(refresh(ctx, did, gathered.1.0, gathered.1.1, existing))
+  profile.Detailed(user, spotify, connected)
 }
 
 pub fn refresh(

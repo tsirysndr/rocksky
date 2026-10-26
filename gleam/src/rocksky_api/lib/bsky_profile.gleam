@@ -24,6 +24,15 @@ pub fn fetch(
   did: String,
   agent: Option(Agent),
 ) -> Task(Profile) {
+  fetch_with_fallback(appview_url, did, fn() { task.ok(agent) })
+}
+
+/// Resolve a PDS/session only when the public AppView cannot serve the profile.
+pub fn fetch_with_fallback(
+  appview_url: String,
+  did: String,
+  get_agent: fn() -> Task(Option(Agent)),
+) -> Task(Profile) {
   let appview = agent.atp_agent(appview_url)
   use primary <- promise.await(agent.get_profile(appview, did))
   case primary {
@@ -36,6 +45,9 @@ pub fn fetch(
       log.warn_exception(
         "AppView getProfile failed for " <> did <> "; falling back to PDS:",
         e,
+      )
+      use agent <- task.then(
+        get_agent() |> task.rescue(fn(_) { task.ok(None) }),
       )
       case agent {
         None -> task.ok(empty())
