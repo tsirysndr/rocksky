@@ -1,0 +1,321 @@
+import { Box, Text, useApp, useInput } from "ink";
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
+import React, { useEffect, useRef } from "react";
+import { AddToPlaylistView } from "./AddToPlaylistView.js";
+import { AuthView } from "./AuthView.js";
+import { CacheView } from "./CacheView.js";
+import { EqualizerView } from "./EqualizerView.js";
+import { HelpView } from "./HelpView.js";
+import { RockskyClient } from "../client.js";
+import { likedIdsAtom, useToggleLike } from "./likes.js";
+import { queryClient } from "./queryClient.js";
+import { initMpris, type MprisHandle } from "./mpris.js";
+import { startMpdServer, type MpdServerHandle } from "../mpd/server.js";
+import { loadSettings } from "./settings.js";
+import { MusicView } from "./MusicView.js";
+import { PlayerBar } from "./PlayerBar.js";
+import { prefetchTick, resumeSession, skipNext, skipPrev } from "./playback.js";
+import { playerController, Repeat } from "./player.js";
+import { scrobblerTick } from "./scrobbler.js";
+import { ProfileView } from "./ProfileView.js";
+import { QueueView } from "./QueueView.js";
+import { ScrobblesView } from "./ScrobblesView.js";
+import { SearchOverlay } from "./SearchOverlay.js";
+import { saveSession } from "./session.js";
+import {
+  addToPlaylistAtom,
+  authAtom,
+  authOpenAtom,
+  helpOpenAtom,
+  playerStatusAtom,
+  queueOpenAtom,
+  cacheOpenAtom,
+  scrobbledTitleAtom,
+  searchContextAtom,
+  searchOpenAtom,
+  soundOpenAtom,
+  queueVersionAtom,
+  nfcMessageAtom,
+  tabAtom,
+} from "./store.js";
+import { startNfcWatch } from "./nfc.js";
+import { BLUE } from "./theme.js";
+import { useFullScreen } from "./useFullScreen.js";
+
+const TABS = ["Global Scrobbles", "My Music", "Profile"];
+
+export function App() {
+  const { exit } = useApp();
+  const { rows, cols } = useFullScreen();
+  const [tab, setTab] = useAtom(tabAtom);
+  const setPlayerStatus = useSetAtom(playerStatusAtom);
+  const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom);
+  const setSearchContext = useSetAtom(searchContextAtom);
+  const [queueOpen, setQueueOpen] = useAtom(queueOpenAtom);
+  const [soundOpen, setSoundOpen] = useAtom(soundOpenAtom);
+  const [helpOpen, setHelpOpen] = useAtom(helpOpenAtom);
+  const [authOpen, setAuthOpen] = useAtom(authOpenAtom);
+  const [cacheOpen, setCacheOpen] = useAtom(cacheOpenAtom);
+  const [addTrack, setAddTrack] = useAtom(addToPlaylistAtom);
+  const token = useAtomValue(authAtom);
+  const setScrobbledTitle = useSetAtom(scrobbledTitleAtom);
+  const setQueueVersion = useSetAtom(queueVersionAtom);
+  const setLikedIds = useSetAtom(likedIdsAtom);
+  const [nfcMessage, setNfcMessage] = useAtom(nfcMessageAtom);
+  const toggleLike = useToggleLike(token);
+
+  const overlayOpen =
+    searchOpen ||
+    queueOpen ||
+    soundOpen ||
+    helpOpen ||
+    authOpen ||
+    cacheOpen ||
+    addTrack != null;
+
+  // Expose the player over MPD (opt-in) so external clients — mpc, ncmpcpp,
+  // MALP — can control this exact session and browse the library. It shares the
+  // same playerController, so TUI and MPD state stay in sync both ways.
+  useEffect(() => {
+    const settings = loadSettings();
+    if (!settings.mpd.enabled) return;
+    let handle: MpdServerHandle | null = null;
+    const store = getDefaultStore();
+    startMpdServer({
+      getToken: () => store.get(authAtom),
+      port: settings.mpd.port,
+      bind: settings.mpd.bind,
+    })
+      .then((h) => {
+        handle = h;
+      })
+      .catch(() => {
+        // No socket (e.g. port unavailable) — the TUI keeps working.
+      });
+    return () => handle?.close();
+  }, []);
+
+  // On Linux, expose the player over MPRIS (D-Bus) for media keys / desktop UI.
+  const mprisRef = useRef<MprisHandle | null>(null);
+  useEffect(() => {
+    let handle: MprisHandle | null = null;
+    initMpris().then((h) => {
+      handle = h;
+      mprisRef.current = h;
+    });
+    return () => {
+      handle?.close();
+      mprisRef.current = null;
+    };
+  }, []);
+
+  // Tap an NFC tag to play the album or playlist it holds. Reads the token from
+  // the store on each tap rather than closing over it, so signing in mid-session
+  // doesn't need the watcher restarted (which would drop the reader).
+  useEffect(() => {
+    const store = getDefaultStore();
+    return startNfcWatch(() => store.get(authAtom), setNfcMessage);
+  }, [setNfcMessage]);
+
+  // NFC notices are transient; clear them so the footer doesn't keep showing a
+  // tap from ten minutes ago.
+  useEffect(() => {
+    if (!nfcMessage) return;
+    const id = setTimeout(() => setNfcMessage(""), 6000);
+    return () => clearTimeout(id);
+  }, [nfcMessage, setNfcMessage]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPlayerStatus(playerController.status());
+      mprisRef.current?.update();
+    }, 500);
+    return () => clearInterval(id);
+  }, [setPlayerStatus]);
+
+  // Persist the queue + playback position periodically so it survives restarts.
+  useEffect(() => {
+    const id = setInterval(
+      () => saveSession(playerController.sessionSnapshot()),
+      5000,
+    );
+    return () => clearInterval(id);
+  }, []);
+
+  // Seed the set of liked song URIs from the user's loved songs.
+  useEffect(() => {
+    if (!token) return;
+    const client = new RockskyClient(token);
+    client
+      .getCurrentUser()
+      .then((u: any) => client.getLovedSongs(u.did))
+      .then((tracks: any[]) =>
+        setLikedIds(
+          new Set(tracks.map((t) => t.id).filter(Boolean) as string[]),
+        ),
+      )
+      .catch(() => {});
+  }, [token, setLikedIds]);
+
+  // Refresh the queue view instantly whenever the queue mutates.
+  useEffect(() => {
+    playerController.onQueueChange = () => setQueueVersion((v) => v + 1);
+    return () => {
+      playerController.onQueueChange = null;
+    };
+  }, [setQueueVersion]);
+
+  // Apply Last.fm scrobbling rules and precache the next track (at 50%).
+  useEffect(() => {
+    const id = setInterval(() => {
+      scrobblerTick(token, (item) => setScrobbledTitle(item.title));
+      prefetchTick(token);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [token, setScrobbledTitle]);
+
+  const listHeight = Math.max(5, rows - 14);
+
+  useInput(
+    (input, key) => {
+      if (input === "q" || (key.ctrl && input === "c")) {
+        // Note: don't call the native close() here — its audio-teardown can
+        // block. Just unmount; cmd/tui force-exits, which frees the device.
+        exit();
+        return;
+      }
+      // Open overlays
+      if (input === "/") {
+        setSearchContext(tab === 1 ? "uploads" : "global");
+        setSearchOpen(true);
+        return;
+      }
+      if (input === "Q") return setQueueOpen(true);
+      if (input === "e") return setSoundOpen(true);
+      if (input === "?") return setHelpOpen(true);
+      if (input === "A") return setAuthOpen(true);
+      if (input === "C") return setCacheOpen(true);
+
+      // Tabs
+      if (key.tab) setTab((t) => (t + 1) % TABS.length);
+      if (input === "1") setTab(0);
+      if (input === "2") setTab(1);
+      if (input === "3") setTab(2);
+
+      // Transport
+      if (input === " ") {
+        const st = playerController.status();
+        if (playerController.restored && (!st || st.state === "stopped")) {
+          if (token) void resumeSession(token);
+        } else {
+          playerController.toggle();
+        }
+      }
+      if (input === "n" && token) void skipNext(token);
+      if (input === "p" && token) void skipPrev(token);
+      if (input === "+" || input === "=") playerController.nudgeVolume(0.05);
+      if (input === "-" || input === "_") playerController.nudgeVolume(-0.05);
+
+      // Shuffle / repeat
+      if (input === "s") playerController.toggleShuffle();
+      if (input === "r") playerController.setRepeat(Repeat.All);
+      if (input === "o") playerController.setRepeat(Repeat.One);
+      if (input === "0") playerController.setRepeat(Repeat.Off);
+
+      // Like the currently-playing track (My Music likes the selected one).
+      if (input === "f" && tab !== 1) {
+        void toggleLike(playerController.currentItem()?.trackId);
+      }
+
+      // Add the currently-playing track to a playlist (My Music adds selection).
+      if (input === ";" && tab !== 1) {
+        const cur = playerController.currentItem();
+        if (cur?.trackId)
+          setAddTrack({ trackId: cur.trackId, title: cur.title });
+      }
+
+      // Force-refresh the live scrobble feeds.
+      if (input === "R") {
+        queryClient.invalidateQueries({ queryKey: ["globalScrobbles"] });
+        queryClient.invalidateQueries({ queryKey: ["actorScrobbles"] });
+      }
+    },
+    { isActive: !overlayOpen },
+  );
+
+  return (
+    <Box flexDirection="column" width={cols} height={rows} padding={1}>
+      <Box marginBottom={1}>
+        <Text bold color={BLUE}>
+          {"♫ Rocksky   "}
+        </Text>
+        {TABS.map((label, i) => (
+          <Text
+            key={label}
+            bold={i === tab}
+            inverse={i === tab}
+            color={i === tab ? BLUE : undefined}
+            dimColor={i !== tab}
+          >
+            {` ${i + 1} ${label} `}
+          </Text>
+        ))}
+      </Box>
+
+      <Box flexDirection="column" flexGrow={1}>
+        {/* Tab views stay mounted (hidden) while an overlay is open, so their
+            navigation state — mode, drill path, selection — is preserved. */}
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          display={overlayOpen ? "none" : "flex"}
+        >
+          <Box flexDirection="column" display={tab === 0 ? "flex" : "none"}>
+            <ScrobblesView
+              isActive={tab === 0 && !overlayOpen}
+              height={listHeight}
+            />
+          </Box>
+          <Box flexDirection="column" display={tab === 1 ? "flex" : "none"}>
+            <MusicView
+              isActive={tab === 1 && !overlayOpen}
+              height={listHeight}
+            />
+          </Box>
+          <Box flexDirection="column" display={tab === 2 ? "flex" : "none"}>
+            <ProfileView
+              height={listHeight}
+              isActive={tab === 2 && !overlayOpen}
+            />
+          </Box>
+        </Box>
+
+        {addTrack != null ? (
+          <AddToPlaylistView />
+        ) : authOpen ? (
+          <AuthView />
+        ) : cacheOpen ? (
+          <CacheView />
+        ) : helpOpen ? (
+          <HelpView />
+        ) : searchOpen ? (
+          <SearchOverlay height={listHeight} />
+        ) : queueOpen ? (
+          <QueueView height={listHeight} />
+        ) : soundOpen ? (
+          <EqualizerView />
+        ) : null}
+      </Box>
+
+      <Box flexDirection="column">
+        <PlayerBar />
+        {nfcMessage ? (
+          <Text color={BLUE} wrap="truncate-end">{`⌁ ${nfcMessage}`}</Text>
+        ) : null}
+        <Text dimColor wrap="truncate-end">
+          {"? help · / search · Q queue · e eq · Space play/pause · n/p next/prev · Tab tabs · q quit"}
+        </Text>
+      </Box>
+    </Box>
+  );
+}

@@ -1,0 +1,54 @@
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { logger } from "../logger.js";
+function cleanUpSyncLockOnExit(did) {
+  process.on("exit", async () => {
+    try {
+      await fs.promises.unlink(path.join(os.tmpdir(), `rocksky-${did}.lock`));
+      process.exit(0);
+    } catch (error) {
+      logger.error`Error cleaning up Sync lock: ${error}`;
+      process.exit(1);
+    }
+  });
+  process.on("SIGINT", async () => {
+    try {
+      await fs.promises.unlink(path.join(os.tmpdir(), `rocksky-${did}.lock`));
+      process.exit(0);
+    } catch (error) {
+      logger.error`Error cleaning up Sync lock: ${error}`;
+      process.exit(1);
+    }
+  });
+  process.on("SIGTERM", async () => {
+    try {
+      await fs.promises.unlink(path.join(os.tmpdir(), `rocksky-${did}.lock`));
+      process.exit(0);
+    } catch (error) {
+      logger.error`Error cleaning up Sync lock: ${error}`;
+      process.exit(1);
+    }
+  });
+  process.on("uncaughtException", async () => {
+    try {
+      await fs.promises.unlink(path.join(os.tmpdir(), `rocksky-${did}.lock`));
+      process.exit(1);
+    } catch (error) {
+      logger.error`Error cleaning up Sync lock: ${error}`;
+      process.exit(1);
+    }
+  });
+  process.on("unhandledRejection", async () => {
+    try {
+      await fs.promises.unlink(path.join(os.tmpdir(), `rocksky-${did}.lock`));
+      process.exit(1);
+    } catch (error) {
+      logger.error`Error cleaning up Sync lock: ${error}`;
+      process.exit(1);
+    }
+  });
+}
+export {
+  cleanUpSyncLockOnExit
+};

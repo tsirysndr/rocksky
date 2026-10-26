@@ -1,0 +1,40 @@
+import { AtpAgent } from "@atproto/api";
+import { ctx } from "../context.js";
+import { eq } from "drizzle-orm";
+import authSessions from "../schema/auth-session.js";
+import extractPdsFromDid from "./extractPdsFromDid.js";
+import { env } from "./env.js";
+import { logger } from "../logger.js";
+async function createAgent(did, handle) {
+  const pds = await extractPdsFromDid(did);
+  const agent = new AtpAgent({
+    service: new URL(pds)
+  });
+  try {
+    const [data] = await ctx.db.select().from(authSessions).where(eq(authSessions.key, did)).execute();
+    if (!data) {
+      throw new Error("No session found");
+    }
+    await agent.resumeSession(JSON.parse(data.session));
+    return agent;
+  } catch (e) {
+    logger.error`Resuming session ${did}`;
+    await ctx.db.delete(authSessions).where(eq(authSessions.key, did)).execute();
+    await agent.login({
+      identifier: handle,
+      password: env.ROCKSKY_PASSWORD
+    });
+    await ctx.db.insert(authSessions).values({
+      key: did,
+      session: JSON.stringify(agent.session)
+    }).onConflictDoUpdate({
+      target: authSessions.key,
+      set: { session: JSON.stringify(agent.session) }
+    }).execute();
+    logger.info`Logged in as ${handle}`;
+    return agent;
+  }
+}
+export {
+  createAgent
+};

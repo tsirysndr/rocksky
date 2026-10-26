@@ -1,0 +1,79 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { render } from "ink";
+import { loadToken } from "../lib/token.js";
+import React from "react";
+import { App } from "../tui/App.js";
+import { closeNfc } from "../tui/nfc.js";
+import { playerController } from "../tui/player.js";
+import { queryClient } from "../tui/queryClient.js";
+import { startRockskyRemote } from "../tui/rockskyWs.js";
+import { saveSession } from "../tui/session.js";
+import { loadSession } from "../tui/session.js";
+import { loadSettings, saveSettings } from "../tui/settings.js";
+
+// Leave the alternate screen buffer and re-show the cursor, restoring whatever
+// was on the terminal before the TUI launched.
+function restoreTerminal() {
+  process.stdout.write("\x1b[?1049l\x1b[?25h");
+}
+
+export async function tui(opts: { output?: string } = {}) {
+  if (!process.stdin.isTTY) {
+    console.error("The Rocksky TUI requires an interactive terminal.");
+    process.exit(1);
+  }
+
+  // Safety net: restore the terminal however the process ends (q, Ctrl-C, crash).
+  process.on("exit", restoreTerminal);
+
+  // Restore persisted sound / transport preferences and keep them saved
+  // (debounced) whenever they change. A `--output` flag overrides the persisted
+  // audio backend for this run without being written back to settings.toml.
+  const settings = loadSettings();
+  if (opts.output) settings.output = opts.output;
+  playerController.applySettings(settings);
+  let saveTimer: NodeJS.Timeout;
+  playerController.onSettingsChange = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(
+      () => saveSettings(playerController.snapshotSettings()),
+      400,
+    );
+  };
+
+  // Restore the last playback session (queue + position) — not auto-played;
+  // the user resumes from the player bar.
+  const session = loadSession();
+  if (session) {
+    playerController.restoreSession({
+      items: session.queue,
+      index: session.index,
+      positionMs: session.positionMs,
+    });
+  }
+
+  // Expose this player to the web/mobile miniplayers as a controllable device
+  // and mirror its now-playing there in real time.
+  const remote = startRockskyRemote(() => loadToken());
+
+  const { waitUntilExit } = render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>,
+  );
+  await waitUntilExit();
+
+  // Flush pending settings + final session on exit.
+  // Ink has fully unmounted here; leave the alternate screen last so the TUI is
+  // cleared and the pre-launch terminal is restored without artifacts.
+  clearTimeout(saveTimer!);
+  remote.stop();
+  closeNfc();
+  saveSettings(playerController.snapshotSettings());
+  saveSession(playerController.sessionSnapshot());
+  restoreTerminal();
+
+  // The native audio engine keeps handles on the event loop (and its close()
+  // can block), so force a clean exit — this also frees the audio device.
+  process.exit(0);
+}

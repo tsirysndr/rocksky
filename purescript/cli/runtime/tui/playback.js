@@ -1,0 +1,13 @@
+import * as Playback from '../../../output/Rocksky.Cli.Tui.Playback/index.js';
+import {fromAff} from '../../../output/Control.Promise/index.js';
+const run=action=>fromAff(action)();
+export const streamAndPlay=(token,tracks,index=0)=>run(Playback.streamAndPlay(token)(tracks)(index));
+export const enqueueNext=(token,tracks)=>run(Playback.enqueue('playNext')(token)(tracks)(0));
+export const enqueueLast=(token,tracks)=>run(Playback.enqueue('playLast')(token)(tracks)(0));
+export const enqueueAt=(token,tracks,position)=>run(Playback.enqueue('insertAt')(token)(tracks)(position));
+export const resumeSession=token=>run(Playback.resumeSession(token));
+export const jumpTo=(token,index)=>run(Playback.jumpTo(token)(index));
+export const skipNext=token=>run(Playback.skip(1)(token));
+export const skipPrev=token=>run(Playback.skip(-1)(token));
+export const prefetchTick=token=>run(Playback.prefetchTick(token??''));
+export const isPrefetching=()=>Playback.isPrefetching();
