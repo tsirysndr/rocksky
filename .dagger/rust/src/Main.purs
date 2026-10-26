@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 import CI.Runtime as CI
+import CI.Cache as Cache
 import Dagger (Client)
 import Dagger.Container as Container
 import Dagger.Modules as Module
@@ -195,6 +196,60 @@ mcpRelease client args = do
           [ "install", "-D", "-m", "755", "target/" <> args.target <> "/release/rocksky-mcp", "/out/rocksky-mcp" ]
   pure $ Container.file "/out/rocksky-mcp" environment
 
+linuxReleasePlatform :: String -> Aff Platform
+linuxReleasePlatform target = case target of
+  "x86_64-unknown-linux-gnu" -> pure (Platform "linux/amd64")
+  "aarch64-unknown-linux-gnu" -> pure (Platform "linux/arm64")
+  _ -> throwError (error "Expected a supported Linux GNU release target")
+
+playerdRelease :: Client -> McpReleaseArgs -> Aff File
+playerdRelease client args = do
+  platform <- linuxReleasePlatform args.target
+  let
+    environment = Query.containerWith
+      (Query.defaultContainerOpts { platform = Just platform }) client
+      # Container.from "rust:bookworm"
+      # Container.withExec [ "sh", "-c", "apt-get update && apt-get install -y --no-install-recommends libasound2-dev pkg-config dbus && rm -rf /var/lib/apt/lists/*" ]
+      # Container.withMountedCache "/usr/local/cargo/registry" (Query.cacheVolume "rocksky-cargo-registry" client)
+      # Container.withMountedCache "/usr/local/cargo/git" (Query.cacheVolume "rocksky-cargo-git" client)
+      # Container.withMountedCache "/src/playerd/target" (Query.cacheVolume ("rocksky-playerd-release-" <> args.target) client)
+      # Container.withEnvVariable "CARGO_PROFILE_RELEASE_STRIP" "symbols"
+      # Container.withDirectoryWith "/src" args.source
+          (Container.defaultWithDirectoryOpts
+            { include = Just [ "Cargo.toml", "Cargo.lock", "crates/**", "playerd/**", "apps/app/native/**" ]
+            , exclude = Just [ "**/target", "**/node_modules", "**/.git", "**/.env", "**/.env.*" ]
+            })
+      # Container.withWorkdir "/src/playerd"
+      # Container.withExec [ "cargo", "build", "--release", "--locked" ]
+      # Container.withExec [ "cargo", "test", "--release", "--locked", "--bin", "playerd" ]
+      # Container.withExec [ "cargo", "test", "--release", "--locked", "-p", "rockbox-playback", "--lib" ]
+      # Container.withExec [ "dbus-run-session", "--", "cargo", "test", "--release", "--locked", "--bin", "playerd", "mpris::tests", "--", "--ignored" ]
+      # Container.withExec [ "install", "-D", "-m", "755", "target/release/playerd", "/out/playerd" ]
+  pure $ Container.file "/out/playerd" environment
+
+bindingsRelease :: Client -> McpReleaseArgs -> Aff Directory
+bindingsRelease client args = do
+  platform <- case args.target of
+    "x86_64-linux-gnu" -> pure (Platform "linux/amd64")
+    "aarch64-linux-gnu" -> pure (Platform "linux/arm64")
+    _ -> throwError (error "Expected x86_64-linux-gnu or aarch64-linux-gnu")
+  let
+    environment = Query.containerWith
+      (Query.defaultContainerOpts { platform = Just platform }) client
+      # Container.from "rust:bookworm"
+      # Container.withMountedCache "/usr/local/cargo/registry" (Query.cacheVolume "rocksky-cargo-registry" client)
+      # Container.withMountedCache "/usr/local/cargo/git" (Query.cacheVolume "rocksky-cargo-git" client)
+      # Container.withMountedCache "/src/target" (Query.cacheVolume ("rocksky-bindings-release-" <> args.target) client)
+      # Container.withDirectoryWith "/src" args.source
+          (Container.defaultWithDirectoryOpts
+            { include = Just [ "Cargo.toml", "Cargo.lock", "crates/**", "sdk/scripts/**" ]
+            , exclude = Just [ "**/target", "**/dist", "**/.git", "**/.env", "**/.env.*" ]
+            })
+      # Container.withWorkdir "/src"
+      # Container.withEnvVariable "OUT" "/out"
+      # Container.withExec [ "bash", "sdk/scripts/build-native.sh", args.target ]
+  pure $ Container.directory "/out" environment
+
 main :: Effect Unit
 main = CI.runModule
   [ Module.object_ "RustChecks" {}
@@ -212,5 +267,11 @@ main = CI.runModule
           (Module.argument "source") rockskyd
       , Module.function "mcpRelease" "Build the stripped MCP release binary for a supported Linux target."
           mcpReleaseArgs mcpRelease
+      , Module.function "playerdRelease" "Build and test a Linux playerd release, including MPRIS."
+          mcpReleaseArgs playerdRelease
+      , Module.function "bindingsRelease" "Build native SDK libraries for a Linux release target."
+          mcpReleaseArgs bindingsRelease
+      , Module.function "saveCaches" "Snapshot named cache volumes for GitHub Actions cache." Cache.cacheArgs Cache.saveCaches
+      , Module.function "restoreCaches" "Restore named cache volumes before a build." Cache.restoreArgs Cache.restoreCaches
       ]
   ]

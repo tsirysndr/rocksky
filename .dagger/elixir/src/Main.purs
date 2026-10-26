@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 import CI.Runtime as CI
+import CI.Cache as Cache
 import Dagger (Client)
 import Dagger.Container as Container
 import Dagger.Modules as Module
@@ -34,5 +35,7 @@ main = CI.runModule
   [ Module.object_ "ElixirChecks" {}
       [ Module.function "remoteWs" "Run relay tests with Elixir 1.18 and OTP 27."
           (Module.argument "source") remoteWs
+      , Module.function "saveCaches" "Snapshot named cache volumes for GitHub Actions cache." Cache.cacheArgs Cache.saveCaches
+      , Module.function "restoreCaches" "Restore named cache volumes before a build." Cache.restoreArgs Cache.restoreCaches
       ]
   ]

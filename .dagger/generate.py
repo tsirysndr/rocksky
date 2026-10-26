@@ -23,7 +23,7 @@ with tempfile.TemporaryDirectory(prefix="rocksky-dagger-codegen-") as temporary:
     subprocess.run([cli, "generate", "-y"], cwd=workspace / ".dagger", check=True)
     # Publish only generated artifacts after the entire generation succeeds.
     # Handwritten src/, spago.yaml, and application files are never copied back.
-    for module in ("go", "typescript", "rust", "elixir"):
+    for module in ("go", "typescript", "rust", "elixir", "ops"):
         generated = workspace / ".dagger" / module
         target = here / module
         shutil.rmtree(target / "dagger-sdk")
@@ -33,4 +33,4 @@ with tempfile.TemporaryDirectory(prefix="rocksky-dagger-codegen-") as temporary:
                 shutil.copy2(generated / filename, target / filename)
     if (workspace / "dagger.lock").exists():
         shutil.copy2(workspace / "dagger.lock", root / "dagger.lock")
-print("Regenerated go/, typescript/, rust/, and elixir/ bindings")
+print("Regenerated go/, typescript/, rust/, elixir/, and ops/ bindings")

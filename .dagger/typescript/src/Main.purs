@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 import CI.Runtime as CI
+import CI.Cache as Cache
 import Dagger (Client)
 import Dagger.Container as Container
 import Dagger.Directory as Directory
@@ -96,5 +97,7 @@ main = CI.runModule
           (Module.argument "source") cli
       , Module.function "apiContracts" "Audit API contracts and run API regression tests with PostgreSQL."
           (Module.argument "source") apiContracts
+      , Module.function "saveCaches" "Snapshot named cache volumes for GitHub Actions cache." Cache.cacheArgs Cache.saveCaches
+      , Module.function "restoreCaches" "Restore named cache volumes before a build." Cache.restoreArgs Cache.restoreCaches
       ]
   ]

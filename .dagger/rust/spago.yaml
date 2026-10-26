@@ -2,6 +2,9 @@ package:
   name: dagger-module
   dependencies:
     - aff
+    - strings
+    - foldable-traversable
+    - arrays
     - maybe
     - dagger-sdk
     - effect
