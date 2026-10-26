@@ -26,7 +26,7 @@ const appViewAgent = new AtpAgent({
  */
 export async function fetchBskyProfile(
   did: string | undefined,
-  agent?: Agent | AtpAgent,
+  agent?: Agent | AtpAgent | (() => Promise<Agent | AtpAgent | undefined>),
 ): Promise<ResolvedBskyProfile> {
   if (!did) {
     return {};
@@ -51,8 +51,9 @@ export async function fetchBskyProfile(
   // Fallback: read the profile record directly from the user's PDS. This only
   // succeeds when our egress can actually reach the PDS.
   try {
-    if (agent) {
-      const { data } = await agent.com.atproto.repo.getRecord({
+    const fallbackAgent = typeof agent === "function" ? await agent() : agent;
+    if (fallbackAgent) {
+      const { data } = await fallbackAgent.com.atproto.repo.getRecord({
         repo: did,
         collection: "app.bsky.actor.profile",
         rkey: "self",

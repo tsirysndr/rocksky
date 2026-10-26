@@ -5,7 +5,6 @@ import Atproto.Api (Agent)
 import Atproto.Api as Api
 import Atproto.Identity as Identity
 import Atproto.XrpcServer as Xrpc
-import Consola as Log
 import Control.Parallel (parallel, sequential)
 import Data.Array (head)
 import Data.Either (Either(..))
@@ -14,29 +13,26 @@ import Data.JSDate as Date
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Nullable (Nullable, toMaybe, toNullable)
 import Data.String (Pattern(..), stripPrefix)
-import Drizzle.Builder (leftJoin, run, runUpdate, selectFieldsFrom, selectFrom, update)
+import Drizzle.Builder (leftJoin, limit, run, runUpdate, selectFieldsFrom, update)
 import Drizzle.Query (where_)
 import Drizzle.SQL as SQL
 import Drizzle.Schema (tableSQL, toSQL)
 import Effect (Effect)
 import Effect.Aff (Aff, attempt, error, throwError)
 import Effect.Class (liftEffect)
-import Fetch as Fetch
 import Foreign (Foreign)
 import Nats as Nats
 import Rocksky.Context (Context)
 import Rocksky.Lexicon (Server)
 import Rocksky.Lib.Aff (forkAndForget, recoverWith, retryTransientDb, timeoutMs)
 import Rocksky.Lib.Agent (createAgent)
-import Rocksky.Lib.BskyProfile (ResolvedBskyProfile, fetchBskyProfile)
+import Rocksky.Lib.BskyProfile (ResolvedBskyProfile, fetchBskyProfileWithFallback)
 import Rocksky.Lib.ProfileUser as ProfileUser
 import Rocksky.Lib.Error (describeError)
-import Rocksky.Lib.Foreign (deleteKeys, mergeForeign, readStringAt, stringify, toForeign, undefined)
-import Rocksky.Lib.Plc (plcDirectoryUrl)
+import Rocksky.Lib.Foreign (deleteKeys, mergeForeign, stringify, toForeign, undefined)
 import Rocksky.Schema as T
 import Rocksky.Schema.Users (SelectUser)
 import Rocksky.Schema.SpotifyAccounts (SelectSpotifyAccount)
-import Rocksky.Schema.SpotifyTokens (SelectSpotifyToken)
 import Rocksky.Xrpc.Util as Util
 
 stage :: forall a. String -> Aff a -> Aff a
@@ -60,14 +56,6 @@ resolveActor ctx actor viewer = stage "Failed to resolve handle to DID" do
       Just did, _ -> pure { did, explicit }
       _, Just did -> pure { did, explicit }
       _, _ -> throwError (error "request carried neither an actor nor an authenticated session")
-
-serviceEndpoint :: Maybe String -> Aff (Maybe String)
-serviceEndpoint actor = stage "Failed to get service endpoint" case actor of
-  Nothing -> pure Nothing
-  Just did -> case stripPrefix (Pattern "did:plc:") did, stripPrefix (Pattern "did:web:") did of
-    Just _, _ -> readStringAt "service.0.serviceEndpoint" <$> (Fetch.fetch (plcDirectoryUrl <> "/" <> did) >>= Fetch.json)
-    _, Just host -> readStringAt "service.0.serviceEndpoint" <$> (Fetch.fetch ("https://" <> host <> "/.well-known/did.json") >>= Fetch.json)
-    _, _ -> liftEffect (Log.warn ("Unsupported DID method for " <> did <> ", skipping service endpoint resolution.")) $> Nothing
 
 refreshProfile :: Context -> String -> String -> ResolvedBskyProfile -> Maybe SelectUser -> Aff SelectUser
 refreshProfile ctx did handle fetched existing = stage "Failed to refresh profile" case existing of
@@ -105,47 +93,37 @@ dated (Just row) = do
   pure (mergeForeign (toForeign row) (toForeign { createdAt, updatedAt }))
 
 getProfile :: Context -> Maybe String -> Maybe String -> Aff Foreign
-getProfile ctx actor viewer = getProfileWith ctx actor viewer fetchBskyProfile
+getProfile ctx actor viewer = getProfileWith ctx actor viewer fetchBskyProfileWithFallback
 
-getProfileWith :: Context -> Maybe String -> Maybe String -> (Maybe String -> Maybe Agent -> Aff ResolvedBskyProfile) -> Aff Foreign
+getProfileWith :: Context -> Maybe String -> Maybe String -> (Maybe String -> Aff (Maybe Agent) -> Aff ResolvedBskyProfile) -> Aff Foreign
 getProfileWith ctx actor viewer fetchProfile = do
   resolved <- resolveActor ctx actor viewer
-  endpoint <- serviceEndpoint resolved.explicit
-  agent <- stage "Failed to create agent" do
-    result <- attempt case nonempty endpoint of
-      Just url -> Just <$> liftEffect (Api.newAtpAgent url)
-      Nothing -> createAgent ctx resolved.did
-    case result of
-      Right agent -> pure agent
-      Left e -> liftEffect (Log.error ("Failed to create agent: " <> describeError e)) $> Nothing
-  user <- stage "Failed to retrieve current user" do
-    liftEffect (Log.info (">> did " <> resolved.did))
-    rows :: Array SelectUser <- run ctx.db (selectFrom T.users # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string resolved.did)))
-    pure (head rows)
-  details <- stage "Failed to retrieve profile" do
-    fetched <- fetchProfile (Just resolved.did) agent
-    linked <- sequential $ { handle: _, spotify: _, token: _ }
-      <$> parallel (ctx.resolver.resolveDidToHandle resolved.did)
-      <*> parallel (run ctx.db
-        (selectFieldsFrom { account: tableSQL T.spotifyAccounts } T.spotifyAccounts
-          # leftJoin T.users (SQL.eq (toSQL T.spotifyAccountsC.userId) (toSQL T.usersC.id))
-          # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string resolved.did))) :: Aff (Array { account :: SelectSpotifyAccount }))
-      <*> parallel (run ctx.db
-        (selectFieldsFrom { account: tableSQL T.spotifyTokens } T.spotifyTokens
-          # leftJoin T.users (SQL.eq (toSQL T.spotifyTokensC.userId) (toSQL T.usersC.id))
-          # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string resolved.did))) :: Aff (Array { account :: SelectSpotifyToken }))
-
-    pure { fetched, linked }
-  refreshed <- refreshProfile ctx resolved.did details.linked.handle details.fetched user
+  let getAgent = case resolved.explicit of
+        Nothing -> createAgent ctx resolved.did
+        Just _ -> do
+          identity <- Identity.resolveAtprotoData ctx.baseIdResolver resolved.did
+          Just <$> liftEffect (Api.newAtpAgent identity.pds)
+  details <- stage "Failed to retrieve profile" $ sequential $ { rows: _, handle: _, fetched: _ }
+    <$> parallel (run ctx.db
+      (selectFieldsFrom
+        { user: tableSQL T.users, spotify: tableSQL T.spotifyAccounts, tokenId: toSQL T.spotifyTokensC.id } T.users
+        # leftJoin T.spotifyAccounts (SQL.eq (toSQL T.spotifyAccountsC.userId) (toSQL T.usersC.id))
+        # leftJoin T.spotifyTokens (SQL.eq (toSQL T.spotifyTokensC.userId) (toSQL T.usersC.id))
+        # where_ (SQL.eq (toSQL T.usersC.did) (SQL.string resolved.did))
+        # limit 1) :: Aff (Array { user :: SelectUser, spotify :: Nullable SelectSpotifyAccount, tokenId :: Nullable String }))
+    <*> parallel (ctx.resolver.resolveDidToHandle resolved.did)
+    <*> parallel (fetchProfile (Just resolved.did) getAgent)
+  let row = head details.rows
+  refreshed <- refreshProfile ctx resolved.did details.handle details.fetched (_.user <$> row)
   liftEffect do
     createdAt <- Date.toISOString refreshed.createdAt
     updatedAt <- Date.toISOString refreshed.updatedAt
-    spotify <- dated (_.account <$> head details.linked.spotify)
+    spotify <- dated (row >>= toMaybe <<< _.spotify)
     pure (toForeign
-      { id: refreshed.id, did: resolved.did, handle: details.linked.handle, displayName: refreshed.displayName
+      { id: refreshed.id, did: resolved.did, handle: details.handle, displayName: refreshed.displayName
       , avatar: if refreshed.avatar == "" then undefined else toForeign refreshed.avatar
       , createdAt, updatedAt, spotifyUser: deleteKeys ["email"] spotify
-      , spotifyConnected: isJust (head details.linked.token) })
+      , spotifyConnected: isJust (row >>= toMaybe <<< _.tokenId) })
 
 register :: Server -> Context -> Effect Unit
 register server ctx = Xrpc.method server "app.rocksky.actor.getProfile"

@@ -1,4 +1,4 @@
-import { type Agent, AtpAgent } from "@atproto/api";
+import { AtpAgent } from "@atproto/api";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
@@ -7,11 +7,8 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
-import { createAgent } from "lib/agent";
 import { fetchBskyProfile, type ResolvedBskyProfile } from "lib/bskyProfile";
 import { transientDbRetry } from "lib/dbRetry";
-import { PLC_DIRECTORY_URL } from "lib/plc";
-import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
 import type { SelectSpotifyAccount } from "schema/spotify-accounts";
@@ -23,9 +20,6 @@ export default function (server: Server, ctx: Context) {
     pipe(
       { params, ctx, did: auth.credentials?.did },
       resolveHandleToDid,
-      Effect.flatMap(withServiceEndpoint),
-      Effect.flatMap(withAgent),
-      Effect.flatMap(withUser),
       Effect.flatMap(retrieveProfile),
       Effect.flatMap(refreshProfile),
       Effect.flatMap(presentation),
@@ -94,170 +88,64 @@ const resolveHandleToDid = ({
   });
 };
 
-const withServiceEndpoint = ({
-  params,
-  ctx,
-  did,
-}: {
-  params: QueryParams;
-  ctx: Context;
-  did?: string;
-}): Effect.Effect<WithServiceEndpoint, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      if (params.did) {
-        if (params.did.startsWith("did:plc:")) {
-          return fetch(`${PLC_DIRECTORY_URL}/${params.did}`)
-            .then((res) => res.json())
-            .then((data) => ({
-              did,
-              serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
-              ctx,
-              params,
-            }));
-        }
-
-        if (params.did.startsWith("did:web:")) {
-          return fetch(
-            `https://${params.did.split("did:web:")[1]}/.well-known/did.json`,
-          )
-            .then((res) => res.json())
-            .then((data) => ({
-              did,
-              serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
-              ctx,
-              params,
-            }));
-        }
-
-        consola.warn(
-          `Unsupported DID method for ${params.did}, skipping service endpoint resolution.`,
-        );
-      }
-      return {
-        did,
-        ctx,
-        params,
-      };
-    },
-    catch: (error) => new Error(`Failed to get service endpoint: ${error}`),
-  });
-};
-
-const withAgent = ({
-  params,
-  ctx,
-  did,
-  serviceEndpoint,
-}: WithServiceEndpoint): Effect.Effect<WithAgent, Error> =>
-  Effect.tryPromise({
-    try: async () => {
-      let agent: Agent | AtpAgent | undefined;
-      try {
-        agent = serviceEndpoint
-          ? new AtpAgent({ service: serviceEndpoint })
-          : await createAgent(ctx.oauthClient, did);
-      } catch (error) {
-        consola.error("Failed to create agent:", error);
-      }
-      return {
-        ctx,
-        did,
-        params,
-        agent,
-      };
-    },
-    catch: (error) => new Error(`Failed to create agent: ${error}`),
-  });
-
-const withUser = ({
-  params,
-  ctx,
-  did,
-  agent,
-}: WithAgent): Effect.Effect<WithUser, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      consola.info(">> did", did);
-      return ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.did, did))
-        .execute()
-        .then((users) => ({
-          user: users[0],
-          ctx,
-          params,
-          did,
-          agent,
-        }));
-    },
-    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
-  });
-};
-
+// Independent public-profile, identity and account lookups run concurrently.
 const retrieveProfile = ({
   ctx,
   did,
-  agent,
-  user,
-}: WithUser): Effect.Effect<
-  [
-    Profile,
-    string,
-    SelectSpotifyAccount,
-    SelectSpotifyToken,
-  ],
-  Error
-> => {
-  return Effect.tryPromise({
+  params,
+}: {
+  ctx: Context;
+  did: string;
+  params: QueryParams;
+}): Effect.Effect<ProfileDetails, Error> =>
+  Effect.tryPromise({
     try: async () => {
-      const resolved = await fetchBskyProfile(did, agent);
-      return Promise.all([
-        Promise.resolve({
-          resolved,
-          ctx,
-          did,
-          user,
-        }),
-        ctx.resolver.resolveDidToHandle(did),
+      const [rows, handle, resolved] = await Promise.all([
         ctx.db
-          .select()
-          .from(tables.spotifyAccounts)
+          .select({
+            user: tables.users,
+            spotify: tables.spotifyAccounts,
+            tokenId: tables.spotifyTokens.id,
+          })
+          .from(tables.users)
           .leftJoin(
-            tables.users,
+            tables.spotifyAccounts,
             eq(tables.spotifyAccounts.userId, tables.users.id),
           )
-          .where(eq(tables.users.did, did))
-          .execute()
-          .then(([result]) => result?.spotify_accounts),
-        ctx.db
-          .select()
-          .from(tables.spotifyTokens)
           .leftJoin(
-            tables.users,
+            tables.spotifyTokens,
             eq(tables.spotifyTokens.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
-          .execute()
-          .then(([result]) => result?.spotify_tokens),
+          .limit(1)
+          .execute(),
+        ctx.resolver.resolveDidToHandle(did),
+        fetchBskyProfile(did, async () => {
+          if (!params.did) {
+            const { createAgent } = await import("lib/agent");
+            return createAgent(ctx.oauthClient, did);
+          }
+          const identity = await ctx.baseIdResolver.did.resolveAtprotoData(did);
+          return new AtpAgent({ service: identity.pds });
+        }),
       ]);
+      const row = rows[0];
+      return [
+        { ctx, did, resolved, user: row?.user },
+        handle,
+        row?.spotify ?? undefined,
+        row?.tokenId ? { id: row.tokenId } : undefined,
+      ];
     },
     catch: (error) => new Error(`Failed to retrieve profile: ${error}`),
   });
-};
 
 const refreshProfile = ([
   profile,
   handle,
   selectSpotifyAccount,
   selectSpotifyToken,
-]: [
-  Profile,
-  string,
-  SelectSpotifyAccount,
-  SelectSpotifyToken,
-]) => {
+]: ProfileDetails) => {
   return Effect.tryPromise({
     try: async () => {
       const fetched = profile.resolved;
@@ -342,12 +230,7 @@ const refreshProfile = ([
         profile.user.displayName = nextDisplayName;
       }
 
-      return [
-        profile,
-        handle,
-        selectSpotifyAccount,
-        selectSpotifyToken,
-      ];
+      return [profile, handle, selectSpotifyAccount, selectSpotifyToken];
     },
     catch: (error) => new Error(`Failed to refresh profile: ${error}`),
   });
@@ -358,12 +241,7 @@ const presentation = ([
   handle,
   spotifyUser,
   spotifyToken,
-]: [
-  Profile,
-  string,
-  SelectSpotifyAccount,
-  SelectSpotifyToken,
-]): Effect.Effect<ProfileViewDetailed, never> => {
+]: ProfileDetails): Effect.Effect<ProfileViewDetailed, never> => {
   return Effect.sync(() => ({
     id: profile.user?.id,
     did: profile.did,
@@ -388,24 +266,10 @@ type Profile = {
   user?: SelectUser;
 };
 
-type WithServiceEndpoint = {
-  params: QueryParams;
-  ctx: Context;
-  did?: string;
-  serviceEndpoint?: string;
-};
-
-type WithAgent = {
-  ctx: Context;
-  did?: string;
-  params: QueryParams;
-  agent?: Agent | AtpAgent;
-};
-
-type WithUser = {
-  user?: SelectUser;
-  ctx: Context;
-  params: QueryParams;
-  did?: string;
-  agent: Agent | AtpAgent;
-};
+// Only token existence is needed; never select access or refresh tokens.
+type ProfileDetails = [
+  Profile,
+  string,
+  SelectSpotifyAccount | undefined,
+  Pick<SelectSpotifyToken, "id"> | undefined,
+];

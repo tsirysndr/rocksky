@@ -4,7 +4,7 @@ const source = await readFile(new URL("../api/src/Rocksky/Lib/Env.purs", import.
 process.env.NODE_ENV = "test";
 for (const [, key] of source.matchAll(/"([A-Z0-9_]+)": str required/g)) process.env[key] = "profile-test";
 const P = await import("../output/Rocksky.Xrpc.App.Rocksky.Actor.GetProfile/index.js");
-const { fromAff } = await import("../output/Control.Promise/index.js");
+const { fromAff, toAffE } = await import("../output/Control.Promise/index.js");
 const { Just, Nothing } = await import("../output/Data.Maybe/index.js");
 const { pure } = await import("../output/Control.Applicative/index.js");
 const { applicativeAff } = await import("../output/Effect.Aff/index.js");
@@ -17,7 +17,7 @@ function mock(responses) {
   const db = {
     select() {
       const q = {};
-      for (const name of ["from", "where", "leftJoin", "innerJoin", "groupBy", "orderBy"]) q[name] = () => q;
+      for (const name of ["from", "where", "leftJoin", "innerJoin", "groupBy", "orderBy", "limit"]) q[name] = () => q;
       q.execute = async () => { assert.ok(responses.length, "Unexpected query"); return responses.shift(); };
       return q;
     },
@@ -81,7 +81,7 @@ const originalFetch = globalThis.fetch;
 try {
   const requested = [];
   globalThis.fetch = async url => { requested.push(String(url)); return Response.json({ service: [{ serviceEndpoint: "https://pds.example.test" }] }); };
-  const m = mock([[user], [{ account: { email: "private@example.test", id: "spotify", createdAt: date, updatedAt: date } }], [{ account: { id: "token" } }]]);
+  const m = mock([[{user, spotify: { email: "private@example.test", id: "spotify", createdAt: date, updatedAt: date }, tokenId: "token"}]]);
   let resolvedCount = 0;
   const ctx = {
     ...m.ctx,
@@ -90,11 +90,11 @@ try {
   };
   const result = await run(P.getProfileWith(ctx)(new Just("actor.test"))(Nothing.value)(did => agent => {
     assert.equal(did.value0, user.did);
-    assert.equal(agent.constructor.name, "Just");
+    assert.notEqual(agent, undefined, "PDS lookup is provided as a lazy Aff action");
     return aff({ avatar: Nothing.value, displayName: Nothing.value });
   }));
   assert.equal(resolvedCount, 1);
-  assert.ok(requested[0].endsWith("/" + user.did));
+  assert.equal(requested.length, 0, "No eager DID-document request");
   assert.equal(result.displayName, "Saved Name");
   assert.equal(result.avatar, "saved-avatar");
   assert.equal(result.spotifyConnected, true);
@@ -194,3 +194,26 @@ if (process.env.PURESCRIPT_TEST_DATABASE_URL) {
     console.log("Verified PostgreSQL profile defaults, duplicate-DID upserts and partial metadata preservation.");
   } finally { await client.end(); }
 }
+
+// Exercise the real lazy fallback helper without network access.
+const Bsky = await import("../output/Rocksky.Lib.BskyProfile/index.js");
+const { AtpAgent } = await import("@atproto/api");
+const originalCall = AtpAgent.prototype.call;
+try {
+  let fail = false, fallbacks = 0;
+  AtpAgent.prototype.call = async () => {
+    if (fail) throw new Error("AppView unavailable");
+    return { data: { did: user.did, handle: user.handle } };
+  };
+  const getAgent = toAffE(() => {
+    fallbacks++;
+    return Promise.resolve(new Just({ com: { atproto: { repo: { getRecord: async () => ({ data: { uri: "at://profile", value: { displayName: "Fallback" } } }) } } } }));
+  });
+  await run(Bsky.fetchBskyProfileWithFallback(new Just(user.did))(getAgent));
+  assert.equal(fallbacks, 0);
+  fail = true;
+  const fallback = await run(Bsky.fetchBskyProfileWithFallback(new Just(user.did))(getAgent));
+  assert.equal(fallback.displayName.value0, "Fallback");
+  assert.equal(fallbacks, 1);
+} finally { AtpAgent.prototype.call = originalCall; }
+console.log("Verified public-profile success skips PDS resolution, and failure invokes the lazy fallback.");

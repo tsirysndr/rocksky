@@ -1,7 +1,7 @@
 -- | Resolve a user's avatar + displayName (`src/lib/bskyProfile.ts`),
 -- | preferring the Bluesky public AppView (globally reachable, never blocks
 -- | our egress) and falling back to the profile record on the user's PDS.
-module Rocksky.Lib.BskyProfile (ResolvedBskyProfile, fetchBskyProfile) where
+module Rocksky.Lib.BskyProfile (ResolvedBskyProfile, fetchBskyProfile, fetchBskyProfileWithFallback) where
 
 import Prelude
 
@@ -36,7 +36,11 @@ nonEmpty = case _ of
   other -> other
 
 fetchBskyProfile :: Maybe String -> Maybe Agent -> Aff ResolvedBskyProfile
-fetchBskyProfile mdid agent = case mdid of
+fetchBskyProfile mdid agent = fetchBskyProfileWithFallback mdid (pure agent)
+
+-- Resolve the PDS/session only after the public AppView fails.
+fetchBskyProfileWithFallback :: Maybe String -> Aff (Maybe Agent) -> Aff ResolvedBskyProfile
+fetchBskyProfileWithFallback mdid getAgent = case mdid of
   Nothing -> pure empty
   Just did -> do
     primary <- attempt (Api.getBskyProfile appViewAgent did)
@@ -45,6 +49,10 @@ fetchBskyProfile mdid agent = case mdid of
       Left e -> do
         liftEffect $ Consola.warnF ("AppView getProfile failed for " <> did <> "; falling back to PDS:") [ errorToForeign e ]
         -- Only succeeds when our egress can actually reach the PDS.
+        resolvedAgent <- attempt getAgent
+        let agent = case resolvedAgent of
+              Right value -> value
+              Left _ -> Nothing
         case agent of
           Nothing -> pure empty
           Just a -> do
@@ -55,11 +63,11 @@ fetchBskyProfile mdid agent = case mdid of
                 pure empty
               Right out -> do
                 let
-                  cid = fromMaybe "" (map stringifyRef (path "value.avatar.ref" out.value))
-                  ext = fromMaybe "jpeg" (readStringAt "value.avatar.mimeType" out.value >>= \m -> index (split (Pattern "/") m) 1 >>= \x -> if x == "" then Nothing else Just x)
+                  cid = fromMaybe "" (map stringifyRef (path "avatar.ref" out.value))
+                  ext = fromMaybe "jpeg" (readStringAt "avatar.mimeType" out.value >>= \m -> index (split (Pattern "/") m) 1 >>= \x -> if x == "" then Nothing else Just x)
                 pure
                   { avatar: if cid == "" then Nothing else Just ("https://cdn.bsky.app/img/avatar/plain/" <> did <> "/" <> cid <> "@" <> ext)
-                  , displayName: nonEmpty (readStringAt "value.displayName" out.value)
+                  , displayName: nonEmpty (readStringAt "displayName" out.value)
                   }
   where
   empty = { avatar: Nothing, displayName: Nothing }
