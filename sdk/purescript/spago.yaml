@@ -1,0 +1,19 @@
+package:
+  name: rocksky-sdk
+  dependencies:
+    - aff
+    - argonaut-codecs
+    - argonaut-core
+    - console
+    - effect
+    - either
+    - exceptions
+    - maybe
+    - prelude
+  test:
+    main: Test.Main
+    dependencies: []
+workspace:
+  packageSet:
+    registry: 81.5.0
+  extraPackages: {}

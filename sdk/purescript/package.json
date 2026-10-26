@@ -1,0 +1,22 @@
+{
+  "name": "@rocksky/sdk-purescript",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PureScript SDK for the Rocksky XRPC API",
+  "license": "MPL-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "spago build",
+    "test": "spago test && node --test test/transport.test.js",
+    "generate": "python3 scripts/generate.py",
+    "format": "purs-tidy format-in-place 'src/**/*.purs' 'test/**/*.purs'"
+  },
+  "devDependencies": {
+    "purescript": "0.15.16",
+    "spago": "1.0.5",
+    "purs-tidy": "0.11.1"
+  }
+}
