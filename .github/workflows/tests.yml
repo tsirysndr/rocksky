@@ -40,6 +40,7 @@ jobs:
               - '**/package.json'
               - 'patches/**'
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - 'apps/api/**'
@@ -49,42 +50,49 @@ jobs:
             cli:
               - 'apps/cli/**'
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - '.github/workflows/tests.yml'
             ts_sdk:
               - 'sdk/typescript/**'
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - '.github/workflows/tests.yml'
             go_sdk:
               - 'sdk/go/**'
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - '.github/workflows/tests.yml'
             rust_sdk:
               - 'sdk/rust/**'
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - '.github/workflows/tests.yml'
             deezer:
               - 'deezer/**'
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - 'otel/**'
               - '.github/workflows/tests.yml'
             remote_ws:
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - 'remote-ws/**'
               - '.github/workflows/tests.yml'
             submissions:
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - 'crates/submissions/**'
@@ -97,11 +105,13 @@ jobs:
               - 'musicbrainz/**'
               - 'otel/**'
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - '.github/workflows/tests.yml'
             matching:
               - '.dagger/**'
+              - '.github/actions/dagger/**'
               - 'dagger.toml'
               - 'dagger.lock'
               - 'crates/matching/**'
@@ -124,7 +134,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: API contracts and regression tests (PureScript Dagger)
-        run: dagger api call -m typescript api-contracts --source ..
+        uses: ./.github/actions/dagger
+        with:
+          module: typescript
+          key: typescript-api-contracts
+          volumes: rocksky-api-bun
+          command: |
+            dagger api call -m typescript api-contracts --source ..
 
   submissions:
     needs: changes
@@ -139,7 +155,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: Submissions dashboard and worker checks (PureScript Dagger)
-        run: dagger api call -m rust submissions --source ..
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-submissions
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-submissions,rocksky-submissions-bun
+          command: |
+            dagger api call -m rust submissions --source ..
 
   matching:
     needs: changes
@@ -154,7 +176,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: Matching regression suite (PureScript Dagger)
-        run: dagger api call -m rust matching --source ..
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-matching
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-matching
+          command: |
+            dagger api call -m rust matching --source ..
 
   cli:
     needs: changes
@@ -169,7 +197,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: CLI smoke tests (PureScript Dagger)
-        run: dagger api call -m typescript cli --source ../apps/cli
+        uses: ./.github/actions/dagger
+        with:
+          module: typescript
+          key: typescript-cli
+          volumes: rocksky-cli-bun
+          command: |
+            dagger api call -m typescript cli --source ../apps/cli
 
   typescript-sdk:
     needs: changes
@@ -184,7 +218,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: TypeScript SDK tests (PureScript Dagger)
-        run: dagger api call -m typescript sdk --source ../sdk/typescript
+        uses: ./.github/actions/dagger
+        with:
+          module: typescript
+          key: typescript-sdk
+          volumes: rocksky-typescript-bun
+          command: |
+            dagger api call -m typescript sdk --source ../sdk/typescript
 
   go-sdk:
     needs: changes
@@ -199,7 +239,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: Go SDK tests (PureScript Dagger)
-        run: dagger api call -m go sdk --source ../sdk/go
+        uses: ./.github/actions/dagger
+        with:
+          module: go
+          key: go-sdk
+          volumes: rocksky-go-modules,rocksky-go-build
+          command: |
+            dagger api call -m go sdk --source ../sdk/go
 
   rust-sdk:
     needs: changes
@@ -214,7 +260,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: Rust SDK tests (PureScript Dagger)
-        run: dagger api call -m rust sdk --source ../sdk/rust
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-sdk
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-sdk
+          command: |
+            dagger api call -m rust sdk --source ../sdk/rust
 
   deezer:
     needs: changes
@@ -229,7 +281,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: Deezer tests (PureScript Dagger)
-        run: dagger api call -m go deezer --source ../deezer --otel ../otel
+        uses: ./.github/actions/dagger
+        with:
+          module: go
+          key: go-deezer
+          volumes: rocksky-go-modules,rocksky-go-build
+          command: |
+            dagger api call -m go deezer --source ../deezer --otel ../otel
 
   remote-ws:
     needs: changes
@@ -244,7 +302,13 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: Remote WebSocket relay tests (PureScript Dagger)
-        run: dagger api call -m elixir remote-ws --source ../remote-ws
+        uses: ./.github/actions/dagger
+        with:
+          module: elixir
+          key: elixir-remote-ws
+          volumes: rocksky-elixir-hex,rocksky-remote-ws-deps,rocksky-remote-ws-build-1.18-27
+          command: |
+            dagger api call -m elixir remote-ws --source ../remote-ws
 
   musicbrainz:
     needs: changes
@@ -259,4 +323,10 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: MusicBrainz race tests and build (PureScript Dagger)
-        run: dagger api call -m go musicbrainz --source ../musicbrainz --otel ../otel
+        uses: ./.github/actions/dagger
+        with:
+          module: go
+          key: go-musicbrainz
+          volumes: rocksky-go-modules,rocksky-go-build
+          command: |
+            dagger api call -m go musicbrainz --source ../musicbrainz --otel ../otel

@@ -18,4 +18,10 @@ jobs:
       - name: Install pinned Dagger CLI
         run: bash install-dagger.sh
       - name: Rust formatting and tracklist tests (PureScript Dagger)
-        run: dagger api call -m rust tracklist --source ..
+        uses: ./.github/actions/dagger
+        with:
+          module: rust
+          key: rust-tracklist
+          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-tracklist
+          command: |
+            dagger api call -m rust tracklist --source ..
