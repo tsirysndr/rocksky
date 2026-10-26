@@ -30,6 +30,7 @@ it("loads profile and linked accounts once, deferring PDS resolution", async () 
   const selections: any[] = [],
     requests: string[] = [];
   let connected = true,
+    hasAccount = true,
     lookups = 0,
     handler: any;
   const db = {
@@ -52,7 +53,7 @@ it("loads profile and linked accounts once, deferring PDS resolution", async () 
           return [
             {
               user: { ...user },
-              spotify: connected
+              spotify: hasAccount
                 ? {
                     id: "s",
                     email: "private@example.test",
@@ -118,10 +119,22 @@ it("loads profile and linked accounts once, deferring PDS resolution", async () 
     expect(first.body.avatar).toBe("saved");
     expect(first.body.spotifyConnected).toBe(true);
     expect(Object.hasOwn(first.body.spotifyUser, "email")).toBe(false);
-    connected = false;
-    const second = await handler({ params: { did: user.did }, auth: {} });
-    expect(second.body.spotifyConnected).toBe(false);
-    expect(JSON.stringify(second.body.spotifyUser)).toBe("{}");
+    // A missing Spotify join must never erase an existing user's profile.
+    for (const account of [false, true]) {
+      for (const token of [false, true]) {
+        hasAccount = account;
+        connected = token;
+        const response = await handler({ params: { did: user.did }, auth: {} });
+        expect(response.body.did).toBe(user.did);
+        expect(response.body.handle).toBe(user.handle);
+        expect(response.body.displayName).toBe("Saved");
+        expect(response.body.avatar).toBe("saved");
+        expect(response.body.spotifyConnected).toBe(token);
+        if (!account)
+          expect(JSON.stringify(response.body.spotifyUser)).toBe("{}");
+        expect(Object.hasOwn(response.body.spotifyUser, "email")).toBe(false);
+      }
+    }
     expect(lookups).toBe(1);
   } finally {
     call.mockRestore();

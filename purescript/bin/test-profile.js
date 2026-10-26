@@ -105,6 +105,20 @@ try {
   assert.equal(m.writes.length, 0);
   m.done();
 
+  // Existing users survive every combination of missing account/token joins.
+  for (const hasAccount of [false, true]) {
+    for (const hasToken of [false, true]) {
+      const m = mock([[{user, spotify: hasAccount ? {id: "spotify", email: "private@example.test", createdAt: date, updatedAt: date} : null, tokenId: hasToken ? "token" : null}]]);
+      const ctx = {...m.ctx, resolver: {resolveDidToHandle: () => aff(user.handle)}};
+      const result = await run(P.getProfileWith(ctx)(new Just(user.did))(Nothing.value)(_did => _agent => aff({avatar: Nothing.value, displayName: Nothing.value})));
+      assert.equal(result.did,user.did);assert.equal(result.handle,user.handle);
+      assert.equal(result.displayName,"Saved Name");assert.equal(result.avatar,"saved-avatar");
+      assert.equal(result.spotifyConnected,hasToken);
+      if (!hasAccount) assert.deepEqual(result.spotifyUser,{});
+      assert.equal("email" in result.spotifyUser,false);
+      assert.equal(m.writes.length,0);m.done();
+    }
+  }
 } finally { globalThis.fetch = originalFetch; }
 console.log("Verified profile actor precedence/single handle resolution, missing-actor errors, partial-fetch preservation, new-user defaults, refresh events and linked-account email omission.");
 const Compatibility = await import("../output/Rocksky.Xrpc.App.Rocksky.Actor.GetActorCompatibility/index.js");
