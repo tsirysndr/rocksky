@@ -2,8 +2,8 @@
 Description=Rocksky Feed Generator (PureScript)
 After=network-online.target
 Wants=network-online.target
-# Both implementations bind the configured feed-generator port.
-Conflicts=rocksky-feeds.service
+# These implementations bind the configured feed-generator port.
+Conflicts=rocksky-feeds.service feeds-gleam.service
 
 [Service]
 Type=simple
