@@ -1,0 +1,46 @@
+{
+  "name": "@rocksky/cli-gleam",
+  "version": "0.11.3",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "rocksky-gleam": "dist/index.mjs"
+  },
+  "scripts": {
+    "build": "cd .. && bun run build:cli",
+    "start": "node dist/index.mjs",
+    "test": "cd .. && bun run test:cli"
+  },
+  "dependencies": {
+    "@atproto/repo": "^0.6.2",
+    "@rocksky/sdk": "0.15.0",
+    "axios": "^1.8.4",
+    "better-sqlite3": "^12.4.1",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.1",
+    "env-paths": "^3.0.0",
+    "form-data": "^4.0.0",
+    "open": "^10.1.0",
+    "rockbox-ffi": "0.6.0",
+    "@tanstack/react-query": "^5.101.3",
+    "ink": "^7.1.1",
+    "jotai": "^2.20.2",
+    "react": "^19.2.7",
+    "chalk": "^5.4.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "classic-level": "^3.0.0",
+    "dayjs": "^1.11.13"
+  },
+  "optionalDependencies": {
+    "@pokusew/pcsclite": "^0.6.0",
+    "@rocksky/mcp": "0.1.0",
+    "nfc-pcsc": "^0.8.1",
+    "mpris-service": "^2.1.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10"
+  }
+}

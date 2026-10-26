@@ -1,0 +1,42 @@
+[
+  {
+    "ts": "2022-05-22T17:20:57Z",
+    "platform": "web_player osx",
+    "ms_played": 128756,
+    "master_metadata_track_name": "Tsy Maka Sarotra",
+    "master_metadata_album_artist_name": "Alien Xkai",
+    "master_metadata_album_album_name": "Ikotofetsy & Imahaka",
+    "spotify_track_uri": "spotify:track:4v5bIXaAeuGgICWn2CCA2k",
+    "episode_name": null
+  },
+  {
+    "ts": "2022-05-22T17:21:41Z",
+    "platform": "web_player osx",
+    "ms_played": 41936,
+    "master_metadata_track_name": "Tequila",
+    "master_metadata_album_artist_name": "Alien Xkai",
+    "master_metadata_album_album_name": "Ikotofetsy & Imahaka",
+    "spotify_track_uri": "spotify:track:3skwZNwEk5gboC631NjMRu",
+    "episode_name": null
+  },
+  {
+    "ts": "2025-05-10T20:23:14Z",
+    "platform": "android",
+    "ms_played": 0,
+    "master_metadata_track_name": null,
+    "master_metadata_album_artist_name": null,
+    "master_metadata_album_album_name": null,
+    "spotify_track_uri": null,
+    "episode_name": "S5 EP1: Bella Ramsey discusses being a child actor"
+  },
+  {
+    "ts": "2022-05-22T17:22:10Z",
+    "platform": "android",
+    "ms_played": 4000,
+    "master_metadata_track_name": "Skipped Song",
+    "master_metadata_album_artist_name": "Some Artist",
+    "master_metadata_album_album_name": "Some Album",
+    "spotify_track_uri": "spotify:track:0000000000000000000000",
+    "episode_name": null
+  }
+]

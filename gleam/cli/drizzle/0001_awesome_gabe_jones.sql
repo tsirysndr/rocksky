@@ -1,0 +1,1 @@
+CREATE INDEX `idx_title_artist_album_albumartist` ON `tracks` (`title`,`artist`,`album`,`album_artist`);
