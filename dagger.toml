@@ -12,3 +12,7 @@ name = "go-checks"
 [sdks.purescript.scopes.".dagger/typescript"]
 is-module = true
 name = "typescript-checks"
+
+[sdks.purescript.scopes.".dagger/rust"]
+is-module = true
+name = "rust-checks"

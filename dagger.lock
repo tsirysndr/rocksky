@@ -6,3 +6,5 @@
 ["","oci-sha",["docker.io/library/golang:1.26-bookworm"],"sha256:632dff7351799a5a9954a48dc06670ade72ee44e8c351cdc0e5a57af2fea21af"]
 ["","oci-sha",["docker.io/library/node:22-bookworm-slim"],"sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d"]
 ["","oci-sha",["docker.io/oven/bun:1.4.2"],"sha256:9114c058aeae42162ee16dd5084b95fe9473970bb6bcb5b232ab1630f0546895"]
+["","oci-sha",["docker.io/library/rust:bookworm"],"sha256:48b7f435b8fc6378ce43b44f15e3a47fd8919b2825f835c39bd4bd3da50af5b8"]
+["","oci-sha",["docker.io/library/redis:7-alpine"],"sha256:57e4255cc971b1c8d6f8a6ca283ac01bc3ecdd914273ef6bfaede87aaecd6541"]
