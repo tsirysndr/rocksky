@@ -2,51 +2,51 @@ import gleam/int
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import rocksky_feeds/drizzle
+import rocksky_feeds/drizzle.{integer, join, raw, table, text}
 import rocksky_feeds/types.{type Algorithm, type Query, type Row, All, Genre}
 
 pub fn query(algorithm: Algorithm, limit: Int, cursor: Option(Int)) -> Query {
   let filter = case cursor {
-    None -> drizzle.raw("")
+    None -> raw("")
     Some(ms) ->
-      drizzle.join([
-        drizzle.raw(" and recent.timestamp < to_timestamp("),
-        drizzle.integer(ms),
-        drizzle.raw("::double precision / 1000)"),
+      join([
+        raw(" and recent.timestamp < to_timestamp("),
+        integer(ms),
+        raw("::double precision / 1000)"),
       ])
   }
   case algorithm {
     All ->
-      drizzle.join([
-        drizzle.raw(
+      join([
+        raw(
           "select recent.uri, (extract(epoch from recent.timestamp) * 1000)::double precision as \"timestampMs\" from ",
         ),
-        drizzle.table("scrobbles"),
-        drizzle.raw(" recent where true"),
+        table("scrobbles"),
+        raw(" recent where true"),
         filter,
-        drizzle.raw(" order by recent.timestamp desc limit "),
-        drizzle.integer(limit),
+        raw(" order by recent.timestamp desc limit "),
+        integer(limit),
       ])
     Genre(_, genre) ->
-      drizzle.join([
-        drizzle.raw(
+      join([
+        raw(
           "select newest.uri, (extract(epoch from newest.timestamp) * 1000)::double precision as \"timestampMs\" from ",
         ),
-        drizzle.table("artists"),
-        drizzle.raw(
+        table("artists"),
+        raw(
           " artist cross join lateral (select recent.uri, recent.timestamp from ",
         ),
-        drizzle.table("scrobbles"),
-        drizzle.raw(
+        table("scrobbles"),
+        raw(
           " recent where recent.artist_id = artist.xata_id and recent.uri is not null",
         ),
         filter,
-        drizzle.raw(" order by recent.timestamp desc limit "),
-        drizzle.integer(limit),
-        drizzle.raw(") newest where artist.genres @> array["),
-        drizzle.text(genre),
-        drizzle.raw("]::text[] order by newest.timestamp desc limit "),
-        drizzle.integer(limit),
+        raw(" order by recent.timestamp desc limit "),
+        integer(limit),
+        raw(") newest where artist.genres @> array["),
+        text(genre),
+        raw("]::text[] order by newest.timestamp desc limit "),
+        integer(limit),
       ])
   }
   |> drizzle.compile
