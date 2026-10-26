@@ -5,6 +5,7 @@ package:
     - maybe
     - dagger-sdk
     - effect
+    - exceptions
     - prelude
 workspace:
   packageSet:

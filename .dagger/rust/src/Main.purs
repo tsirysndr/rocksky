@@ -9,7 +9,8 @@ import Dagger.Query as Query
 import Dagger.Types (Container, Directory, File, Platform(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, throwError)
+import Effect.Exception (error)
 
 -- Keep stable Rust, matching the existing GitHub toolchain policy.
 rust :: Client -> String -> Container
@@ -156,6 +157,44 @@ rockskyd client source = do
       # Container.withExec [ "install", "-D", "-m", "755", "/src/target/release/rockskyd", "/out/rockskyd" ]
   pure $ Container.file "/out/rockskyd" environment
 
+type McpReleaseArgs =
+  { source :: Directory
+  , target :: String
+  }
+
+mcpReleaseArgs :: Module.Arguments McpReleaseArgs
+mcpReleaseArgs = ado
+  source <- Module.argument "source"
+  target <- Module.argument "target"
+  in { source, target }
+
+mcpRelease :: Client -> McpReleaseArgs -> Aff File
+mcpRelease client args = do
+  platform <- case args.target of
+    "x86_64-unknown-linux-gnu" -> pure (Platform "linux/amd64")
+    "aarch64-unknown-linux-gnu" -> pure (Platform "linux/arm64")
+    _ -> throwError (error "mcpRelease supports x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu")
+  let
+    environment = Query.containerWith
+      (Query.defaultContainerOpts { platform = Just platform }) client
+      # Container.from "rust:bookworm"
+      # Container.withMountedCache "/usr/local/cargo/registry" (Query.cacheVolume "rocksky-cargo-registry" client)
+      # Container.withMountedCache "/usr/local/cargo/git" (Query.cacheVolume "rocksky-cargo-git" client)
+      # Container.withMountedCache "/src/rocksky-mcp/target" (Query.cacheVolume ("rocksky-mcp-release-" <> args.target) client)
+      # Container.withEnvVariable "CARGO_PROFILE_RELEASE_STRIP" "symbols"
+      # Container.withDirectoryWith "/src" args.source
+          (Container.defaultWithDirectoryOpts
+            -- The local Rust SDK inherits metadata from the root Cargo workspace.
+            { include = Just [ "Cargo.toml", "Cargo.lock", "crates/**", "rocksky-mcp/**" ]
+            , exclude = Just [ "**/target", "**/node_modules", "**/.git", "**/.env", "**/.env.*" ]
+            })
+      # Container.withWorkdir "/src/rocksky-mcp"
+      # Container.withExec [ "rustup", "target", "add", args.target ]
+      # Container.withExec [ "cargo", "build", "--release", "--target", args.target ]
+      # Container.withExec
+          [ "install", "-D", "-m", "755", "target/" <> args.target <> "/release/rocksky-mcp", "/out/rocksky-mcp" ]
+  pure $ Container.file "/out/rocksky-mcp" environment
+
 main :: Effect Unit
 main = CI.runModule
   [ Module.object_ "RustChecks" {}
@@ -171,5 +210,7 @@ main = CI.runModule
           (Module.argument "source") riff
       , Module.function "rockskyd" "Build and return the Linux amd64 release binary for deployment."
           (Module.argument "source") rockskyd
+      , Module.function "mcpRelease" "Build the stripped MCP release binary for a supported Linux target."
+          mcpReleaseArgs mcpRelease
       ]
   ]
