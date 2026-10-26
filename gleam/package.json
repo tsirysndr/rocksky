@@ -11,7 +11,7 @@
     "xrpc": "gleam build && node entry/server.mjs",
     "prod": "node entry/api.mjs",
     "prod:xrpc": "node entry/server.mjs",
-    "test": "gleam test && node --test test/*.test.mjs",
+    "test": "gleam test && node --test test/*.test.mjs && node --test app-proxy/test/*.test.mjs && node cli/scripts/build.mjs && node --test cli/test/*.test.mjs",
     "db:migrate": "gleam run -m rocksky_api/scripts/migrate",
     "sync": "gleam run -m rocksky_api/scripts/sync",
     "typesense:import": "gleam run -m rocksky_api/scripts/typesense_import",
@@ -40,7 +40,13 @@
     "dev:env": "node scripts/generate_dev_env.mjs",
     "db:seed": "node ../tools/db/seed-local.mjs",
     "repair:artist-pictures": "gleam run -m rocksky_api/scripts/repair_artist_pictures --",
-    "test:artist-pictures": "node --test ../tools/db/artist-pictures.test.mjs"
+    "test:artist-pictures": "node --test ../tools/db/artist-pictures.test.mjs",
+    "build:app-proxy": "gleam build --target javascript",
+    "test:app-proxy": "bun run build:app-proxy && node --test app-proxy/test/*.test.mjs",
+    "bundle:app-proxy": "bun run build:app-proxy && esbuild app-proxy/worker.mjs --bundle --format=esm --platform=browser --outfile=app-proxy/dist/worker.js",
+    "build:cli": "gleam build --target javascript && node cli/scripts/build.mjs",
+    "cli": "node cli/dist/index.mjs",
+    "test:cli": "bun run build:cli && node --test cli/test/*.test.mjs"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",

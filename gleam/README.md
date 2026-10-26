@@ -12,6 +12,20 @@ maintenance commands are implemented in Gleam. JavaScript FFI connects to Drizzl
 AT Protocol and other JavaScript SDKs, Node APIs and native audio/image libraries.
 The server does not import the original TypeScript application at runtime.
 
+## Gleam packages
+
+The workspace also includes [`rocksky_app_proxy`](app-proxy/README.md), an
+independent Cloudflare Worker port of `apps/app-proxy`, through a local path
+dependency in `gleam.toml`. `gleam build` compiles the workspace packages. Use
+`bun run test:app-proxy` for its regression tests and `bun run bundle:app-proxy`
+to produce its deployable JavaScript bundle. The root `bun run test` includes
+these tests; API entrypoints do not start or import the Worker.
+
+The workspace also includes [`rocksky_cli`](cli/README.md), the port of
+`apps/cli`, retaining its original TSX/Ink terminal UI. Run `npm ci --prefix cli`,
+then `bun run build:cli` and `bun run cli tui`. `bun run test:cli` checks the CLI;
+the root test command includes its regression suite.
+
 ## Local environment
 
 Run `bun run dev:env` from this package to generate `.env` using the published
