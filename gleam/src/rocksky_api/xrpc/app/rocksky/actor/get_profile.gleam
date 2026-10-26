@@ -86,7 +86,7 @@ fn retrieve(ctx: Context, requested, caller) {
       pair(
         nested("user", all_columns(users)),
         pair(
-          nested("spotify", all_columns(spotify)) |> optional_selection,
+          nested("spotify", optional_selection(all_columns(spotify))),
           field("tokenId", nullable(st.id(tokens))),
         ),
       ),

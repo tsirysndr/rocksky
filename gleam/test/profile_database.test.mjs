@@ -40,6 +40,17 @@ test('Profile refresh preserves partial fields, creates accounts, publishes chan
     assert.equal((await call('did:plc:one')).body.displayName,'Updated'); assert.equal(messages.length,2);
     assert.equal((await pool.query('SELECT avatar FROM users')).rows[0].avatar,'https://avatar.test/new');
     assert.deepEqual((await call('missing.test')).body,{});
+    // An existing user with no Spotify account must still decode successfully.
+    await pool.query('DELETE FROM spotify_accounts');queries.length=0;
+    const withoutSpotify=(await call('did:plc:one')).body;
+    assert.equal(withoutSpotify.did,'did:plc:one');assert.equal(withoutSpotify.displayName,'Updated');
+    assert.deepEqual(withoutSpotify.spotifyUser,{});assert.equal(withoutSpotify.spotifyConnected,false);
+    assert.equal(queries.filter(q=>q.startsWith('select ')).length,1);
+    await pool.query("INSERT INTO spotify_tokens(access_token,refresh_token,user_id,spotify_app_id) VALUES ('secret-access','secret-refresh','u','app')");
+    const tokenOnly=(await call('did:plc:one')).body;
+    assert.equal(tokenOnly.did,'did:plc:one');assert.deepEqual(tokenOnly.spotifyUser,{});assert.equal(tokenOnly.spotifyConnected,true);
+    assert.ok(!JSON.stringify(tokenOnly).includes('secret-'));
+    await pool.query('DELETE FROM spotify_tokens');
     await pool.query('DELETE FROM users'); fetched={};
     const created=(await call('did:plc:one')).body;
     assert.equal(created.displayName,''); assert.equal(created.avatar,undefined); assert.deepEqual(created.spotifyUser,{});
