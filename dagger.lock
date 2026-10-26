@@ -8,3 +8,5 @@
 ["","oci-sha",["docker.io/oven/bun:1.4.2"],"sha256:9114c058aeae42162ee16dd5084b95fe9473970bb6bcb5b232ab1630f0546895"]
 ["","oci-sha",["docker.io/library/rust:bookworm"],"sha256:48b7f435b8fc6378ce43b44f15e3a47fd8919b2825f835c39bd4bd3da50af5b8"]
 ["","oci-sha",["docker.io/library/redis:7-alpine"],"sha256:57e4255cc971b1c8d6f8a6ca283ac01bc3ecdd914273ef6bfaede87aaecd6541"]
+["","oci-sha",["docker.io/library/elixir:1.18.4-otp-27"],"sha256:16030134c70ce23795cc45d46377c3be8c6435915e8971e5a5a26621f316020e"]
+["","oci-sha",["docker.io/library/postgres:16-alpine"],"sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab"]
