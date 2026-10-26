@@ -13,6 +13,8 @@ on:
 
 jobs:
   build-and-push:
+    # Publishing is disabled until explicitly re-enabled.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
