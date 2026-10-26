@@ -1,7 +1,8 @@
 # Rocksky CI in PureScript
 
-Four Dagger modules port thirteen jobs from `.github/workflows/tests.yml`,
-`.github/workflows/ci.yml`, `.github/workflows/riff.yml`, and `.github/workflows/build.yml`. The workflows retain their triggers and job names;
+Four Dagger modules port thirteen complete jobs from `.github/workflows/tests.yml`,
+`.github/workflows/ci.yml`, `.github/workflows/riff.yml`, and `.github/workflows/build.yml`. The Linux targets in `rocksky-mcp-release.yml` also build through Dagger.
+The workflows retain their triggers and job names;
 `tests.yml` retains its path filters and concurrency. PureScript owns the
 container setup and commands.
 
@@ -20,6 +21,7 @@ container setup and commands.
 | `rust` | `submissions` | `tests.yml: submissions` | Dashboard checks, backend matrix, ingestion, and crash recovery |
 | `rust` | `riff` | `riff.yml: test` | Formatting, Clippy, tests, and real HTTP smoke checks |
 | `rust` | `rockskyd` | `build.yml: rockskyd` | Linux amd64 release binary returned as a Dagger File |
+| `rust` | `mcp-release` | `rocksky-mcp-release.yml: build` (Linux targets) | Stripped amd64/arm64 binary returned as a Dagger File |
 
 All test jobs in `tests.yml` now call PureScript Dagger functions. GitHub Actions
 still owns change detection and job scheduling.
@@ -46,6 +48,10 @@ cd .dagger
 ./bin/dagger api call -m rust riff --source ../riff
 mkdir -p ../target/release
 ./bin/dagger api call -m rust rockskyd --source .. --output ../target/release/rockskyd
+mkdir -p ../rocksky-mcp/target/x86_64-unknown-linux-gnu/release
+./bin/dagger api call -m rust mcp-release --source .. \
+  --target x86_64-unknown-linux-gnu \
+  --output ../rocksky-mcp/target/x86_64-unknown-linux-gnu/release/rocksky-mcp
 ./bin/dagger api call -m elixir remote-ws --source ../remote-ws
 ./bin/dagger api call -m typescript api-contracts --source ..
 ```
@@ -141,6 +147,16 @@ The binary is copied out of that cache before export. Optional `apps/web/dist/`
 assets are included when present, matching the application build script.
 GitHub Actions uploads the same `rockskyd` artifact from `target/release/rockskyd`;
 the deployment job still handles artifact download, SSH, and service restarts.
+
+`rust mcp-release` accepts the repository root and a required `target`:
+`x86_64-unknown-linux-gnu` or `aarch64-unknown-linux-gnu`. It selects the matching
+Linux container platform, strips release symbols, and returns the executable as
+a `File`. Other targets fail before constructing a build. The source includes
+the MCP package, its local Rust SDK dependency, and Cargo workspace metadata.
+Each target has its own build cache. The release matrix keeps native Linux
+runners for both architectures; macOS and Windows retain their original native
+build steps. Tag preparation, archive names, checksums, and release uploads are
+unchanged. This migration does not itself create or publish a release.
 
 ## SDK and generated bindings
 

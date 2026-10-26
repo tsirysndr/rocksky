@@ -74,18 +74,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        if: runner.os != 'Linux'
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
+        if: runner.os != 'Linux'
         with:
           workspaces: rocksky-mcp
           shared-key: rocksky-mcp-${{ matrix.target }}
           cache-on-failure: true
       - name: cargo build --release
+        if: runner.os != 'Linux'
         run: cargo build --release --target ${{ matrix.target }}
-      # No native audio or C dependencies here (that is playerd's job), so every
-      # target is a plain cross-compile — including the Intel mac from an arm
-      # runner.
+      - name: Install pinned Dagger CLI
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Build Linux MCP release binary (PureScript Dagger)
+        if: runner.os == 'Linux'
+        working-directory: .dagger
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: |
+          mkdir -p "../rocksky-mcp/target/$RELEASE_TARGET/release"
+          dagger api call -m rust mcp-release --source .. --target "$RELEASE_TARGET" \
+            --output "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp"
+      # Native macOS and Windows builds and all release packaging stay on the runner.
       - name: Package tarball
         shell: bash
         run: |
