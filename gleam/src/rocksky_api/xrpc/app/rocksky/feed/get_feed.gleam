@@ -23,6 +23,7 @@ import rocksky_api/error
 import rocksky_api/lexicon/json_value
 import rocksky_api/lexicon/models
 import rocksky_api/lib/feed_cache
+import rocksky_api/lib/query_cache
 import rocksky_api/node/axios
 import rocksky_api/node/redis
 import rocksky_api/node/xrpc_server
@@ -249,6 +250,8 @@ pub fn cached(ctx: Context, params: models.GetFeedParams, did: Option(String)) {
 }
 
 pub fn register(server: xrpc_server.Server, ctx: Context) {
+  // Coalesce concurrent requests only; Redis retains freshness/version control.
+  let pending = query_cache.new(0, 100)
   xrpc_server.method(
     server,
     "app.rocksky.feed.getFeed",
@@ -264,7 +267,17 @@ pub fn register(server: xrpc_server.Server, ctx: Context) {
           ),
         models.get_feed_params_decoder(),
       )
-      cached(ctx, params, handler.caller(req))
+      let did = handler.caller(req)
+      let key =
+        json.array(
+          [
+            models.encode_get_feed_params(params),
+            json.nullable(did, json.string),
+          ],
+          fn(v) { v },
+        )
+        |> json.to_string
+      query_cache.get(pending, key, fn() { cached(ctx, params, did) })
       |> task.map(models.encode_feed_view)
     },
   )

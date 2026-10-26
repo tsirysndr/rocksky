@@ -26,7 +26,23 @@ test('Feed hydration respects timestamps, per-track likes, caller cache and gene
  assert.ok((await feed.cached(ctx,params,new Some('did:u'))) instanceof Ok);assert.equal(calls.length,1);
  result=await feed.cached(ctx,params,new None());assert.ok(result instanceof Ok);assert.equal(encode(result[0]).feed[0].scrobble.liked,false);assert.equal(calls.length,2);
  let story=await stories.retrieve(ctx,new GetStoriesParams(new Some(20),new None(),new None()),new Some('did:u'));assert.ok(story instanceof Ok,story instanceof Ok?'':describe(story[0]));let sv=encode_feed_stories_view(story[0]);assert.equal(sv.stories.length,1);assert.equal(sv.stories[0].uri,'at://newer');assert.equal(sv.stories[0].liked,true);
+ // Feed-scoped stories must call the configured service and query candidates once,
+ // including old entries (these fixtures are outside the recent activity window).
+ const sqlCalls=[];const query=pool.query.bind(pool);pool.query=(...args)=>{sqlCalls.push(typeof args[0]==='string'?args[0]:args[0].text);return query(...args);};
+ story=await stories.retrieve(ctx,new GetStoriesParams(new Some(80),new Some('at://feed'),new None()),new None());
+ assert.ok(story instanceof Ok,story instanceof Ok?'':describe(story[0]));
+ assert.equal(calls.at(-1).url,'http://localhost:8003/xrpc/app.rocksky.feed.getFeedSkeleton');
+ assert.equal(encode_feed_stories_view(story[0]).stories[0].uri,'at://newer');
+ assert.equal(sqlCalls.filter(sql=>/distinct on/i.test(sql)).length,1);
+ pool.query=query;
+ // Identical simultaneous API requests share work, but different viewers do not.
+ cache.clear();let handler;feed.register({method:(_name,config)=>{handler=config.handler;}},ctx);
+ const before=calls.length;
+ const responses=await Promise.all(Array.from({length:8},()=>handler({params:{feed:'at://feed',limit:10}})));
+ assert.equal(calls.length-before,1);assert.ok(responses.every(r=>r.body.feed.length===2));
+ cache.set('feed:ver:at://feed','2');await handler({params:{feed:'at://feed',limit:10}});assert.equal(calls.length-before,2);
  const followed=new GetStoriesParams(new Some(20),new None(),new Some(true));story=await stories.retrieve(ctx,followed,new Some('did:u'));assert.ok(story instanceof Ok);assert.equal(encode_feed_stories_view(story[0]).stories.length,0);assert.ok(!((await stories.retrieve(ctx,followed,new None())) instanceof Ok));
  cache.set('feed:ver:at://feed','1');ctx.env.rocksky_feedgen_did='did:web:other';assert.ok((await feed.cached(ctx,params,new None())) instanceof Ok);assert.equal(calls.at(-1).url,'https://feeds.test/xrpc/app.rocksky.feed.getFeedSkeleton');
+ story=await stories.retrieve(ctx,new GetStoriesParams(new Some(80),new Some('at://feed'),new None()),new None());assert.ok(story instanceof Ok);assert.equal(calls.at(-1).url,'https://feeds.test/xrpc/app.rocksky.feed.getFeedSkeleton');
  }finally{axios.defaults.adapter=original;await pool.end();}
 });

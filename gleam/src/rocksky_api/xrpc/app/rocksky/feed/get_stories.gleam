@@ -1,5 +1,6 @@
 import gleam/dict
 import gleam/dynamic/decode
+import gleam/int
 import gleam/javascript/promise
 import gleam/json
 import gleam/list
@@ -39,8 +40,11 @@ fn feed_uris(ctx: Context, uri: String) {
     |> one(ctx.db)
     |> task.require_task("Feed not found"),
   )
-  let url = case string.contains(ctx.env.public_url, "localhost") {
-    True -> "http://localhost:8002"
+  let own =
+    string.contains(ctx.env.public_url, "localhost")
+    || feed.did == ctx.env.rocksky_feedgen_did
+  let url = case own {
+    True -> "http://localhost:" <> int.to_string(ctx.env.rocksky_feedgen_port)
     False ->
       "https://"
       <> {
@@ -155,10 +159,17 @@ pub fn retrieve(
         0 -> 20
         size -> size
       }
-      use recent <- task.then(rows(ctx, size, conditions, True))
-      use rows <- task.then(case list.length(recent) < size {
-        True -> rows(ctx, size, conditions, False)
-        False -> task.ok(recent)
+      // A feed already bounds the candidate set. Query it once, including
+      // older entries, rather than retrying when it has fewer unique users.
+      use rows <- task.then(case uris {
+        Some(_) -> rows(ctx, size, conditions, False)
+        None -> {
+          use recent <- task.then(rows(ctx, size, conditions, True))
+          case list.length(recent) < size {
+            True -> rows(ctx, size, conditions, False)
+            False -> task.ok(recent)
+          }
+        }
       })
       let ids = list.map(rows, fn(r) { r.1.0.id }) |> list.unique
       let loved = lt.table()
