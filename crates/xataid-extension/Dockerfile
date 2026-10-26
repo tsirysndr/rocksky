@@ -1,30 +1,33 @@
-FROM rust:1.89-bookworm AS builder
+FROM rust:1.96.0-bookworm AS builder
 
-RUN apt-get update && apt-get install -y \
+# Keep cargo-pgrx aligned with pgrx and pgrx-tests in Cargo.toml.
+ARG PGRX_VERSION=0.15.0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
   libreadline-dev \
   pkg-config \
   flex \
   bison \
-  build-essential
+  build-essential \
+  libclang-dev \
+  postgresql-server-dev-15 \
+  && rm -rf /var/lib/apt/lists/*
 
-RUN cargo install --locked cargo-pgrx
+RUN cargo install --locked --version "${PGRX_VERSION}" cargo-pgrx
 
-RUN cargo pgrx init
-
-RUN apt-get install -y libclang-dev
+# Use the system PostgreSQL 15 headers instead of building every supported major.
+RUN cargo pgrx init --pg15 /usr/lib/postgresql/15/bin/pg_config --no-run
 
 WORKDIR /app
-
 COPY . .
 
-RUN cargo pgrx package
+RUN cargo pgrx package \
+  --pg-config /usr/lib/postgresql/15/bin/pg_config \
+  --no-default-features --features pg15 \
+  --out-dir /out
 
-FROM postgres:15
+FROM postgres:15-bookworm
 
-COPY --from=builder /app/target/release/xataid_extension-pg15/usr/lib/postgresql/15/lib/xataid_extension.so /usr/lib/postgresql/15/lib/xataid_extension.so
-
-COPY --from=builder /app/target/release/xataid_extension-pg15/usr/share/postgresql/15/extension/xataid_extension--0.0.0.sql /usr/share/postgresql/15/extension/xataid_extension--0.0.0.sql
-
-COPY --from=builder /app/target/release/xataid_extension-pg15/usr/share/postgresql/15/extension/xataid_extension.control /usr/share/postgresql/15/extension/xataid_extension.control
-
+COPY --from=builder /out/usr/lib/postgresql/15/lib/xataid_extension.so /usr/lib/postgresql/15/lib/xataid_extension.so
+COPY --from=builder /out/usr/share/postgresql/15/extension/ /usr/share/postgresql/15/extension/
 COPY sql/setup.sql /docker-entrypoint-initdb.d/
