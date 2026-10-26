@@ -34,6 +34,16 @@ test('Feed hydration respects timestamps, per-track likes, caller cache and gene
  assert.equal(calls.at(-1).url,'http://localhost:8003/xrpc/app.rocksky.feed.getFeedSkeleton');
  assert.equal(encode_feed_stories_view(story[0]).stories[0].uri,'at://newer');
  assert.equal(sqlCalls.filter(sql=>/distinct on/i.test(sql)).length,1);
+ // Global pages stop at the small window when it fills the page, but
+ // widen twice when older users are needed.
+ sqlCalls.length=0;
+ story=await stories.retrieve(ctx,new GetStoriesParams(new Some(80),new None(),new None()),new None());
+ assert.ok(story instanceof Ok);assert.equal(encode_feed_stories_view(story[0]).stories.length,1);
+ assert.equal(sqlCalls.filter(sql=>/distinct on/i.test(sql)).length,3);
+ await query("UPDATE scrobbles SET timestamp=now() WHERE xata_id='s2'");sqlCalls.length=0;
+ story=await stories.retrieve(ctx,new GetStoriesParams(new Some(1),new None(),new None()),new None());
+ assert.ok(story instanceof Ok);assert.equal(encode_feed_stories_view(story[0]).stories[0].uri,'at://newer');
+ assert.equal(sqlCalls.filter(sql=>/distinct on/i.test(sql)).length,1);
  pool.query=query;
  // Identical simultaneous API requests share work, but different viewers do not.
  cache.clear();let handler;feed.register({method:(_name,config)=>{handler=config.handler;}},ctx);

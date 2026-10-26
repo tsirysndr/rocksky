@@ -42,10 +42,10 @@ try{
  }
  {
   const row={trackId:'t',title:'Song',timestamp:date,uri:'s',album:'Album',did:'did:author'};
-  const m=mock({scrobbles:[[],[row]],loved_tracks:[[{trackId:'t',count:4,liked:true}]]});
+  const m=mock({scrobbles:[[],[],[row]],loved_tracks:[[{trackId:'t',count:4,liked:true}]]});
   const result=await run(Stories.retrieve({db:m.db})({size:2})(new Just('did:viewer')));
   assert.equal(result.stories[0].likesCount,4);assert.equal(result.stories[0].liked,true);assert.equal(result.stories[0].id,'t');assert.equal(result.stories[0].createdAt,date.toISOString());
-  const statements=m.queries.filter(q=>q.table==='scrobbles');assert.match(statements[0].sql.sql,/make_interval/);assert.doesNotMatch(statements[1].sql.sql,/make_interval/);assert.match(statements[1].sql.sql,/DISTINCT ON \(inner_s.user_id\)/);m.done();
+  const statements=m.queries.filter(q=>q.table==='scrobbles');assert.match(statements[0].sql.sql,/make_interval/);assert.match(statements[1].sql.sql,/make_interval/);assert.doesNotMatch(statements[2].sql.sql,/make_interval/);assert.match(statements[2].sql.sql,/DISTINCT ON \(inner_s.user_id\)/);m.done();
  }
  {
   const row={trackId:null,timestamp:date};const m=mock({follows:[[{id:'followed'}]],scrobbles:[[row]]});

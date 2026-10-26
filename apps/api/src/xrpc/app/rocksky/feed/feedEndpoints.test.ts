@@ -86,11 +86,11 @@ it("gets stories from the feeds service and queries bounded candidates once", as
       expect(queries[0].sql).not.toContain("make_interval");
       m.done();
     }
-    const m = setup({scrobbles: [[], []]});
+    const m = setup({scrobbles: [[], [], []]});
     registerStories(m.server as any, {db: m.db} as any);
     await m.handlers.stories({params: {size: 80}, auth: {}});
     const queries = m.statements.filter(s => s.table === "scrobbles");
-    expect(queries.length).toBe(2);
+    expect(queries.length).toBe(3);
     expect(queries[0].sql).toContain("make_interval");
     m.done();
   } finally { axios.defaults.adapter = previous; }

@@ -172,7 +172,10 @@ const retrieve = ({
       // scan when the window can't fill the page.
       // Feed skeletons already bound the candidates; include old entries
       // immediately instead of repeating the query for a short page.
-      let rows = await fetchRows(feedUris ? undefined : 30);
+      let rows = await fetchRows(feedUris ? undefined : 3);
+      if (!feedUris && rows.length < size) {
+        rows = await fetchRows(30);
+      }
       if (!feedUris && rows.length < size) {
         rows = await fetchRows();
       }

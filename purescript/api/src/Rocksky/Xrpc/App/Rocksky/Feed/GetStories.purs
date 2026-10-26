@@ -52,11 +52,11 @@ retrieve ctx params did = do
       size = case toMaybe params.size of
         Just n | n /= 0 -> n
         _ -> 20
-      fetchRows recent = do
+      fetchRows windowDays = do
         let filters = A.catMaybes
               [ map (SQL.inArray (SQL.raw "inner_s.uri") <<< map SQL.string) uris
               , map (SQL.inArray (SQL.raw "inner_s.user_id") <<< map SQL.string) following
-              , if recent then Just (SQL.template ["inner_s.timestamp > now() - make_interval(days => ", ")"] [SQL.int 30]) else Nothing ]
+              , if windowDays > 0 then Just (SQL.template ["inner_s.timestamp > now() - make_interval(days => ", ")"] [SQL.int windowDays]) else Nothing ]
             innerWhere = if A.null filters then SQL.empty else SQL.template ["WHERE ", ""] [SQL.join (SQL.raw " AND ") filters]
         run ctx.db (selectFieldsFrom
           { xataId: toSQL T.scrobblesC.id, trackId: toSQL T.tracksC.id, title: toSQL T.tracksC.title, artist: toSQL T.tracksC.artist
@@ -72,10 +72,11 @@ retrieve ctx params did = do
     -- The feed service already bounds the candidates. Include older entries
     -- in one query instead of retrying when there are fewer unique users.
     rows <- case uris of
-      Just _ -> fetchRows false
+      Just _ -> fetchRows 0
       Nothing -> do
-        recent <- fetchRows true
-        if A.length recent < size then fetchRows false else pure recent
+        recent <- fetchRows 3
+        recent <- if A.length recent < size then fetchRows 30 else pure recent
+        if A.length recent < size then fetchRows 0 else pure recent
     let ids = A.filter (_ /= "") (A.mapMaybe (toMaybe <<< _.trackId) rows)
     likes :: Array { trackId :: String, count :: Int, liked :: Boolean } <- if A.null ids then pure [] else run ctx.db
       (selectFieldsFrom { trackId: toSQL T.lovedTracksC.trackId, count: SQL.raw "count(*)::int"

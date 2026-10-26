@@ -74,18 +74,18 @@ fn feed_uris(ctx: Context, uri: String) {
   |> task.from_result
 }
 
-fn rows(ctx: Context, size: Int, conditions, recent: Bool) {
+fn rows(ctx: Context, size: Int, conditions, window_days: Int) {
   let s = sc.table()
   let t = tr.table()
   let u = us.table()
   let a = ar.table()
   let album = al.table()
-  let conditions = case recent {
-    True -> [
-      gt_columns(sc.timestamp(s), now_minus_seconds(30 * 86_400)),
+  let conditions = case window_days {
+    days if days > 0 -> [
+      gt_columns(sc.timestamp(s), now_minus_seconds(days * 86_400)),
       ..conditions
     ]
-    False -> conditions
+    _ -> conditions
   }
   let latest =
     select(s, field("id", sc.id(s)))
@@ -162,11 +162,17 @@ pub fn retrieve(
       // A feed already bounds the candidate set. Query it once, including
       // older entries, rather than retrying when it has fewer unique users.
       use rows <- task.then(case uris {
-        Some(_) -> rows(ctx, size, conditions, False)
+        Some(_) -> rows(ctx, size, conditions, 0)
         None -> {
-          use recent <- task.then(rows(ctx, size, conditions, True))
+          // Most pages fit within three days. Keep wider fallbacks for
+          // inactive audiences and larger page sizes.
+          use recent <- task.then(rows(ctx, size, conditions, 3))
+          use recent <- task.then(case list.length(recent) < size {
+            True -> rows(ctx, size, conditions, 30)
+            False -> task.ok(recent)
+          })
           case list.length(recent) < size {
-            True -> rows(ctx, size, conditions, False)
+            True -> rows(ctx, size, conditions, 0)
             False -> task.ok(recent)
           }
         }
