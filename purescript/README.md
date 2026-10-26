@@ -392,3 +392,12 @@ Workers. Build with `bun run build:app-proxy`, run its regression suite with
 `bun run test:app-proxy`, and create a standalone Worker bundle with
 `bun run bundle:app-proxy`. See [app-proxy/README.md](app-proxy/README.md) for
 module layout, environment bindings, and Wrangler commands.
+
+## CLI and terminal player
+
+The `cli/` package provides the command-line app with a PureScript core,
+React/Ink TSX views, and native integration adapters. Install its dependencies
+with `(cd cli && bun install --frozen-lockfile)`, build with `bun run build:cli`,
+and run `node cli/index.js --help` (or omit arguments for the TUI).
+Run `bun run test:cli` for regressions. See [cli/README.md](cli/README.md)
+for code boundaries, configuration, and native requirements.

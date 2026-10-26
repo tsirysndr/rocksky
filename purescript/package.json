@@ -17,7 +17,7 @@
     "prod:views": "node --enable-source-maps api/dist/views.js",
     "script": "node bin/run.js",
     "test": "spago test",
-    "format": "purs-tidy format-in-place 'api/src/**/*.purs' 'api/test/**/*.purs' 'packages/*/src/**/*.purs' 'app-proxy/src/**/*.purs'",
+    "format": "purs-tidy format-in-place 'api/src/**/*.purs' 'api/test/**/*.purs' 'packages/*/src/**/*.purs' 'app-proxy/src/**/*.purs' 'cli/src/**/*.purs'",
     "test:xrpc": "spago build -p rocksky-api && node bin/test-xrpc.js",
     "test:teal": "spago build -p rocksky-api && node bin/test-teal.js",
     "test:typesense": "spago build -p rocksky-api && node bin/test-typesense.js",
@@ -92,7 +92,11 @@
     "test:artist-pictures": "node --test ../tools/db/artist-pictures.test.mjs",
     "build:app-proxy": "spago build -p rocksky-app-proxy",
     "bundle:app-proxy": "bun run build:app-proxy && esbuild app-proxy/worker.js --bundle --format=esm --platform=browser --outfile=app-proxy/dist/worker.js",
-    "test:app-proxy": "spago build -p rocksky-app-proxy && node bin/test-app-proxy.js"
+    "test:app-proxy": "spago build -p rocksky-app-proxy && node bin/test-app-proxy.js",
+    "build:cli": "spago build -p rocksky-cli && node bin/build-cli-ui.js",
+    "start:cli": "node cli/index.js",
+    "test:cli": "bun run build:cli && node bin/test-cli.js",
+    "bundle:cli": "bun run build:cli && esbuild cli/index.js --bundle --format=esm --platform=node --packages=external --outfile=cli/dist/index.js"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",
