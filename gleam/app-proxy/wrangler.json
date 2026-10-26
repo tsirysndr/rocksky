@@ -1,0 +1,11 @@
+{
+  "name": "patient-bar-6c30",
+  "main": "worker.mjs",
+  "compatibility_date": "2025-01-29",
+  "observability": {
+    "enabled": true
+  },
+  "build": {
+    "command": "gleam build --target javascript"
+  }
+}
