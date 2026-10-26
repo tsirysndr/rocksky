@@ -6,7 +6,7 @@ import Dagger (Client)
 import Dagger.Container as Container
 import Dagger.Modules as Module
 import Dagger.Query as Query
-import Dagger.Types (Container, Directory)
+import Dagger.Types (Container, Directory, File, Platform(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
@@ -127,6 +127,35 @@ riff client source = do
     # Container.withExec [ "bash", "scripts/ci-smoke.sh" ]
   pure "Riff formatting, Clippy, tests, and HTTP smoke checks passed"
 
+-- The deployment host and the existing DuckDB archive both target Linux amd64.
+rockskyd :: Client -> Directory -> Aff File
+rockskyd client source = do
+  let
+    environment = Query.containerWith
+      (Query.defaultContainerOpts { platform = Just (Platform "linux/amd64") }) client
+      # Container.from "rust:bookworm"
+      # Container.withMountedCache "/usr/local/cargo/registry" (Query.cacheVolume "rocksky-cargo-registry" client)
+      # Container.withMountedCache "/usr/local/cargo/git" (Query.cacheVolume "rocksky-cargo-git" client)
+      # Container.withMountedCache "/src/target" (Query.cacheVolume "rocksky-rockskyd-release-amd64" client)
+      # Container.withWorkdir "/src"
+      # Container.withExec [ "sh", "-c", "apt-get update && apt-get install -y --no-install-recommends libreadline-dev pkg-config flex bison build-essential unzip curl ca-certificates && rm -rf /var/lib/apt/lists/*" ]
+      # Container.withExec [ "curl", "--fail", "--location", "--retry", "3", "--output", "/tmp/duckdb.zip", "https://github.com/duckdb/duckdb/releases/download/v1.4.0/libduckdb-linux-amd64.zip" ]
+      # Container.withExec [ "unzip", "-o", "/tmp/duckdb.zip", "-d", "/tmp/duckdb" ]
+      # Container.withExec [ "cp", "/tmp/duckdb/libduckdb.so", "/usr/local/lib/" ]
+      # Container.withExec [ "cp", "/tmp/duckdb/duckdb.h", "/tmp/duckdb/duckdb.hpp", "/usr/local/include/" ]
+      # Container.withExec [ "ldconfig" ]
+      # Container.withEnvVariable "DUCKDB_LIB_DIR" "/usr/local/lib"
+      # Container.withEnvVariable "DUCKDB_INCLUDE_DIR" "/usr/local/include"
+      # Container.withDirectoryWith "/src" source
+          (Container.defaultWithDirectoryOpts
+            { include = Just [ "Cargo.toml", "Cargo.lock", "crates/**", "apps/web/dist/**" ]
+            , exclude = Just [ "**/target", "**/node_modules", "**/.git", "**/.env", "**/.env.*" ]
+            })
+      # Container.withExec [ "cargo", "build", "-p", "rockskyd", "--release" ]
+      -- Export a regular layer file rather than an artifact inside the target cache.
+      # Container.withExec [ "install", "-D", "-m", "755", "/src/target/release/rockskyd", "/out/rockskyd" ]
+  pure $ Container.file "/out/rockskyd" environment
+
 main :: Effect Unit
 main = CI.runModule
   [ Module.object_ "RustChecks" {}
@@ -140,5 +169,7 @@ main = CI.runModule
           (Module.argument "source") submissions
       , Module.function "riff" "Check Riff formatting, Clippy, tests, and its real HTTP binary with static DuckDB."
           (Module.argument "source") riff
+      , Module.function "rockskyd" "Build and return the Linux amd64 release binary for deployment."
+          (Module.argument "source") rockskyd
       ]
   ]
