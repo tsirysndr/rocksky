@@ -52,6 +52,18 @@ tracklist client source = do
   void $ Container.sync environment
   pure "Workspace formatting and tracklist tests passed"
 
+matching :: Client -> Directory -> Aff String
+matching client source = do
+  void $ Container.sync $ rust client "matching"
+    # Container.withDirectoryWith "/src" source
+        (Container.defaultWithDirectoryOpts
+          { include = Just [ "Cargo.toml", "Cargo.lock", "crates/**" ]
+          , exclude = Just [ "**/target", "**/.env", "**/.env.*" ]
+          })
+    -- The script preserves release mode, --locked, and two build jobs.
+    # Container.withExec [ "bash", "crates/matching/scripts/validate.sh" ]
+  pure "Matching regression tests passed"
+
 main :: Effect Unit
 main = CI.runModule
   [ Module.object_ "RustChecks" {}
@@ -59,5 +71,7 @@ main = CI.runModule
           (Module.argument "source") sdk
       , Module.function "tracklist" "Check workspace formatting and test tracklist with Redis."
           (Module.argument "source") tracklist
+      , Module.function "matching" "Run the full matching regression suite with SQLite and mock providers."
+          (Module.argument "source") matching
       ]
   ]
