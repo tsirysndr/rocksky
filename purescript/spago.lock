@@ -821,6 +821,36 @@
           "dependencies": []
         }
       },
+      "rocksky-feeds": {
+        "path": "feeds",
+        "core": {
+          "dependencies": [
+            "aff",
+            "aff-promise",
+            "arrays",
+            "atproto-syntax",
+            "drizzle",
+            "effect",
+            "either",
+            "envalid",
+            "exceptions",
+            "foreign",
+            "hono",
+            "integers",
+            "js-date",
+            "maybe",
+            "node-postgres",
+            "now",
+            "nullable",
+            "prelude",
+            "rocksky-api",
+            "strings"
+          ]
+        },
+        "test": {
+          "dependencies": []
+        }
+      },
       "rsql": {
         "path": "packages/rsql",
         "core": {

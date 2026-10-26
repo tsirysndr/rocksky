@@ -1,0 +1,23 @@
+package:
+  name: rocksky-feeds
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - aff-promise
+    - arrays
+    - either
+    - exceptions
+    - foreign
+    - maybe
+    - nullable
+    - strings
+    - integers
+    - now
+    - hono
+    - envalid
+    - node-postgres
+    - atproto-syntax
+    - rocksky-api
+    - drizzle
+    - js-date
