@@ -1,0 +1,26 @@
+[Unit]
+Description=Rocksky Feed Generator (Gleam)
+After=network-online.target
+Wants=network-online.target
+Conflicts=rocksky-feeds.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/gleam
+ExecStartPre=/bin/bash -ic 'exec /bin/bash deploy/build-production.sh'
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- env NODE_ENV=production OTEL_SERVICE_NAME=rocksky-feeds OTEL_ENABLED=true node feeds/main.mjs'
+TimeoutStartSec=15min
+TimeoutStopSec=90s
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=feeds-gleam
+Environment=HOME=/root
+Environment=USER=root
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/default/feeds-gleam
+
+[Install]
+WantedBy=multi-user.target
