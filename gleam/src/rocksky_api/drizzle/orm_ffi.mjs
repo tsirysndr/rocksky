@@ -165,3 +165,5 @@ export const decayedCount = (at, decay) => d.sql`sum(exp(-(${decay}::double prec
 export const randomOrder = () => d.sql`random()`;
 export const tupleGtSubquery=(expressions,query)=>d.sql`(${d.sql.join(expressions.toArray(),d.sql`, `)}) > (${build(drizzle.mock(),query)})`;
 export const utcCalendarDay=expression=>d.sql`to_char(${expression} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`;
+
+export const countMatching = condition => d.sql`count(*) filter (where ${condition})`.mapWith(Number);

@@ -31,6 +31,9 @@
 }
 
 api.rocksky.app {
+	# Negotiate compression for JSON responses, including large song lists.
+	encode zstd gzip
+
 	handle /xrpc/* {
 		reverse_proxy http://localhost:3004
 	}

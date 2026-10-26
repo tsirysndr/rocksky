@@ -913,3 +913,11 @@ pub fn utc_calendar_day(
 
 @external(javascript, "./orm_ffi.mjs", "utcCalendarDay")
 fn utc_calendar_day_ffi(expression: Raw) -> Raw
+
+/// Aggregate matching rows without a second query or connection.
+pub fn count_matching(condition: Condition) -> Expression(Int) {
+  Expression(count_matching_ffi(condition), integer())
+}
+
+@external(javascript, "./orm_ffi.mjs", "countMatching")
+fn count_matching_ffi(condition: Condition) -> Raw

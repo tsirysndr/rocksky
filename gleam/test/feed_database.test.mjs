@@ -7,6 +7,7 @@ import {Ok} from '../build/dev/javascript/rocksky_api/gleam.mjs';
 import {Some,None} from '../build/dev/javascript/gleam_stdlib/gleam/option.mjs';
 import {GetFeedParams,GetStoriesParams,encode_feed_stories_view,encode_feed_view as encode} from '../build/dev/javascript/rocksky_api/rocksky_api/lexicon/models.mjs';
 import * as feed from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/feed/get_feed.mjs';
+import * as likes from '../build/dev/javascript/rocksky_api/rocksky_api/lib/scrobble_likes.mjs';
 import * as stories from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/feed/get_stories.mjs';
 import {describe} from '../build/dev/javascript/rocksky_api/rocksky_api/error.mjs';
 test('Feed hydration respects timestamps, per-track likes, caller cache and generator routing',{skip:!process.env.GLEAM_TEST_PGHOST},async()=>{
@@ -54,5 +55,15 @@ test('Feed hydration respects timestamps, per-track likes, caller cache and gene
  const followed=new GetStoriesParams(new Some(20),new None(),new Some(true));story=await stories.retrieve(ctx,followed,new Some('did:u'));assert.ok(story instanceof Ok);assert.equal(encode_feed_stories_view(story[0]).stories.length,0);assert.ok(!((await stories.retrieve(ctx,followed,new None())) instanceof Ok));
  cache.set('feed:ver:at://feed','1');ctx.env.rocksky_feedgen_did='did:web:other';assert.ok((await feed.cached(ctx,params,new None())) instanceof Ok);assert.equal(calls.at(-1).url,'https://feeds.test/xrpc/app.rocksky.feed.getFeedSkeleton');
  story=await stories.retrieve(ctx,new GetStoriesParams(new Some(80),new Some('at://feed'),new None()),new None());assert.ok(story instanceof Ok);assert.equal(calls.at(-1).url,'https://feeds.test/xrpc/app.rocksky.feed.getFeedSkeleton');
+ await pool.query("INSERT INTO users(xata_id,did,handle,display_name,avatar) VALUES ('other','did:other','other.test','Other',''); INSERT INTO loved_tracks(user_id,track_id) VALUES ('other','t')");
+ let reads=0;pool.query=(...args)=>{reads++;return query(...args);};
+ const {toList}=await import('../build/dev/javascript/rocksky_api/gleam.mjs');
+ for(const viewer of [new Some('did:u'),new Some('did:missing'),new None()]) {
+  reads=0;const result=await likes.retrieve(ctx,toList(['t']),viewer);assert.ok(result instanceof Ok);
+  assert.deepEqual(result[0][0].toArray(),[['t',2]]);
+  assert.deepEqual(result[0][1].toArray(),viewer instanceof Some&&viewer[0]==='did:u'?['t']:[]);
+  assert.equal(reads,1);
+ }
+ pool.query=query;
  }finally{axios.defaults.adapter=original;await pool.end();}
 });

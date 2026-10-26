@@ -9,15 +9,13 @@ import gleam/string
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
-  aliased_field, all, all_columns, and, asc, count, desc, eq, eq_columns, field,
-  group_by, in_array, inner_join, integer_as_real, left_join, limit, nested,
-  nullable, offset, omit_column, order_by, pair, reference, select, to_sql,
-  where,
+  aliased_field, all, all_columns, and, asc, desc, eq, eq_columns, field,
+  in_array, inner_join, integer_as_real, left_join, limit, nested, nullable,
+  offset, omit_column, order_by, pair, select, to_sql, where,
 }
 import rocksky_api/drizzle/rsql
 import rocksky_api/drizzle/schema/artists as a
 import rocksky_api/drizzle/schema/follows as f
-import rocksky_api/drizzle/schema/loved_tracks as lt
 import rocksky_api/drizzle/schema/scrobbles as s
 import rocksky_api/drizzle/schema/tracks as t
 import rocksky_api/drizzle/schema/users as u
@@ -25,6 +23,7 @@ import rocksky_api/lexicon/json_value
 import rocksky_api/lexicon/models
 import rocksky_api/lib/feed_cache
 import rocksky_api/lib/filtered_page
+import rocksky_api/lib/scrobble_likes
 import rocksky_api/node/redis
 import rocksky_api/node/xrpc_server.{type Server}
 import rocksky_api/task
@@ -229,30 +228,7 @@ fn retrieve(ctx: Context, params: models.GetScrobblesParams, filter) {
         }
       })
       let ids = list.map(rows, fn(r) { r.1.0.id }) |> list.unique
-      let loved = lt.table()
-      use likes <- task.map(case ids {
-        [] -> task.ok(#([], []))
-        _ ->
-          task.all2(
-            select(
-              loved,
-              pair(field("id", lt.track_id(loved)), field("count", count())),
-            )
-              |> where(in_array(lt.track_id(loved), ids))
-              |> group_by([reference(lt.track_id(loved))])
-              |> all(ctx.db),
-            case params.did {
-              None | Some("") -> task.ok([])
-              Some(did) ->
-                select(loved, field("id", lt.track_id(loved)))
-                |> inner_join(users, eq_columns(lt.user_id(loved), u.id(users)))
-                |> where(
-                  and([in_array(lt.track_id(loved), ids), eq(u.did(users), did)]),
-                )
-                |> all(ctx.db)
-            },
-          )
-      })
+      use likes <- task.map(scrobble_likes.retrieve(ctx, ids, params.did))
       let counts = dict.from_list(likes.0)
       list.map(rows, fn(r) {
         let #(scrobble, #(track, #(user, genres))) = r
