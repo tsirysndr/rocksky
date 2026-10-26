@@ -1,7 +1,7 @@
 # Rocksky CI in PureScript
 
-Four Dagger modules port twelve jobs from `.github/workflows/tests.yml`,
-`.github/workflows/ci.yml`, and `.github/workflows/riff.yml`. The workflows retain their triggers and job names;
+Four Dagger modules port thirteen jobs from `.github/workflows/tests.yml`,
+`.github/workflows/ci.yml`, `.github/workflows/riff.yml`, and `.github/workflows/build.yml`. The workflows retain their triggers and job names;
 `tests.yml` retains its path filters and concurrency. PureScript owns the
 container setup and commands.
 
@@ -19,6 +19,7 @@ container setup and commands.
 | `typescript` | `api-contracts` | `tests.yml: api-contracts` | Contract audits and API tests with PostgreSQL 16 |
 | `rust` | `submissions` | `tests.yml: submissions` | Dashboard checks, backend matrix, ingestion, and crash recovery |
 | `rust` | `riff` | `riff.yml: test` | Formatting, Clippy, tests, and real HTTP smoke checks |
+| `rust` | `rockskyd` | `build.yml: rockskyd` | Linux amd64 release binary returned as a Dagger File |
 
 All test jobs in `tests.yml` now call PureScript Dagger functions. GitHub Actions
 still owns change detection and job scheduling.
@@ -43,6 +44,8 @@ cd .dagger
 ./bin/dagger api call -m rust matching --source ..
 ./bin/dagger api call -m rust submissions --source ..
 ./bin/dagger api call -m rust riff --source ../riff
+mkdir -p ../target/release
+./bin/dagger api call -m rust rockskyd --source .. --output ../target/release/rockskyd
 ./bin/dagger api call -m elixir remote-ws --source ../remote-ws
 ./bin/dagger api call -m typescript api-contracts --source ..
 ```
@@ -51,7 +54,7 @@ Run from `.dagger`: its deliberately empty `.env` stops the beta CLI from readin
 application credentials in the repository's `.env`. Do not put secrets in this
 file. `source` is the selected project directory; services also take `otel` explicitly.
 Most functions accept a narrow project directory. `rust tracklist`,
-`rust matching`, and `rust submissions` take the repository root because Cargo resolves every workspace
+`rust matching`, `rust submissions`, and `rust rockskyd` take the repository root because Cargo resolves every workspace
 member; only `Cargo.toml`, `Cargo.lock`, and `crates/` enter their build containers.
 `typescript api-contracts` also takes the root to retain the complete Bun workspace,
 patches, and shared fixtures. Root inputs can upload more data; use a clean checkout.
@@ -129,6 +132,15 @@ the home page, track search, album contents, and audio features against a real
 background process. Its exit trap stops that process. The existing `cargo.sh`
 verifies the static DuckDB release; its download and Rust outputs share the
 Riff-specific target cache. Python, curl, and jq are installed in the container.
+
+`rust rockskyd` returns a typed Dagger `File` rather than a success message. Use
+`--output` to export it. The build explicitly targets Linux amd64, retains the
+DuckDB 1.4.0 shared-library setup and native prerequisites, and runs the original
+`cargo build -p rockskyd --release`. Its target cache is separate from test builds.
+The binary is copied out of that cache before export. Optional `apps/web/dist/`
+assets are included when present, matching the application build script.
+GitHub Actions uploads the same `rockskyd` artifact from `target/release/rockskyd`;
+the deployment job still handles artifact download, SSH, and service restarts.
 
 ## SDK and generated bindings
 

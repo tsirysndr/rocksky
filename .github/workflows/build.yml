@@ -31,6 +31,9 @@ jobs:
               - 'apps/api/**'
               - '.github/workflows/build.yml'
             rockskyd:
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
               - 'crates/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
@@ -52,37 +55,17 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rockskyd == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Install system dependencies
+      - name: Install pinned Dagger CLI
+        working-directory: .dagger
+        run: bash install-dagger.sh
+      - name: Build rockskyd release binary (PureScript Dagger)
+        working-directory: .dagger
         run: |
-          sudo apt-get update && sudo apt-get install -y \
-            libreadline-dev \
-            pkg-config \
-            flex \
-            bison \
-            build-essential \
-            unzip
-      - name: Install DuckDB
-        run: |
-          DUCKDB_VERSION=1.4.0
-          curl -L -o /tmp/duckdb.zip \
-            https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/libduckdb-linux-amd64.zip
-          sudo mkdir -p /usr/local/lib /usr/local/include
-          sudo unzip -o /tmp/duckdb.zip -d /tmp/duckdb
-          sudo cp /tmp/duckdb/libduckdb.so /usr/local/lib/
-          sudo cp /tmp/duckdb/duckdb.h /tmp/duckdb/duckdb.hpp /usr/local/include/
-          sudo ldconfig
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: rockskyd-release
-          cache-on-failure: true
-      - name: cargo build -p rockskyd --release
-        run: cargo build -p rockskyd --release
-        env:
-          DUCKDB_LIB_DIR: /usr/local/lib
-          DUCKDB_INCLUDE_DIR: /usr/local/include
+          mkdir -p ../target/release
+          dagger api call -m rust rockskyd --source .. --output ../target/release/rockskyd
       - name: Upload rockskyd binary
         uses: actions/upload-artifact@v4
         with:
