@@ -593,9 +593,18 @@ impl Queue {
         } else {
             ""
         };
-        let claim = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {expired_history} ELSE attempt_history END, started_at_ms={started}, status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN (SELECT id FROM rocksky_durable_jobs WHERE kind=$1{lane_filter} AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}) RETURNING {JOB_COLUMNS}");
+        // Freeze the bounded locking selection before updating rows. PostgreSQL
+        // may otherwise rescan an IN subquery as rows stop matching its predicate,
+        // leasing more than the requested limit and dropping jobs from claim().
+        let candidates = format!("SELECT id FROM rocksky_durable_jobs WHERE kind=$1{lane_filter} AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at, created_at, id LIMIT $5{lock}");
+        let selection = if self.postgres {
+            "SELECT id FROM candidates".to_owned()
+        } else {
+            candidates.clone()
+        };
+        let claim = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {expired_history} ELSE attempt_history END, started_at_ms={started}, status='processing', attempts=attempts+1, lease_token=$2, lease_until={now}+$3, updated_at={now} WHERE id IN ({selection}) RETURNING {JOB_COLUMNS}");
         let sql = if self.postgres {
-            format!("WITH exhausted AS ({exhausted} RETURNING id) {claim}")
+            format!("WITH exhausted AS ({exhausted} RETURNING id), candidates AS MATERIALIZED ({candidates}) {claim}")
         } else {
             sqlx::query(&exhausted)
                 .bind(kind)

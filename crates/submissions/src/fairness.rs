@@ -138,7 +138,19 @@ impl Queue {
             let actor_param = n+5;
             format!("SELECT id FROM (SELECT id FROM rocksky_durable_jobs WHERE kind=$3 AND actor=${actor_param} AND status IN ('pending','processing'){lane_filter} AND attempts<$4 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now})) ORDER BY available_at,created_at,id LIMIT {quota}{lock}) AS actor_{n}")
         }).collect::<Vec<_>>().join(" UNION ALL ");
-        let statement = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {history} ELSE attempt_history END,started_at_ms={started},status='processing',attempts=attempts+1,lease_token=$1,lease_until={now}+$2,updated_at={now} WHERE id IN ({choices}) RETURNING {JOB_COLUMNS}");
+        // Materialize the per-actor quotas once. Re-evaluating these locking
+        // probes during UPDATE can exceed both the batch limit and actor cap.
+        let selection = if self.postgres {
+            "SELECT id FROM candidates"
+        } else {
+            &choices
+        };
+        let statement = format!("UPDATE rocksky_durable_jobs SET attempt_history=CASE WHEN status='processing' THEN {history} ELSE attempt_history END,started_at_ms={started},status='processing',attempts=attempts+1,lease_token=$1,lease_until={now}+$2,updated_at={now} WHERE id IN ({selection}) RETURNING {JOB_COLUMNS}");
+        let statement = if self.postgres {
+            format!("WITH candidates AS MATERIALIZED ({choices}) {statement}")
+        } else {
+            statement
+        };
         let mut claim = sqlx::query_as::<_, Job>(&statement)
             .bind(Uuid::new_v4().to_string())
             .bind(lease_seconds)
