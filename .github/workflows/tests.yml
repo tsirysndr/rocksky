@@ -36,6 +36,12 @@ jobs:
         with:
           filters: |
             api_contracts:
+              - 'package.json'
+              - '**/package.json'
+              - 'patches/**'
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
               - 'apps/api/**'
               - 'crates/appview/tests/fixtures/**'
               - 'bun.lock'
@@ -72,6 +78,9 @@ jobs:
               - 'otel/**'
               - '.github/workflows/tests.yml'
             remote_ws:
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
               - 'remote-ws/**'
               - '.github/workflows/tests.yml'
             submissions:
@@ -89,6 +98,9 @@ jobs:
               - 'dagger.lock'
               - '.github/workflows/tests.yml'
             matching:
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
               - 'crates/matching/**'
               - 'crates/core/**'
               - 'crates/db/**'
@@ -100,39 +112,16 @@ jobs:
     needs: changes
     if: needs.changes.outputs.api_contracts == 'true'
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: api_test
-        ports:
-          - 5432/tcp
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .dagger
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - name: Install dependencies without native lifecycle scripts
-        run: bun install --frozen-lockfile --ignore-scripts
-      - name: Audit XRPC response contracts
-        working-directory: apps/api
-        run: bun run audit:xrpc
-      - name: Test RSQL query correctness and cache behavior
-        working-directory: apps/api
-        env:
-          ROCKSKY_QUERY_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/api_test
-        run: bun test src/lib/rsql.test.ts src/lib/catalogFilters.test.ts src/lib/queryCache.test.ts
-      - name: Test matching API outcomes and candidate metadata
-        working-directory: apps/api
-        run: bun test src/xrpc/app/rocksky/song/matchingService.test.ts src/xrpc/app/rocksky/song/matchSongUris.test.ts
-      - name: Test durable submission and record ownership boundaries
-        working-directory: apps/api
-        run: bun test src/tealfm/publication.test.ts src/lib/durableSubmission.test.ts src/lib/durableRecord.test.ts src/lib/recordOwnership.test.ts src/lib/recordPosition.test.ts
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: API contracts and regression tests (PureScript Dagger)
+        run: dagger api call -m typescript api-contracts --source ..
 
   submissions:
     needs: changes
@@ -194,12 +183,15 @@ jobs:
     if: needs.changes.outputs.matching == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .dagger
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Run full matching regression suite
-        run: bash crates/matching/scripts/validate.sh
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: Matching regression suite (PureScript Dagger)
+        run: dagger api call -m rust matching --source ..
 
   cli:
     needs: changes
@@ -280,29 +272,16 @@ jobs:
     needs: changes
     if: needs.changes.outputs.remote_ws == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
-        working-directory: remote-ws
+        working-directory: .dagger
     steps:
       - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: "27"
-          elixir-version: "1.18"
-      # The relay's unit tests use in-memory doubles (config/test.exs
-      # start_externals: false), so no Postgres / Redis / NATS services are needed.
-      - name: Cache deps and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            remote-ws/deps
-            remote-ws/_build
-          key: ${{ runner.os }}-mix-${{ hashFiles('remote-ws/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
-      - name: Install dependencies
-        run: mix deps.get
-      - name: Run tests
-        run: mix test
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: Remote WebSocket relay tests (PureScript Dagger)
+        run: dagger api call -m elixir remote-ws --source ../remote-ws
 
   musicbrainz:
     needs: changes
