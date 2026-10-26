@@ -122,10 +122,11 @@ const Loved = await import("../output/Rocksky.Xrpc.App.Rocksky.Actor.GetActorLov
   const result = await run(Loved.retrieve({ db: mock.db })({ did: "listener.test" }));
   assert.equal(result[0].createdAt, lovedAt.toISOString());
   assert.equal(result[0].updatedAt, date.toISOString());
-  assert.equal(result[0].lyrics, "words");
+  assert.equal(result[0].lyrics, undefined);
+  assert.equal(result[0].acoustidFingerprint, undefined);
   const condition = mock.queries.find(([key]) => key === "where")[1];
   assert.ok(condition.sql.includes("is not null"));
   assert.deepEqual(condition.params, ["listener.test", "listener.test"]);
   mock.done();
 }
-console.log("Verified loved-song handle lookup, published-record filtering and love-time timestamp without dropping lyrics.");
+console.log("Verified loved-song handle lookup, published-record filtering and love-time timestamp without lyrics or audio fingerprints.");

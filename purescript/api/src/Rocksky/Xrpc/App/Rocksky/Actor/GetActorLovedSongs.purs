@@ -10,7 +10,9 @@ import Data.Traversable (traverse)
 import Drizzle.Builder (leftJoin, limit, offset, orderBy, run, selectFieldsFrom)
 import Drizzle.Query (where_)
 import Drizzle.SQL as SQL
-import Drizzle.Schema (tableSQL, toSQL)
+import Drizzle.Schema (toSQL)
+import Record as Record
+import Type.Proxy (Proxy(..))
 import Effect (Effect)
 import Effect.Aff (Aff, attempt, error, throwError)
 import Effect.Class (liftEffect)
@@ -19,7 +21,7 @@ import Rocksky.Context (Context)
 import Rocksky.Lexicon (Server)
 import Rocksky.Lib.Aff (recoverWith, retryTransientDb, timeoutMs)
 import Rocksky.Lib.Error (describeError)
-import Rocksky.Lib.Foreign (mergeForeign, toForeign)
+import Rocksky.Lib.Foreign (deleteKeys, mergeForeign, toForeign)
 import Rocksky.Schema as T
 import Rocksky.Schema.Tracks (SelectTrack)
 import Rocksky.Xrpc.Util as Util
@@ -30,7 +32,7 @@ retrieve :: Context -> QueryParams -> Aff (Array Foreign)
 retrieve ctx params = do
   result <- attempt do
     rows :: Array { tracks :: SelectTrack, lovedAt :: JSDate } <- run ctx.db
-      (selectFieldsFrom { tracks: tableSQL T.tracks, lovedAt: toSQL T.lovedTracksC.createdAt } T.lovedTracks
+      (selectFieldsFrom { tracks: Record.delete (Proxy :: Proxy "lyrics") (Record.delete (Proxy :: Proxy "acoustidFingerprint") T.tracksC), lovedAt: toSQL T.lovedTracksC.createdAt } T.lovedTracks
         # leftJoin T.tracks (SQL.eq (toSQL T.lovedTracksC.trackId) (toSQL T.tracksC.id))
         # leftJoin T.users (SQL.eq (toSQL T.lovedTracksC.userId) (toSQL T.usersC.id))
         # where_ (SQL.and
@@ -41,8 +43,8 @@ retrieve ctx params = do
     liftEffect (traverse (\row -> do
       createdAt <- toISOString row.lovedAt
       updatedAt <- toISOString row.tracks.updatedAt
-      -- Preserve lyrics and every other track column, as the source does.
-      pure (mergeForeign (toForeign row.tracks) (toForeign { createdAt, updatedAt }))) rows)
+      -- Large lyrics and audio fingerprints belong to individual song details.
+      pure (mergeForeign (deleteKeys ["lyrics", "acoustidFingerprint"] (toForeign row.tracks)) (toForeign { createdAt, updatedAt }))) rows)
   case result of
     Right tracks -> pure tracks
     Left e -> throwError (error ("Failed to retrieve loved songs: " <> describeError e))

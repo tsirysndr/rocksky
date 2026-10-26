@@ -35,7 +35,7 @@ try{
  }
  {
   const row={scrobbles:{id:'s',uri:'scrobble',timestamp:date,createdAt:date,updatedAt:date},tracks:{id:'t',uri:'song',albumArt:'cover',title:'Song'},users:{handle:'u.test',displayName:null,avatar:null},artists:{genres:['jazz']}};
-  const m=mock({scrobbles:[[row]],loved_tracks:[[{trackId:'t',count:3}],[{trackId:'t'}]]});
+  const m=mock({scrobbles:[[row]],loved_tracks:[[{trackId:'t',count:3,liked:true}]]});
   const result=await run(Feed.hydrate({db:m.db})(['scrobble'])(undefined)(new Just('did:viewer')));const s=result.feed[0].scrobble;
   assert.equal(s.id,'s');assert.equal(s.trackUri,'song');assert.equal(s.cover,'cover');assert.equal(s.albumArt,undefined);assert.equal(s.likesCount,3);assert.equal(s.liked,true);assert.deepEqual(s.tags,['jazz']);assert.equal(s.date,date.toISOString());
   assert.ok(!('lyrics' in m.projections[0].tracks));assert.deepEqual(Object.keys(m.projections[0].artists),['genres']);m.done();

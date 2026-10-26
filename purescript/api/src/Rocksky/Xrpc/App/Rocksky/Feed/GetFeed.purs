@@ -2,7 +2,6 @@ module Rocksky.Xrpc.App.Rocksky.Feed.GetFeed (register, getFeed, hydrate, cacheK
 
 import Prelude
 import Atproto.XrpcServer as Xrpc
-import Control.Parallel (parallel, sequential)
 import Data.Array as A
 import Data.Either (Either(..))
 import Data.JSDate as Date
@@ -12,7 +11,7 @@ import Data.Nullable (Nullable, toMaybe)
 import Data.Set as Set
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Drizzle.Builder (groupBy, innerJoin, leftJoin, orderBy, run, selectFieldsFrom)
+import Drizzle.Builder (leftJoin, orderBy, run, selectFieldsFrom)
 import Drizzle.Query (where_)
 import Drizzle.SQL as SQL
 import Drizzle.Schema (tableSQL, toSQL)
@@ -27,6 +26,7 @@ import Rocksky.Lexicon (Server)
 import Rocksky.Lib.Aff (recoverWith, retryTransientDb, timeoutMs)
 import Rocksky.Lib.FeedCache (getFeedVersion)
 import Rocksky.Lib.Foreign as F
+import Rocksky.Lib.ScrobbleLikes as ScrobbleLikes
 import Rocksky.Lib.QueryCache (queryCache)
 import Rocksky.Schema as T
 import Rocksky.Schema.Scrobbles (SelectScrobble)
@@ -69,14 +69,7 @@ hydrate ctx uris cursor did = do
     # leftJoin T.artists (SQL.eq (toSQL T.tracksC.artistUri) (toSQL T.artistsC.uri))
     # where_ (SQL.inArray (toSQL T.scrobblesC.uri) (map SQL.string uris)) # orderBy [SQL.desc (toSQL T.scrobblesC.timestamp)])
   let ids = A.nub (A.mapMaybe (\row -> F.readStringAt "tracks.id" (F.toForeign row) >>= \id -> if id == "" then Nothing else Just id) rows)
-  likes <- if A.null ids then pure { counts: [], liked: [] } else sequential $ { counts: _, liked: _ }
-    <$> parallel (run ctx.db (selectFieldsFrom { trackId: toSQL T.lovedTracksC.trackId, count: SQL.count } T.lovedTracks
-      # where_ (SQL.inArray (toSQL T.lovedTracksC.trackId) (map SQL.string ids)) # groupBy [toSQL T.lovedTracksC.trackId]) :: Aff (Array { trackId :: String, count :: Int }))
-    <*> parallel (case did of
-      Nothing -> pure []
-      Just viewer -> run ctx.db (selectFieldsFrom { trackId: toSQL T.lovedTracksC.trackId } T.lovedTracks
-        # innerJoin T.users (SQL.eq (toSQL T.lovedTracksC.userId) (toSQL T.usersC.id))
-        # where_ (SQL.and (SQL.inArray (toSQL T.lovedTracksC.trackId) (map SQL.string ids)) (SQL.eq (toSQL T.usersC.did) (SQL.string viewer)))) :: Aff (Array { trackId :: String }))
+  likes <- ScrobbleLikes.retrieve ctx ids did
   let counts = Map.fromFoldable (map (\row -> Tuple row.trackId row.count) likes.counts)
       liked = Set.fromFoldable (map _.trackId likes.liked)
   feed <- liftEffect (traverse (\row -> do

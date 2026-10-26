@@ -16,7 +16,7 @@ const track={id:'t',title:'Song',artist:'A, B, A',uri:'track-uri',albumArt:'art'
 const artist=name=>({name,createdAt:old,updatedAt:old});
 const row={scrobbles:{id:'s',uri:'scrobble-uri',timestamp:date,createdAt:old,updatedAt:old},tracks:track,users:{handle:'u.test',displayName:null,avatar:null},albums:{uri:'album-uri'},artists:{genres:['jazz']}};
 {
- const m=mock({scrobbles:[[row]],loved_tracks:[[{trackId:'t',count:2}],[{trackId:'t'}]]});const result=await run(List.retrieveWithDb({db:m.db})({did:'did:viewer',limit:0}));
+ const m=mock({scrobbles:[[row]],loved_tracks:[[{trackId:'t',count:2,liked:true}]]});const result=await run(List.retrieveWithDb({db:m.db})({did:'did:viewer',limit:0}));
  const item=result.scrobbles[0];assert.equal(item.createdAt,date.toISOString());assert.equal(item.updatedAt,old);assert.equal(item.trackUri,'track-uri');assert.equal(item.uri,'scrobble-uri');assert.equal(item.cover,'art');assert.equal(item.albumArt,undefined);assert.equal(item.liked,true);assert.equal(item.likesCount,2);assert.deepEqual(item.tags,['jazz']);
  assert.ok(!('lyrics' in m.projections[0].tracks));assert.ok(m.queries.some(q=>q.limit===20));assert.ok(!m.queries.some(q=>q.table==='scrobbles'&&q.where));m.done();
 }

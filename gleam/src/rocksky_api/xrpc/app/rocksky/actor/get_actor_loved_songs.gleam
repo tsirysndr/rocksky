@@ -4,7 +4,7 @@ import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
   all, all_columns, and, desc, eq, eq_columns, field, is_not_null, left_join,
-  limit, nested, offset, or, order_by, pair, select, where,
+  limit, nested, offset, omit_column, or, order_by, pair, select, where,
 }
 import rocksky_api/drizzle/schema/loved_tracks as lt
 import rocksky_api/drizzle/schema/tracks as t
@@ -38,7 +38,12 @@ pub fn register(server: Server, ctx: Context) -> Nil {
         select(
           likes,
           pair(
-            nested("track", all_columns(tracks)),
+            nested(
+              "track",
+              all_columns(tracks)
+                |> omit_column(t.lyrics(tracks))
+                |> omit_column(t.acoustid_fingerprint(tracks)),
+            ),
             field("created", lt.created_at(likes)),
           ),
         )
@@ -60,7 +65,8 @@ pub fn register(server: Server, ctx: Context) -> Nil {
           list.map(rows, fn(r) {
             models.SongViewBasic(
               ..song.basic(r.0),
-              lyrics: r.0.lyrics,
+              lyrics: None,
+              acoustid_fingerprint: None,
               created_at: Some(row.iso8601(r.1)),
             )
           }),

@@ -7,6 +7,7 @@ import {Ok} from '../build/dev/javascript/rocksky_api/gleam.mjs';
 import {Some,None} from '../build/dev/javascript/gleam_stdlib/gleam/option.mjs';
 import {GetFeedParams,GetStoriesParams,encode_feed_stories_view,encode_feed_view as encode} from '../build/dev/javascript/rocksky_api/rocksky_api/lexicon/models.mjs';
 import * as feed from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/feed/get_feed.mjs';
+import {register as lovedSongs} from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/actor/get_actor_loved_songs.mjs';
 import * as likes from '../build/dev/javascript/rocksky_api/rocksky_api/lib/scrobble_likes.mjs';
 import * as stories from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/feed/get_stories.mjs';
 import {describe} from '../build/dev/javascript/rocksky_api/rocksky_api/error.mjs';
@@ -56,6 +57,11 @@ test('Feed hydration respects timestamps, per-track likes, caller cache and gene
  cache.set('feed:ver:at://feed','1');ctx.env.rocksky_feedgen_did='did:web:other';assert.ok((await feed.cached(ctx,params,new None())) instanceof Ok);assert.equal(calls.at(-1).url,'https://feeds.test/xrpc/app.rocksky.feed.getFeedSkeleton');
  story=await stories.retrieve(ctx,new GetStoriesParams(new Some(80),new Some('at://feed'),new None()),new None());assert.ok(story instanceof Ok);assert.equal(calls.at(-1).url,'https://feeds.test/xrpc/app.rocksky.feed.getFeedSkeleton');
  await pool.query("INSERT INTO users(xata_id,did,handle,display_name,avatar) VALUES ('other','did:other','other.test','Other',''); INSERT INTO loved_tracks(user_id,track_id) VALUES ('other','t')");
+ await pool.query("UPDATE tracks SET acoustid_fingerprint='fingerprint' WHERE xata_id='t'; UPDATE loved_tracks SET uri='at://like' WHERE user_id='u'");
+ let lovedHandler;lovedSongs({method:(_name,config)=>{lovedHandler=config.handler;}},ctx);
+ const lovedView=await lovedHandler({params:{did:'did:u',limit:1000,offset:0}});
+ assert.equal(lovedView.body.tracks.length,1);assert.equal(lovedView.body.tracks[0].title,'Title');
+ assert.equal(lovedView.body.tracks[0].lyrics,undefined);assert.equal(lovedView.body.tracks[0].acoustidFingerprint,undefined);
  let reads=0;pool.query=(...args)=>{reads++;return query(...args);};
  const {toList}=await import('../build/dev/javascript/rocksky_api/gleam.mjs');
  for(const viewer of [new Some('did:u'),new Some('did:missing'),new None()]) {
