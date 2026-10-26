@@ -1,3 +1,5 @@
+import { request as httpRequest } from "node:http";
+
 const sessions = new WeakMap();
 const namePattern = /^[_A-Za-z][_0-9A-Za-z]*$/;
 function validType(value) {
@@ -70,13 +72,28 @@ function request(session, document, project, onError, onSuccess) {
   if (!config) { onError(new Error("Invalid Dagger session"))(); return () => {}; }
   const timer = setTimeout(() => controller.abort(new Error("Dagger request timed out")), config.timeoutMs);
   (async () => {
-    const response = await fetch(`http://127.0.0.1:${config.port}/query`, {
-      method: "POST", redirect: "error",
-      headers: { "Content-Type": "application/json", Authorization: `Basic ${Buffer.from(`${config.token}:`).toString("base64")}` },
-      body: JSON.stringify(document), signal: controller.signal,
+    // Node fetch has a separate five-minute Undici headers timeout. Dagger
+    // queries may legitimately wait much longer while a build runs. Use the
+    // session's one explicit deadline for both headers and response body.
+    const body = await new Promise((resolve, reject) => {
+      const req = httpRequest({
+        hostname: "127.0.0.1", port: config.port, path: "/query",
+        method: "POST", agent: false, signal: controller.signal,
+        headers: { "Content-Type": "application/json", Authorization: `Basic ${Buffer.from(`${config.token}:`).toString("base64")}` },
+      }, async response => {
+        try {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            response.resume();
+            throw new Error(`Dagger HTTP error ${response.statusCode}`);
+          }
+          const chunks = [];
+          for await (const chunk of response) chunks.push(chunk);
+          resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+        } catch (error) { reject(error); }
+      });
+      req.on("error", reject);
+      req.end(JSON.stringify(document));
     });
-    if (!response.ok) throw new Error(`Dagger HTTP error ${response.status}`);
-    const body = await response.json();
     if (body.errors?.length) {
       const error = new Error(body.errors.map(e => e.message).join("\n"));
       error.name = body.errors.some(e => e.extensions?._type === "EXEC_ERROR") ? "DaggerExecError" : "DaggerGraphQLError";
@@ -86,7 +103,7 @@ function request(session, document, project, onError, onSuccess) {
     }
     if (!Object.hasOwn(body, "data")) throw new Error("Dagger response has no data");
     return project(body.data);
-  })().then(value => { if (!cancelled) onSuccess(value)(); }, err => { if (!cancelled) onError(err)(); }).finally(() => clearTimeout(timer));
+  })().then(value => { if (!cancelled) onSuccess(value)(); }, err => { if (!cancelled) onError(controller.signal.aborted ? controller.signal.reason : err)(); }).finally(() => clearTimeout(timer));
   return () => { cancelled = true; clearTimeout(timer); controller.abort(); };
 }
 export const requestImpl = session => steps => onError => onSuccess => () => {
