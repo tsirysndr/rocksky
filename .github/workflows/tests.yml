@@ -45,15 +45,25 @@ jobs:
               - '.github/workflows/tests.yml'
             ts_sdk:
               - 'sdk/typescript/**'
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
               - '.github/workflows/tests.yml'
             go_sdk:
               - 'sdk/go/**'
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
               - '.github/workflows/tests.yml'
             rust_sdk:
               - 'sdk/rust/**'
               - '.github/workflows/tests.yml'
             deezer:
               - 'deezer/**'
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
+              - 'otel/**'
               - '.github/workflows/tests.yml'
             remote_ws:
               - 'remote-ws/**'
@@ -68,6 +78,9 @@ jobs:
             musicbrainz:
               - 'musicbrainz/**'
               - 'otel/**'
+              - '.dagger/**'
+              - 'dagger.toml'
+              - 'dagger.lock'
               - '.github/workflows/tests.yml'
             matching:
               - 'crates/matching/**'
@@ -204,32 +217,31 @@ jobs:
     needs: changes
     if: needs.changes.outputs.ts_sdk == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
-        working-directory: sdk/typescript
+        working-directory: .dagger
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Run TypeScript SDK tests
-        run: bun test
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: TypeScript SDK tests (PureScript Dagger)
+        run: dagger api call -m typescript sdk --source ../sdk/typescript
 
   go-sdk:
     needs: changes
     if: needs.changes.outputs.go_sdk == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
-        working-directory: sdk/go
+        working-directory: .dagger
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: sdk/go/go.mod
-          cache-dependency-path: sdk/go/go.sum
-      - name: Run Go SDK tests
-        run: go test ./...
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: Go SDK tests (PureScript Dagger)
+        run: dagger api call -m go sdk --source ../sdk/go
 
   rust-sdk:
     needs: changes
@@ -251,19 +263,16 @@ jobs:
     needs: changes
     if: needs.changes.outputs.deezer == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
-        working-directory: deezer
+        working-directory: .dagger
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: deezer/go.mod
-          cache-dependency-path: deezer/go.sum
-      # The live Deezer smoke test is gated behind DEEZER_SMOKE and stays off in
-      # CI so the suite never depends on the external API or its rate limits.
-      - name: Run Deezer service tests
-        run: go test ./...
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: Deezer tests (PureScript Dagger)
+        run: dagger api call -m go deezer --source ../deezer --otel ../otel
 
   remote-ws:
     needs: changes
@@ -297,16 +306,13 @@ jobs:
     needs: changes
     if: needs.changes.outputs.musicbrainz == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
-        working-directory: musicbrainz
+        working-directory: .dagger
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: musicbrainz/go.mod
-          cache-dependency-path: musicbrainz/go.sum
-      - name: Test durable metadata cache and upstream admission
-        run: go test -race ./...
-      - name: Build MusicBrainz proxy
-        run: go build -o /tmp/rocksky-musicbrainz .
+      - name: Install pinned Dagger CLI
+        run: bash install-dagger.sh
+      - name: MusicBrainz race tests and build (PureScript Dagger)
+        run: dagger api call -m go musicbrainz --source ../musicbrainz --otel ../otel
