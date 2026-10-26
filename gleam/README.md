@@ -26,6 +26,11 @@ The workspace also includes [`rocksky_cli`](cli/README.md), the port of
 then `bun run build:cli` and `bun run cli tui`. `bun run test:cli` checks the CLI;
 the root test command includes its regression suite.
 
+[`rocksky_feeds`](feeds/README.md) ports `apps/feeds` with Gleam feed logic and
+Drizzle bindings. `bun run feeds` builds and starts the service; `bun run
+test:feeds` runs its regression suite. Its PostgreSQL smoke test can run against
+an isolated temporary cluster with `sh feeds/test/postgres-smoke.sh`.
+
 ## Local environment
 
 Run `bun run dev:env` from this package to generate `.env` using the published

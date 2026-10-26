@@ -17,6 +17,7 @@ packages = [
   { name = "gleeunit", version = "1.11.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleeunit", source = "hex", outer_checksum = "EC31ABA74256AEA531EDF8169931D775BBB384FED0A8A1BDC4DD9354E3E21826" },
   { name = "rocksky_app_proxy", version = "0.0.1", build_tools = ["gleam"], requirements = ["gleam_javascript", "gleam_json", "gleam_stdlib"], source = "local", path = "app-proxy" },
   { name = "rocksky_cli", version = "0.11.3", build_tools = ["gleam"], requirements = ["gleam_javascript", "gleam_json", "gleam_stdlib"], source = "local", path = "cli" },
+  { name = "rocksky_feeds", version = "0.0.1", build_tools = ["gleam"], requirements = ["gleam_javascript", "gleam_json", "gleam_stdlib"], source = "local", path = "feeds" },
   { name = "simplifile", version = "2.7.0", build_tools = ["gleam"], requirements = ["filepath", "gleam_stdlib"], otp_app = "simplifile", source = "hex", outer_checksum = "A2727627B063E87351934C7F7F008F2D1FDB16F6DE0B8C79F9E46459CFC9C164" },
 ]
 
@@ -31,4 +32,5 @@ gleam_time = { version = ">= 1.0.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.2.0 and < 2.0.0" }
 rocksky_app_proxy = { path = "./app-proxy" }
 rocksky_cli = { path = "./cli" }
+rocksky_feeds = { path = "./feeds" }
 simplifile = { version = ">= 2.0.0 and < 3.0.0" }

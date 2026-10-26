@@ -10,6 +10,7 @@ runtime = "nodejs"
 typescript_declarations = false
 
 [dependencies]
+rocksky_feeds = { path = "./feeds" }
 rocksky_cli = { path = "./cli" }
 rocksky_app_proxy = { path = "./app-proxy" }
 gleam_stdlib = ">= 0.71.0 and < 2.0.0"
