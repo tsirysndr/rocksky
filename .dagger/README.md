@@ -36,14 +36,12 @@ still owns change detection and job scheduling.
 You need Node 24, npm, curl, tar, and Docker (or another Dagger engine).
 The runner-side PureScript module bootstraps the verified Dagger CLI. Application
 build tools and services run in containers; native release jobs use their original runners.
-From the Rocksky root:
+From the Rocksky root, `bootstrap` installs dependencies, compiles the PureScript
+runner, then verifies and installs Dagger. From `.dagger/host`, use `npm run bootstrap`.
+
 
 ```sh
-cd .dagger/host
-npm ci
-npm run build
-cd ../..
-node .dagger/host/run.mjs install-dagger
+npm --prefix .dagger/host run bootstrap
 cd .dagger
 ./bin/dagger api call -m go sdk --source ../sdk/go
 ./bin/dagger api call -m go deezer --source ../deezer --otel ../otel

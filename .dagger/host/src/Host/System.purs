@@ -3,6 +3,7 @@ module Host.System where
 import Prelude
 import Data.Array (uncons)
 import Data.Maybe (Maybe(..))
+import Data.String (trim)
 import Effect (Effect)
 import Effect.Exception (throw, try, throwException)
 import Data.Either (Either(..))
@@ -36,7 +37,9 @@ run capture dir command = case uncons command of
 root :: Effect String
 root = do
   workspace <- env "GITHUB_WORKSPACE"
-  if workspace /= "" then pure workspace else cwd
+  if workspace /= "" then pure workspace else do
+    directory <- cwd
+    trim <$> run true directory [ "git", "rev-parse", "--show-toplevel" ]
 
 required :: String -> Effect String
 required name = do
