@@ -2,6 +2,13 @@ package:
   name: dagger-module
   dependencies:
     - aff
+    - argonaut-core
+    - argonaut-codecs
+    - either
+    - refs
+    - tuples
+    - foreign-object
+    - console
     - arrays
     - control
     - foldable-traversable

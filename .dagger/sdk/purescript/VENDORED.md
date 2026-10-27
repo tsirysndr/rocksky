@@ -15,3 +15,6 @@ Local patch: `src/Dagger/Internal/Runtime.js` uses Node's HTTP transport instead
 of fetch so the configured deadline also governs delayed response headers.
 Regression coverage: `.dagger/tests/transport.test.mjs`. Preserve this patch
 when refreshing the vendored SDK until it is incorporated upstream.
+
+Local patch: `runtime/main.go` uses `node:24-bookworm-slim` for the module
+runtime, matching the CI containers. Preserve this when refreshing the SDK.

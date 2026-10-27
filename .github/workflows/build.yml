@@ -1,8 +1,6 @@
 name: build
 on:
   push:
-    # The SDK binding tags only trigger bindings-release.yml (native libs → GitHub
-    # release); don't run the app build for them.
     tags-ignore:
       - "bindings-v*"
       - "erlang-v*"
@@ -15,109 +13,93 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      api: ${{ steps.filter.outputs.api }}
+      services: ${{ steps.filter.outputs.changes }}
       rockskyd: ${{ steps.filter.outputs.rockskyd }}
-      embed: ${{ steps.filter.outputs.embed }}
-      feeds: ${{ steps.filter.outputs.feeds }}
-      ws: ${{ steps.filter.outputs.ws }}
-      mb: ${{ steps.filter.outputs.mb }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Compile PureScript deployment logic
+        working-directory: .dagger/ops
+        run: |
+          cp -R ../sdk/purescript dagger-sdk
+          npm install --no-save purescript@0.15.16 spago@1.0.5
+          npm run build
+      - name: Test deployment without SSH or Dagger
+        working-directory: .dagger/ops
+        run: node --input-type=module -e 'import { main } from "./output/Test.Deploy/index.js"; main();'
+      - name: Read PureScript production filters
+        id: inventory
+        working-directory: .dagger/ops
+        run: node --input-type=module -e 'import { filters } from "./output/Production/index.js"; console.log("filters=" + filters);' >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          filters: |
-            api:
-              - 'apps/api/**'
-              - '.github/workflows/build.yml'
-            rockskyd:
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - 'crates/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
-              - '.github/workflows/build.yml'
-            embed:
-              - 'apps/embed/**'
-              - '.github/workflows/build.yml'
-            feeds:
-              - 'apps/feeds/**'
-              - '.github/workflows/build.yml'
-            ws:
-              - 'apps/ws/**'
-              - '.github/workflows/build.yml'
-            mb:
-              - 'musicbrainz/**'
-              - '.github/workflows/build.yml'
+          filters: ${{ steps.inventory.outputs.filters }}
 
   rockskyd:
     needs: changes
     if: needs.changes.outputs.rockskyd == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Dagger CLI
-        working-directory: .dagger
-        run: bash install-dagger.sh
-      - name: Build rockskyd release binary (PureScript Dagger)
+        uses: ./.github/actions/setup-dagger
+      - name: Build production Rust executables (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
           module: rust
           key: rust-rockskyd
           volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rockskyd-release-amd64
           command: |
-            mkdir -p ../target/release
-            dagger api call -m rust rockskyd --source .. --output ../target/release/rockskyd
-
-      - name: Upload rockskyd binary
+            dagger api call -m rust production-binaries --source .. export --path ../target/release
+      - name: Upload production Rust executables
         uses: actions/upload-artifact@v4
         with:
-          name: rockskyd
-          path: target/release/rockskyd
+          name: production-rust
+          path: |
+            target/release/rockskyd
+            target/release/rocksky-submissions
           if-no-files-found: error
 
   deploy:
     needs: [changes, rockskyd]
     if: |
-      always() &&
+      always() && !cancelled() &&
       github.ref == 'refs/heads/main' &&
-      needs.rockskyd.result != 'failure' &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.services != '[]' &&
       (needs.rockskyd.result == 'success' ||
-       needs.changes.outputs.api == 'true' ||
-       needs.changes.outputs.embed == 'true' ||
-       needs.changes.outputs.feeds == 'true' ||
-       needs.changes.outputs.ws == 'true' ||
-       needs.changes.outputs.mb == 'true')
+       (needs.rockskyd.result == 'skipped' && needs.changes.outputs.rockskyd != 'true'))
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: rocksky-production-deploy
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - name: Download rockskyd binary
+      - name: Download production Rust executables
         if: needs.changes.outputs.rockskyd == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: rockskyd
+          name: production-rust
           path: target/release
       - name: Install pinned Dagger CLI
-        working-directory: .dagger
-        run: bash install-dagger.sh
-      - name: Deploy selected services (PureScript Dagger)
+        uses: ./.github/actions/setup-dagger
+      - name: Deploy selected active production services (PureScript Dagger)
         working-directory: .dagger
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
-          DEPLOY_API: ${{ needs.changes.outputs.api }}
-          DEPLOY_ROCKSKYD: ${{ needs.changes.outputs.rockskyd }}
-          DEPLOY_EMBED: ${{ needs.changes.outputs.embed }}
-          DEPLOY_FEEDS: ${{ needs.changes.outputs.feeds }}
-          DEPLOY_WS: ${{ needs.changes.outputs.ws }}
-          DEPLOY_MB: ${{ needs.changes.outputs.mb }}
+          DEPLOY_HOST: ${{ vars.ROCKSKY_DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.ROCKSKY_DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SERVICES: ${{ needs.changes.outputs.services }}
+          DEPLOY_COMMIT: ${{ github.sha }}
           DEPLOY_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           mkdir -p ../target/release
-          dagger api call -m ops deploy --scripts ops/scripts --artifacts ../target/release \
-            --private-key env://SSH_PRIVATE_KEY --public-key env://SSH_PUBLIC_KEY \
-            --api "$DEPLOY_API" --rockskyd "$DEPLOY_ROCKSKYD" --embed "$DEPLOY_EMBED" \
-            --feeds "$DEPLOY_FEEDS" --ws "$DEPLOY_WS" --mb "$DEPLOY_MB" --run-id "$DEPLOY_RUN"
+          dagger api call -m ops deploy --artifacts ../target/release \
+            --private-key env://SSH_PRIVATE_KEY \
+            --services "$DEPLOY_SERVICES" --commit "$DEPLOY_COMMIT" --run-id "$DEPLOY_RUN" \
+            --host "$DEPLOY_HOST" --known-hosts "$DEPLOY_KNOWN_HOSTS"

@@ -33,14 +33,18 @@ still owns change detection and job scheduling.
 
 ## Run locally
 
-You need Docker (or another Dagger engine), Bash, curl, tar, and a SHA-256 utility.
-PureScript, Spago, Go, Bun, Node, Rust, Elixir/OTP, Redis, and PostgreSQL run
-inside containers; you do not need them on the host.
+You need Node 24, npm, curl, tar, and Docker (or another Dagger engine).
+The runner-side PureScript module bootstraps the verified Dagger CLI. Application
+build tools and services run in containers; native release jobs use their original runners.
 From the Rocksky root:
 
 ```sh
+cd .dagger/host
+npm ci
+npm run build
+cd ../..
+node .dagger/host/run.mjs install-dagger
 cd .dagger
-./install-dagger.sh
 ./bin/dagger api call -m go sdk --source ../sdk/go
 ./bin/dagger api call -m go deezer --source ../deezer --otel ../otel
 ./bin/dagger api call -m go musicbrainz --source ../musicbrainz --otel ../otel
@@ -90,14 +94,14 @@ The Go image version is read from each project's `go.mod`, as in the original
 detector and SQLite. Both services copy `otel/` for their local replace directive.
 `DEEZER_SMOKE` stays unset, so the Deezer unit tests don't hit the live API.
 
-The TypeScript module pins Bun 1.4.2 (already used elsewhere in this workflow).
+The TypeScript module pins Bun 1.4.3 (already used elsewhere in this workflow).
 It installs from `sdk/typescript/bun.lock`, outside the root Bun workspace, and
 keeps host `node_modules`, build output, and environment files out of its container.
 Go module/build caches and the Bun download cache are Dagger cache volumes. They
 persist with a local engine. Hosted Linux runners restore and save selected
 volumes with the shared GitHub Actions cache wrapper described below.
 
-The CLI function includes Node 22 for its `tsx` runner. It installs the CLI as a
+The CLI function includes Node 24 for its `tsx` runner. It installs the CLI as a
 standalone package using its own manifest and historical lockfile, retaining the
 original non-frozen `bun install`. Its SDK dependency resolves from the registry.
 
@@ -108,8 +112,8 @@ caches. `tracklist` installs the original native build prerequisites, checks
 Redis 7 as a service, waits for its exposed port, and makes it available at
 `redis://redis:6379`; no host Redis installation or port mapping is needed.
 
-`rust matching` runs the existing `crates/matching/scripts/validate.sh` unchanged:
-release mode, the committed Cargo lockfile, and two build jobs. Its tests use
+`rust matching` invokes Cargo directly from PureScript with release mode,
+the committed Cargo lockfile, and two build jobs. Its tests use
 SQLite and local mock providers; no external service is required.
 
 `elixir remote-ws` pins Elixir 1.18.4 / OTP 27, installs Hex and Rebar, and runs
@@ -117,7 +121,7 @@ SQLite and local mock providers; no external service is required.
 output use cache volumes; host `deps/` and `_build/` are excluded. The project's
 `config/test.exs` disables external Redis, PostgreSQL, and NATS connections.
 
-`typescript api-contracts` uses Node 22 and Bun 1.4.2, performs the root
+`typescript api-contracts` uses Node 24 and Bun 1.4.3, performs the root
 `bun install --frozen-lockfile --ignore-scripts`, and preserves every original
 audit/test command. Dagger manages an ephemeral PostgreSQL 16 service and exposes
 its test-only database URL to the query tests. No production credentials are
@@ -128,7 +132,7 @@ trigger this job, since they affect the frozen install.
 `rust submissions` runs the dashboard's frozen Bun install, tests, and
 `check:dist`, then preserves the PostgreSQL/SQLite feature matrix, Jetstream
 ingestion tests, default worker build, and Python HTTP/crash-recovery checks.
-Node 22, Bun 1.4.2, Python, and the PostgreSQL client run inside the Rust container.
+Node 24, Bun 1.4.3, Python, and the PostgreSQL client run inside the Rust container.
 Dagger provides a fresh PostgreSQL 16 service with a `submissions_test` database.
 Database environment variables are scoped to the same commands as the old workflow.
 
@@ -137,23 +141,46 @@ files before rebuilding. The existing `check:dist` script then detects changed,
 deleted, or newly generated assets without needing host Git metadata. In CI the
 input is the checked-out commit; locally it is the supplied working tree snapshot.
 
-`rust riff` takes only `riff/`, which is a standalone Cargo workspace. It runs
-formatting, Clippy with warnings denied, release tests, and `scripts/ci-smoke.sh`.
-The smoke script retains the workflow's fixture generation and checks health,
-the home page, track search, album contents, and audio features against a real
-background process. Its exit trap stops that process. The existing `cargo.sh`
-verifies the static DuckDB release; its download and Rust outputs share the
-Riff-specific target cache. Python, curl, and jq are installed in the container.
+`rust riff` takes only `riff/`, which is a standalone Cargo workspace. PureScript
+verifies the pinned static DuckDB archive, merges its libraries, runs formatting,
+Clippy and release tests, and generates fixtures. The HTTP smoke test runs the
+binary as a Dagger service and checks health, the home page, track search, album
+contents and audio features. Service cleanup runs on success and failure.
 
-`rust rockskyd` returns a typed Dagger `File` rather than a success message. Use
-`--output` to export it. The build explicitly targets Linux amd64, retains the
-DuckDB 1.4.0 shared-library setup and native prerequisites, and runs the original
-`cargo build -p rockskyd --release`. Its target cache is separate from test builds.
-The binary is copied out of that cache before export. Optional `apps/web/dist/`
-assets are included when present, matching the application build script.
-GitHub Actions uploads the same `rockskyd` artifact from `target/release/rockskyd`;
-the deployment job downloads the artifact, then `ops deploy` handles SSH and
-service restarts with the original selection flags and commands.
+`rust production-binaries` builds locked Linux amd64 `rockskyd` and
+`rocksky-submissions` executables and returns a directory for artifact export.
+`rust rockskyd` retains its single-file interface. Both use the existing DuckDB
+1.4.0 shared-library setup and the production target cache.
+
+Production deployment is implemented in PureScript: `ops/src/Production.purs`
+defines service units and change filters, `Deploy.purs` controls ordering and
+recovery, and `SSH.purs` provides command execution and artifact transfer.
+The workflow compiles and tests this logic without connecting to production.
+`ops deploy` takes `artifacts`, a base64 `private-key` secret, `run-id`, a full
+`commit` SHA, and `services` as a JSON array of inventory group names.
+The default SSH destination is defined once in `SSH.purs`. Override it with
+`--host user@hostname` and the matching `--known-hosts` entry. GitHub Actions
+reads these from `ROCKSKY_DEPLOY_HOST` and `ROCKSKY_DEPLOY_KNOWN_HOSTS` repository
+variables; empty values use the audited defaults. Host overrides require an
+explicit host-key entry, and strict host verification remains enabled.
+
+The inventory was audited on 2026-10-27 against `161.97.141.205` and deploys to
+`/root/github/rocksky`. APIs, views and feeds use the four Gleam units. Rust
+AppView and the retired Rust API/XRPC/feeds units are excluded. The daemon group
+covers all eight `rockskyd` consumers plus standalone submissions. Other groups
+cover embed, websocket, abuse sweep, MusicBrainz, Deezer, Discogs, Spotify proxy,
+Phoenix remote websocket, Riff and Drift.
+
+SSH pins the audited host key. A host lock and workflow concurrency serialize
+releases. Deployment refuses tracked local changes and stale commits, checks
+out the exact workflow SHA, builds before stopping services, and restarts only
+selected units that were already active. Inactive groups are skipped. Failed
+binary installation or health checks restore previous executables and restart
+the original active units. Source checkout and source builds are not rolled back.
+Existing systemd units, their startup hooks, environment and secrets are preserved.
+A runner killed mid-deployment leaves `/run/lock/rocksky-ci-deploy` for operator
+inspection and recovery before another deployment. No local validation deploys
+to production or starts a Dagger engine.
 
 `rust mcp-release` accepts the repository root and a required `target`:
 `x86_64-unknown-linux-gnu` or `aarch64-unknown-linux-gnu`. It selects the matching
@@ -196,14 +223,15 @@ For manual cache transfer, use the same module for both operations:
 ## Releases and operations
 
 Linux playerd releases retain the default build, both playback test commands,
-and the ignored MPRIS tests under `dbus-run-session`. Linux bindings keep
-`sdk/scripts/build-native.sh` and its original artifact names. Both architectures
+and the ignored MPRIS tests under `dbus-run-session`. PureScript builds and stages
+the binding libraries with their original artifact names. Both architectures
 use matching Linux containers on their native GitHub runners.
 
-The desktop container preserves Ubuntu 22.04, Bun 1.2.15, the production build
+The desktop container preserves Ubuntu 22.04, Bun 1.4.3, the production build
 mode, optional KLIPY override, version stamping, portable AppImage preparation,
-permissions/dependency/startup checks, bundle names, and checksums. Its shell
-checks live under `ops/scripts/`; PureScript owns the container and inputs.
+permissions/dependency/startup checks, bundle names, and checksums. `Desktop.purs`
+owns dependency installation, verified launcher preparation, configuration, build
+sequencing and packaging. The existing Python AppImage validators remain tests.
 
 Linux Nix builds use Nix 2.28.5 with an isolated, cached `/nix` store. A fresh store
 is seeded from the image before it is mounted. Nix's nested sandbox is disabled
@@ -217,8 +245,8 @@ GHCR. The previous GHCR pull/tag step only copied the runner's architecture.
 Registry passwords, GitHub tokens, SSH keys, and the optional desktop key are
 Dagger `Secret` arguments passed with `env://VARIABLE`, never command-line values.
 Release uploads and deployment use the GitHub run/attempt ID to avoid reusing a
-cached side effect. Deployment decodes the existing base64 SSH inputs in a single
-execution and removes the temporary key files on exit.
+cached side effect. Deployment decodes the base64 SSH key inside an ephemeral
+Dagger container; it is never exported to the workflow workspace.
 
 ## Platform-specific steps retained
 
@@ -227,7 +255,9 @@ execution and removes the temporary key files on exit.
   outer runner uploads the resulting artifacts through Dagger.
 - macOS desktop signing/DMG creation and macOS Nix/Cachix setup stay native.
 - FlakeHub keeps its dedicated GitHub OIDC publishing action.
-- GitHub tag resolution, matrices, checkout, and artifact downloads remain workflow glue.
+- Matrices, checkout and artifact downloads remain workflow glue. Tag resolution,
+  native packaging, checksums, uploads and CLI installation live in `host/src/`.
+  Its JavaScript FFI exposes only filesystem, process, environment and hashing primitives.
 
 ## Transport and validation
 
@@ -240,8 +270,8 @@ committed module SDK and in the vendored source used by regeneration.
 node --test .dagger/tests/transport.test.mjs # from the repository root
 ```
 
-PureScript compilation, transport tests, workflow validation, and shell syntax
-checks can run without a Dagger engine. Full build, service, publishing, and
+PureScript compilation, host archive/tag/checksum tests, mocked deployment tests,
+transport tests and workflow validation run without a Dagger engine. Full build, service, publishing, and
 deployment execution is left to CI unless explicitly requested.
 
 ## SDK and generated bindings
@@ -266,3 +296,17 @@ and leaves handwritten module source intact.
 Commit `dagger.toml`, `dagger.lock`, module manifests, and generated bindings with
 the change. Do not edit generated SDK code directly. The vendored SDK preserves
 its MIT license and upstream Apache-2.0 notices.
+
+## CI without shell scripts
+
+There are no shell-script entry points under `.dagger/` and Dagger modules do not
+invoke project shell scripts. `setup-dagger` compiles and tests the runner-side
+PureScript module, then verifies and installs the CLI. Native release workflows
+invoke that module directly. Shells in Actions only launch commands; conditionals,
+loops, release metadata, dependency preparation and recovery live in PureScript.
+The production SSH transport uses a quoted login-shell command to obtain the
+host's toolchain environment; it does not generate or upload a shell script.
+
+For local checks, run `npm test` in `.dagger/host` after compiling it, and run
+`node --input-type=module -e 'import { main } from "./output/Test.Deploy/index.js"; main();'`
+in `.dagger/ops` after `npm run build`. These checks do not publish or deploy.

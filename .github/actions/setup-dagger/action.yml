@@ -1,0 +1,24 @@
+name: PureScript CI tools
+description: Compile runner-side PureScript and optionally install the verified Dagger CLI.
+inputs:
+  install-dagger:
+    description: Install the pinned Dagger CLI after compiling the PureScript runner.
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+    - name: Compile runner-side PureScript
+      shell: bash
+      working-directory: .dagger/host
+      run: |
+        npm ci --no-audit --no-fund
+        npm run build
+        npm test
+    - name: Install verified Dagger CLI
+      if: inputs.install-dagger == 'true'
+      shell: bash
+      working-directory: .
+      run: node .dagger/host/run.mjs install-dagger

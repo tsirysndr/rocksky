@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Dagger CLI
-        run: bash install-dagger.sh
+        uses: ./.github/actions/setup-dagger
       - name: Rust formatting and tracklist tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:

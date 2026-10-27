@@ -1,0 +1,1 @@
+{"private":true,"type":"module","scripts":{"build":"spago build","test":"node --input-type=module -e 'import { main } from \"./output/Test.Main/index.js\"; main();'"},"devDependencies":{"purescript":"0.15.16","spago":"1.0.5"}}

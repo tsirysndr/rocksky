@@ -1,0 +1,18 @@
+package:
+  name: rocksky-ci-host
+  dependencies:
+    - prelude
+    - effect
+    - exceptions
+    - console
+    - arrays
+    - strings
+    - maybe
+    - either
+    - foldable-traversable
+    - argonaut-core
+    - argonaut-codecs
+    - foreign-object
+workspace:
+  packageSet:
+    registry: 77.8.0

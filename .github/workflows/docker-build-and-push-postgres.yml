@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Dagger CLI
-        run: bash install-dagger.sh
+        uses: ./.github/actions/setup-dagger
       - name: Build and publish both PostgreSQL architectures (PureScript Dagger)
         env:
           DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}

@@ -81,8 +81,7 @@ jobs:
 
       - name: Install pinned Dagger CLI
         if: runner.os == 'Linux'
-        working-directory: .dagger
-        run: bash install-dagger.sh
+        uses: ./.github/actions/setup-dagger
       - name: Build Linux Nix packages (PureScript Dagger)
         if: runner.os == 'Linux'
         env:

@@ -25,30 +25,23 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-dagger
+        with:
+          install-dagger: ${{ runner.os == 'Linux' }}
       - name: Resolve release tag
         id: tag
-        run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            TAG="${{ inputs.tag }}"
-          elif [ "${{ github.ref_type }}" = "tag" ]; then
-            TAG="${{ github.ref_name }}"
-          else
-            VER="$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -1)"
-            [ -n "$VER" ] || { echo "could not read version from rocksky-mcp/Cargo.toml" >&2; exit 1; }
-            TAG="rocksky-mcp-v$VER"
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Resolved release tag: $TAG"
-      - name: Install pinned Dagger CLI
-        working-directory: .dagger
-        run: bash install-dagger.sh
+        working-directory: .
+        env:
+          RELEASE_INPUT_TAG: ${{ inputs.tag }}
+        run: node .dagger/host/run.mjs resolve-tag rocksky-mcp
+
       - name: Ensure release exists (PureScript Dagger)
         working-directory: .dagger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.tag.outputs.tag }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger api call -m ops ensure-release --scripts ops/scripts --project rocksky-mcp --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+        run: dagger api call -m ops ensure-release --project rocksky-mcp --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -72,6 +65,9 @@ jobs:
       CARGO_PROFILE_RELEASE_STRIP: symbols
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-dagger
+        with:
+          install-dagger: ${{ runner.os == 'Linux' }}
       - uses: dtolnay/rust-toolchain@stable
         if: runner.os != 'Linux'
         with:
@@ -85,10 +81,6 @@ jobs:
       - name: cargo build --release
         if: runner.os != 'Linux'
         run: cargo build --release --target ${{ matrix.target }}
-      - name: Install pinned Dagger CLI
-        if: runner.os == 'Linux'
-        working-directory: .dagger
-        run: bash install-dagger.sh
       - name: Build Linux MCP release binary (PureScript Dagger)
         if: runner.os == 'Linux'
         env:
@@ -106,25 +98,19 @@ jobs:
       # Native macOS and Windows builds and all release packaging stay on the runner.
       - name: Package tarball
         if: runner.os != 'Linux'
-        shell: bash
-        run: |
-          TAG="${{ needs.prepare-release.outputs.tag }}"
-          ASSET="rocksky-mcp-${TAG#rocksky-mcp-}-${{ matrix.target }}.tar.gz"
-          if [ "${{ runner.os }}" = "Windows" ]; then BIN=rocksky-mcp.exe; else BIN=rocksky-mcp; fi
-          tar -C "target/${{ matrix.target }}/release" -czf "$ASSET" "$BIN"
-          if command -v shasum >/dev/null 2>&1; then
-            shasum -a 256 "$ASSET" > "$ASSET.sha256"
-          else
-            sha256sum "$ASSET" > "$ASSET.sha256"
-          fi
+        working-directory: .
+        env:
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: node .dagger/host/run.mjs package-native rocksky-mcp
+
       - name: Upload to release
         if: runner.os != 'Linux'
-        shell: bash
+        working-directory: .
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload "${{ needs.prepare-release.outputs.tag }}" \
-            rocksky-mcp-*.tar.gz rocksky-mcp-*.tar.gz.sha256 --clobber
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: node .dagger/host/run.mjs upload rocksky-mcp rocksky-mcp-
 
       - name: Package and upload Linux release (PureScript Dagger)
         if: runner.os == 'Linux'

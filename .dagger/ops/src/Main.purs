@@ -1,6 +1,12 @@
 module Main where
 
 import Prelude
+import Operations as Ops
+import Desktop as Desktop
+import Data.Array (null)
+import Deploy as Deploy
+import SSH as SSH
+import Data.Either (Either(..))
 import CI.Runtime as CI
 import CI.Cache as Cache
 import Dagger (Client)
@@ -8,7 +14,7 @@ import Dagger.Container as Container
 import Dagger.Directory as Directory
 import Dagger.Modules as Module
 import Dagger.Query as Query
-import Dagger.Types (Directory, File, Platform(..), Secret)
+import Dagger.Types (Directory, File, Platform(..), Secret, ReturnType(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff (Aff, throwError)
@@ -58,17 +64,17 @@ uploadArgs = ado
 
 uploadRelease :: Client -> UploadArgs -> Aff String
 uploadRelease client args = do
+  files <- Directory.entries args.assets
+  when (null files) $ throwError (error "No release assets supplied")
   void $ Container.sync $ Query.container client
-    # Container.from "node:22-bookworm-slim"
-    # Container.withExec [ "sh", "-c", "apt-get update && apt-get install -y --no-install-recommends gh ca-certificates && rm -rf /var/lib/apt/lists/*" ]
+    # Container.from "node:24-bookworm-slim"
+    # Ops.apt [ "gh", "ca-certificates" ]
     # Container.withDirectory "/assets" args.assets
     # Container.withWorkdir "/assets"
     # Container.withSecretVariable "GH_TOKEN" args.token
     # Container.withEnvVariable "GH_REPO" "tsirysndr/rocksky"
-    # Container.withEnvVariable "RELEASE_TAG" args.tag
-    -- Side effects must execute again on a workflow retry.
     # Container.withEnvVariable "WORKFLOW_RUN" args.runId
-    # Container.withExec [ "sh", "-c", "gh release upload \"$RELEASE_TAG\" ./* --clobber" ]
+    # Container.withExec ([ "gh", "release", "upload", args.tag, "--clobber", "--" ] <> files)
   pure "Release assets uploaded"
 
 type DesktopArgs = { source :: Directory, version :: String, klipyKey :: Secret }
@@ -83,16 +89,17 @@ desktopArgs = ado
 desktopRelease :: Client -> DesktopArgs -> Aff Directory
 desktopRelease client args = do
   let
-    bun = Query.container client # Container.from "oven/bun:1.2.15"
-    node = Query.container client # Container.from "node:22-bookworm-slim"
+    bun = Query.container client # Container.from "oven/bun:1.4.3"
+    node = Query.container client # Container.from "node:24-bookworm-slim"
     environment = Query.containerWith
       (Query.defaultContainerOpts { platform = Just (Platform "linux/amd64") }) client
       # Container.from "ubuntu:22.04"
       # Container.withEnvVariable "DEBIAN_FRONTEND" "noninteractive"
       # Container.withEnvVariable "APPIMAGE_EXTRACT_AND_RUN" "1"
-      # Container.withDirectory "/pipeline" (Directory.directory ".dagger/ops/scripts" args.source)
-      # Container.withExec [ "bash", "/pipeline/desktop-deps.sh" ]
-      # Container.withExec [ "sh", "-c", "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal" ]
+      # Ops.apt Desktop.dependencies
+      # Container.withExec [ "curl", "--proto", "=https", "--tlsv1.2", "--fail", "--location", "https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init", "--output", "/tmp/rustup-init" ]
+      # Container.withExec [ "chmod", "+x", "/tmp/rustup-init" ]
+      # Container.withExec [ "/tmp/rustup-init", "-y", "--profile", "minimal" ]
       # Container.withEnvVariable "PATH" "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       # Container.withFile "/usr/local/bin/bun" (Container.file "/usr/local/bin/bun" bun)
       # Container.withFile "/usr/local/bin/node" (Container.file "/usr/local/bin/node" node)
@@ -107,57 +114,39 @@ desktopRelease client args = do
       -- This tracked public production config is loaded by build:prod.
       # Container.withFile "/src/desktop/.env.prod" (Directory.file "desktop/.env.prod" args.source)
       # Container.withEnvVariable "VERSION" args.version
-      # Container.withSecretVariable "KLIPY_API_KEY" args.klipyKey
-      # Container.withExec [ "bash", "/pipeline/desktop-build.sh" ]
-  pure $ Container.directory "/out" environment
+  built <- Desktop.build args.version args.klipyKey environment
+  pure $ Container.directory "/out" built
 
 type DeployArgs =
-  { scripts :: Directory
-  , artifacts :: Directory
+  { artifacts :: Directory
   , privateKey :: Secret
-  , publicKey :: Secret
   , runId :: String
-  , api :: String
-  , rockskyd :: String
-  , embed :: String
-  , feeds :: String
-  , ws :: String
-  , mb :: String
+  , commit :: String
+  , services :: String
+  , host :: String
+  , knownHosts :: String
   }
 
 deployArgs :: Module.Arguments DeployArgs
 deployArgs = ado
-  scripts <- Module.argument "scripts"
   artifacts <- Module.argument "artifacts"
   privateKey <- Module.argument "privateKey"
-  publicKey <- Module.argument "publicKey"
   runId <- Module.argument "runId"
-  api <- Module.argument "api"
-  rockskyd <- Module.argument "rockskyd"
-  embed <- Module.argument "embed"
-  feeds <- Module.argument "feeds"
-  ws <- Module.argument "ws"
-  mb <- Module.argument "mb"
-  in { scripts, artifacts, privateKey, publicKey, runId, api, rockskyd, embed, feeds, ws, mb }
+  commit <- Module.argument "commit"
+  services <- Module.argument "services"
+  host <- Module.defaultArgument "host" ""
+  knownHosts <- Module.defaultArgument "knownHosts" ""
+  in { artifacts, privateKey, runId, commit, services, host, knownHosts }
 
 deploy :: Client -> DeployArgs -> Aff String
-deploy client args = do
-  void $ Container.sync $ Query.container client
-    # Container.from "node:22-bookworm-slim"
-    # Container.withExec [ "sh", "-c", "apt-get update && apt-get install -y --no-install-recommends openssh-client ca-certificates && rm -rf /var/lib/apt/lists/*" ]
-    # Container.withDirectory "/pipeline" args.scripts
-    # Container.withDirectory "/src/target/release" args.artifacts
-    # Container.withSecretVariable "SSH_PRIVATE_KEY" args.privateKey
-    # Container.withSecretVariable "SSH_PUBLIC_KEY" args.publicKey
-    # Container.withEnvVariable "DEPLOY_RUN" args.runId
-    # Container.withEnvVariable "DEPLOY_API" args.api
-    # Container.withEnvVariable "DEPLOY_ROCKSKYD" args.rockskyd
-    # Container.withEnvVariable "DEPLOY_EMBED" args.embed
-    # Container.withEnvVariable "DEPLOY_FEEDS" args.feeds
-    # Container.withEnvVariable "DEPLOY_WS" args.ws
-    # Container.withEnvVariable "DEPLOY_MB" args.mb
-    # Container.withExec [ "bash", "/pipeline/deploy.sh" ]
-  pure "Selected services deployed"
+deploy client args = case Deploy.validate args.commit args.services of
+  Left problem -> throwError (error problem)
+  Right selected -> do
+    connection <- case SSH.settings args.host args.knownHosts of
+      Left problem -> throwError (error problem)
+      Right value -> pure value
+    transport <- SSH.connect client args.artifacts args.privateKey args.runId connection.host connection.knownHosts
+    Deploy.deploy transport args.commit selected
 
 type NixArgs = { source :: Directory, cachixToken :: Secret, runId :: String }
 
@@ -175,23 +164,21 @@ nixBuild client args = do
     store = Query.cacheVolume "rocksky-nix-store" client
     -- Seed a fresh cache before mounting it over the image's own Nix binaries.
     seed = Query.container client
-      # Container.from "node:22-bookworm-slim"
+      # Container.from "node:24-bookworm-slim"
       # Container.withDirectory "/seed" (Container.directory "/nix" image)
       # Container.withMountedCache "/nix" store
       # Container.withEnvVariable "NIX_RUN" args.runId
       # Container.withExec [ "cp", "-an", "/seed/.", "/nix/" ]
   void $ Container.sync seed
-  void $ Container.sync $ image
+  Ops.nix args.cachixToken $ image
     # Container.withMountedCache "/nix" store
     # Container.withEnvVariable "NIX_REMOTE" "local"
     # Container.withEnvVariable "NIX_CONFIG" "experimental-features = nix-command flakes\nsandbox = false\nbuild-users-group =\n"
-    # Container.withDirectory "/pipeline" (Directory.directory ".dagger/ops/scripts" args.source)
     # Container.withDirectoryWith "/src" args.source
         (Container.defaultWithDirectoryOpts
           { exclude = Just [ ".git", ".dagger", "**/target", "**/node_modules", "**/.env", "**/.env.*", "result-*" ] })
     # Container.withSecretVariable "CACHIX_AUTH_TOKEN" args.cachixToken
     # Container.withEnvVariable "NIX_RUN" args.runId
-    # Container.withExec [ "sh", "/pipeline/nix-build.sh" ]
   pure "Linux Nix builds and configured Cachix uploads completed"
 
 type PackageArgs = { binary :: File, project :: String, tag :: String, target :: String }
@@ -218,47 +205,42 @@ packageRelease client args = do
   let
     asset = args.project <> "-" <> version <> "-" <> args.target <> ".tar.gz"
     environment = Query.container client
-      # Container.from "node:22-bookworm-slim"
+      # Container.from "node:24-bookworm-slim"
       # Container.withFileWith ("/work/" <> args.project) args.binary
           (Container.defaultWithFileOpts { permissions = Just 493 })
       # Container.withExec [ "mkdir", "-p", "/out" ]
       # Container.withExec [ "tar", "-C", "/work", "-czf", "/out/" <> asset, args.project ]
       # Container.withWorkdir "/out"
       # Container.withEnvVariable "ASSET" asset
-      # Container.withExec [ "sh", "-c", "sha256sum \"$ASSET\" > \"$ASSET.sha256\"" ]
+      # Ops.checksum asset
   pure $ Container.directory "/out" environment
 
-type EnsureArgs = { scripts :: Directory, project :: String, tag :: String, commit :: String, token :: Secret, runId :: String }
+type EnsureArgs = { project :: String, tag :: String, commit :: String, token :: Secret, runId :: String }
 
 ensureArgs :: Module.Arguments EnsureArgs
 ensureArgs = ado
-  scripts <- Module.argument "scripts"
   project <- Module.argument "project"
   tag <- Module.argument "tag"
   commit <- Module.argument "commit"
   token <- Module.argument "token"
   runId <- Module.argument "runId"
-  in { scripts, project, tag, commit, token, runId }
+  in { project, tag, commit, token, runId }
 
 ensureRelease :: Client -> EnsureArgs -> Aff String
 ensureRelease client args = do
-  script <- case args.project of
-    "playerd" -> pure "prepare-playerd.sh"
-    "rocksky-mcp" -> pure "prepare-rocksky-mcp.sh"
-    "bindings" -> pure "prepare-bindings.sh"
-    "desktop" -> pure "prepare-desktop.sh"
-    _ -> throwError (error "Unsupported release project")
-  void $ Container.sync $ Query.container client
-    # Container.from "node:22-bookworm-slim"
-    # Container.withExec [ "sh", "-c", "apt-get update && apt-get install -y --no-install-recommends gh ca-certificates && rm -rf /var/lib/apt/lists/*" ]
-    # Container.withDirectory "/pipeline" args.scripts
-    # Container.withWorkdir "/work"
-    # Container.withSecretVariable "GH_TOKEN" args.token
-    # Container.withEnvVariable "GH_REPO" "tsirysndr/rocksky"
-    # Container.withEnvVariable "GITHUB_SHA" args.commit
-    # Container.withEnvVariable "RELEASE_TAG" args.tag
-    # Container.withEnvVariable "WORKFLOW_RUN" args.runId
-    # Container.withExec [ "bash", "/pipeline/" <> script ]
+  details <- Ops.releaseDetails args.project args.tag
+  let environment = Query.container client
+        # Container.from "node:24-bookworm-slim"
+        # Ops.apt [ "gh", "ca-certificates" ]
+        # Container.withWorkdir "/work"
+        # Container.withSecretVariable "GH_TOKEN" args.token
+        # Container.withEnvVariable "GH_REPO" "tsirysndr/rocksky"
+        # Container.withEnvVariable "WORKFLOW_RUN" args.runId
+  status <- Container.exitCode $ environment
+    # Container.withExecWith [ "gh", "release", "view", args.tag ]
+        (Container.defaultWithExecOpts { expect = Just ReturnTypeAny })
+  when (status /= 0) $ void $ Container.sync $ environment
+    # Container.withExec ([ "gh", "release", "create", args.tag, "--title", details.title, "--notes", details.notes, "--target", args.commit ] <> details.extra)
   pure "Release is ready"
 
 main :: Effect Unit

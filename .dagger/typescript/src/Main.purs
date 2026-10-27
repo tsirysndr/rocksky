@@ -18,7 +18,7 @@ sdk client source = do
   let
     package = source
     environment = Query.container client
-      # Container.from "oven/bun:1.4.2"
+      # Container.from "oven/bun:1.4.3"
       # Container.withMountedCache "/root/.bun/install/cache" (Query.cacheVolume "rocksky-typescript-bun" client)
       # Container.withWorkdir "/src"
       -- Install from the SDK's own lockfile, independent of the monorepo workspace.
@@ -36,9 +36,9 @@ sdk client source = do
 cli :: Client -> Directory -> Aff String
 cli client source = do
   let
-    bun = Query.container client # Container.from "oven/bun:1.4.2"
+    bun = Query.container client # Container.from "oven/bun:1.4.3"
     environment = Query.container client
-      # Container.from "node:22-bookworm-slim"
+      # Container.from "node:24-bookworm-slim"
       # Container.withFile "/usr/local/bin/bun" (Container.file "/usr/local/bin/bun" bun)
       # Container.withMountedCache "/root/.bun/install/cache" (Query.cacheVolume "rocksky-cli-bun" client)
       # Container.withWorkdir "/src"
@@ -54,7 +54,7 @@ cli client source = do
 apiContracts :: Client -> Directory -> Aff String
 apiContracts client source = do
   let
-    bun = Query.container client # Container.from "oven/bun:1.4.2"
+    bun = Query.container client # Container.from "oven/bun:1.4.3"
     postgres = Query.container client
       # Container.from "postgres:16-alpine"
       # Container.withEnvVariable "POSTGRES_USER" "postgres"
@@ -63,7 +63,7 @@ apiContracts client source = do
       # Container.withExposedPort 5432
       # Container.asService
     environment = Query.container client
-      # Container.from "node:22-bookworm-slim"
+      # Container.from "node:24-bookworm-slim"
       # Container.withFile "/usr/local/bin/bun" (Container.file "/usr/local/bin/bun" bun)
       # Container.withMountedCache "/root/.bun/install/cache" (Query.cacheVolume "rocksky-api-bun" client)
       # Container.withWorkdir "/src"

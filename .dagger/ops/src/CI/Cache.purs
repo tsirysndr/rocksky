@@ -30,7 +30,7 @@ saveCaches :: Client -> CacheArgs -> Aff Directory
 saveCaches client args = do
   names <- cacheNames args.volumes
   let base = Query.container client
-        # Container.from "node:22-bookworm-slim"
+        # Container.from "node:24-bookworm-slim"
         # Container.withEnvVariable "CACHE_SNAPSHOT" args.runId
   snapshot <- foldM (\container name -> pure $ container
     # Container.withMountedCache "/cache" (Query.cacheVolume name client)
@@ -51,12 +51,15 @@ restoreCaches :: Client -> RestoreArgs -> Aff String
 restoreCaches client args = do
   names <- cacheNames args.volumes
   let base = Query.container client
-        # Container.from "node:22-bookworm-slim"
+        # Container.from "node:24-bookworm-slim"
         # Container.withDirectory "/snapshot" args.source
         # Container.withEnvVariable "CACHE_RESTORE" args.runId
-  restored <- foldM (\container name -> pure $ container
-    # Container.withMountedCache "/cache" (Query.cacheVolume name client)
-    # Container.withExec [ "sh", "-c", "if [ -d \"$1\" ]; then cp -a \"$1/.\" /cache/; fi", "restore", "/snapshot/" <> name ]) base names
+  restored <- foldM (\container name -> do
+    exists <- Container.exists ("/snapshot/" <> name) container
+    pure $ if exists then container
+      # Container.withMountedCache "/cache" (Query.cacheVolume name client)
+      # Container.withExec [ "cp", "-a", "/snapshot/" <> name <> "/.", "/cache/" ]
+      else container) base names
   void $ Container.sync restored
   pure "Dagger cache volumes restored"
 

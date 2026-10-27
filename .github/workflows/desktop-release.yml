@@ -30,31 +30,23 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-dagger
+        with:
+          install-dagger: ${{ runner.os == 'Linux' }}
       - name: Resolve release tag
         id: tag
-        run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            TAG="${{ inputs.tag }}"
-          elif [ "${{ github.ref_type }}" = "tag" ]; then
-            TAG="${{ github.ref_name }}"
-          else
-            VER="$(jq -r .version desktop/src-tauri/tauri.conf.json)"
-            [ -n "$VER" ] && [ "$VER" != "null" ] || { echo "could not read version from tauri.conf.json" >&2; exit 1; }
-            TAG="desktop-v$VER"
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#desktop-v}" >> "$GITHUB_OUTPUT"
-          echo "Resolved release tag: $TAG (version ${TAG#desktop-v})"
-      - name: Install pinned Dagger CLI
-        working-directory: .dagger
-        run: bash install-dagger.sh
+        working-directory: .
+        env:
+          RELEASE_INPUT_TAG: ${{ inputs.tag }}
+        run: node .dagger/host/run.mjs resolve-tag desktop
+
       - name: Ensure release exists (PureScript Dagger)
         working-directory: .dagger
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.tag.outputs.tag }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger api call -m ops ensure-release --scripts ops/scripts --project desktop --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+        run: dagger api call -m ops ensure-release --project desktop --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -70,12 +62,14 @@ jobs:
         working-directory: desktop
     steps:
       - uses: actions/checkout@v4
-
+      - uses: ./.github/actions/setup-dagger
+        with:
+          install-dagger: ${{ runner.os == 'Linux' }}
 
       - uses: oven-sh/setup-bun@v2
         if: runner.os != 'Linux'
         with:
-          bun-version: 1.2.15
+          bun-version: 1.4.3
 
       - uses: dtolnay/rust-toolchain@stable
         if: runner.os != 'Linux'
@@ -104,76 +98,29 @@ jobs:
 
       - name: Stamp version from tag
         if: runner.os != 'Linux'
+        working-directory: .
         env:
           VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: |
-          jq --arg v "$VERSION" '.version = $v' src-tauri/tauri.conf.json > /tmp/conf.json
-          mv /tmp/conf.json src-tauri/tauri.conf.json
-          echo "bundle version: $(jq -r .version src-tauri/tauri.conf.json)"
-
+        run: node .dagger/host/run.mjs stamp-desktop
 
       - name: tauri build
         if: runner.os != 'Linux'
+        working-directory: .
         env:
-          # Ad-hoc signing: no Apple Developer identity, no notarization. The
-          # explicit codesign pass below is what actually guarantees it — this
-          # only stops the bundler from leaving the binary fully unsigned.
-          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && '-' || '' }}
+          APPLE_SIGNING_IDENTITY: '-'
           KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
-        run: |
-          set -euo pipefail
-          # `--mode prod` loads desktop/.env.prod; a non-empty repo secret
-          # overrides the KLIPY key committed there (real env wins in Vite).
-          if [ -n "${KLIPY_API_KEY:-}" ]; then
-            export VITE_KLIPY_API_KEY="$KLIPY_API_KEY"
-          fi
-          extra_config=(--config '{"build":{"beforeBuildCommand":"bun run build:prod"}}')
-          if [ "$RUNNER_OS" = Linux ]; then
-            extra_config+=(--config "$RUNNER_TEMP/rocksky-appimage.json")
-          fi
-          bun run tauri build \
-            --target ${{ matrix.target }} \
-            --bundles ${{ matrix.bundles }} \
-            "${extra_config[@]}"
-
+          RELEASE_TARGET: ${{ matrix.target }}
+          RELEASE_BUNDLES: ${{ matrix.bundles }}
+        run: node .dagger/host/run.mjs build-desktop
 
       - name: Package macOS bundle (ad-hoc signed)
         if: runner.os == 'macOS'
+        working-directory: .
         env:
           VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: |
-          set -euo pipefail
-          ARCH=$([ "${{ matrix.target }}" = "aarch64-apple-darwin" ] && echo aarch64 || echo x64)
-          APP="src-tauri/target/${{ matrix.target }}/release/bundle/macos/Rocksky.app"
-          [ -d "$APP" ] || { echo "missing $APP" >&2; exit 1; }
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: node .dagger/host/run.mjs package-desktop
 
-          codesign --force --deep --sign - "$APP"
-          codesign --verify --deep --strict --verbose=2 "$APP"
-
-          STAGE="$(mktemp -d)/Rocksky"
-          mkdir -p "$STAGE"
-          cp -R "$APP" "$STAGE/"
-          ln -s /Applications "$STAGE/Applications"
-          hdiutil create -volname "Rocksky" -srcfolder "$STAGE" -ov -format UDZO \
-            "Rocksky_${VERSION}_${ARCH}.dmg"
-
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "Rocksky_${VERSION}_${ARCH}.app.zip"
-
-
-      - name: Checksums
-        if: runner.os != 'Linux'
-        run: |
-          set -euo pipefail
-          for f in Rocksky_*; do
-            case "$f" in *.sha256) continue;; esac
-            shasum -a 256 "$f" > "$f.sha256"
-          done
-          ls -l Rocksky_*
-
-      - name: Install pinned Dagger CLI
-        if: runner.os == 'Linux'
-        working-directory: .dagger
-        run: bash install-dagger.sh
       - name: Build and verify Linux desktop bundles (PureScript Dagger)
         if: runner.os == 'Linux'
         env:
@@ -189,10 +136,11 @@ jobs:
 
       - name: Upload to release
         if: runner.os != 'Linux'
+        working-directory: .
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload "${{ needs.prepare-release.outputs.tag }}" Rocksky_* --clobber
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: node .dagger/host/run.mjs upload desktop Rocksky_
 
       - name: Upload Linux desktop bundles (PureScript Dagger)
         if: runner.os == 'Linux'

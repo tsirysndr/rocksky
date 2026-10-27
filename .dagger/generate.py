@@ -10,7 +10,7 @@ here = Path(__file__).resolve().parent
 root = here.parent
 cli = os.environ.get("DAGGER_CLI_BIN", str(here / "bin/dagger"))
 if not Path(cli).is_file() and not shutil.which(cli):
-    raise SystemExit("Run .dagger/install-dagger.sh first, or set DAGGER_CLI_BIN")
+    raise SystemExit("Run node .dagger/host/run.mjs install-dagger after compiling the host module, or set DAGGER_CLI_BIN")
 
 with tempfile.TemporaryDirectory(prefix="rocksky-dagger-codegen-") as temporary:
     workspace = Path(temporary)
