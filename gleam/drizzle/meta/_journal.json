@@ -405,6 +405,14 @@
       "when": 1792314855470,
       "tag": "0053_remove_history_import",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792314855471,
+      "tag": "0054_library_junction_covering_indexes",
+      "breakpoints": true,
+      "transaction": false
     }
   ]
 }
