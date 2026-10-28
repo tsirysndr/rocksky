@@ -3,3 +3,11 @@ engineVersion = "v1.0.0-beta.21"
 
 [runtime]
   source = "../sdk/purescript"
+
+[[dependencies]]
+  name = "github-release"
+  source = "../github-release"
+
+[[dependencies]]
+  name = "release-artifacts"
+  source = "../artifacts"

@@ -1,6 +1,6 @@
 # Rocksky CI in PureScript
 
-Five PureScript Dagger modules own the portable test, build, release, container
+Nine PureScript Dagger modules own the portable test, build, release, container
 publishing, and deployment steps. GitHub Actions retains triggers, change
 detection, matrix scheduling, artifact handoffs, and native platform tooling.
 
@@ -188,7 +188,166 @@ the MCP package, its local Rust SDK dependency, and Cargo workspace metadata.
 Each target has its own build cache. The release matrix keeps native Linux
 runners for both architectures; macOS and Windows retain their original native
 build steps. Tag selection and archive names are unchanged. Linux packaging and release
-uploads now use `ops`; native-platform packaging/uploads remain on their runners.
+uploads use `artifacts` and `github-release`; native-platform packaging/uploads remain on their runners.
+
+## Reusable modules
+
+These modules accept project inputs rather than hardcoding Rocksky paths or
+release metadata. Each returns a Dagger object that another module can consume.
+
+| Module path | Functions | Inputs and output |
+| --- | --- | --- |
+| `github-release` | `ensure`, `upload` | Repository, tag, token and run ID; creates/releases or uploads assets |
+| `artifacts` | `archive`, `binary`, `checksums` | Directory or executable; returns assets with SHA-256 sidecars |
+| `android-sdk` | `container` | Android/JDK versions; returns a Linux amd64 SDK/NDK/CMake container |
+| `eas` | `android`, `toolchain`, `aab`, `apk` | SDK container, pinned EAS version, project source/profile; returns a toolchain or Android artifact |
+
+`ops` retains Rocksky's repository, release titles/notes, project/target checks,
+and asset naming. Its existing release functions delegate to `github-release`
+and `artifacts` for compatibility. The playerd and MCP Linux workflows now call
+`artifacts binary` directly; those workflows plus desktop and bindings call
+`github-release upload` directly. Release creation still uses the `ops` metadata
+wrapper, which delegates to `github-release ensure`. The small
+`ops/src/ReleaseClients.purs` adapters use the SDK's typed selection primitives;
+the module dependencies are declared in both the workspace and module manifest.
+No generated dependency bindings are needed to compile these adapters.
+
+The build/check modules, deployment, desktop packaging, PostgreSQL publishing,
+and Nix jobs still contain project-specific policy. Native macOS/Windows jobs
+remain host operations. EAS jobs are new: there was no existing Dagger Android
+build job to extract.
+
+### GitHub releases and artifacts
+
+From `.dagger`, examples for a different project:
+
+```sh
+./bin/dagger api call -m artifacts binary \
+  --binary ../dist/my-cli --executable-name my-cli \
+  --name my-cli-v1.2.3-linux-amd64 --output ../release-assets
+
+./bin/dagger api call -m artifacts archive \
+  --source ../dist --name my-assets-v1.2.3 --output ../release-assets
+
+./bin/dagger api call -m artifacts checksums \
+  --assets ../dist --output ../release-assets
+
+./bin/dagger api call -m github-release ensure \
+  --repository owner/project --tag v1.2.3 --commit "$COMMIT" \
+  --title 'Project 1.2.3' --notes 'Release notes' \
+  --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+
+./bin/dagger api call -m github-release upload \
+  --repository owner/project --tag v1.2.3 --assets ../release-assets \
+  --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+```
+
+Use a unique `run-id` for each attempt (for Actions, run ID plus attempt).
+Uploads default to refusing replacement; pass `--clobber` to replace existing
+assets. The Rocksky wrapper retains its previous clobber behavior. Upload input
+must contain files at the top level, with no `#` labels or newline names.
+`ensure` lists releases successfully before deciding whether to create one;
+authentication, network, and rate-limit failures propagate instead of being
+mistaken for a missing release. Existing releases are left intact.
+
+`archive` takes a basename without `.tar.gz`, sorts archive entries, and fixes
+mtime/owner/group metadata. It preserves file modes. `binary` stages its input
+with mode 0755 and retains the executable's exact top-level archive name.
+`checksums` accepts a flat directory of files without existing `.sha256`
+sidecars. Output uses `sha256sum --check` format. Asset basenames accept ASCII
+letters, digits, dots, underscores and hyphens; `.` and `..` are rejected.
+
+### Android SDK and local EAS builds
+
+`.github/workflows/android-build.yml` is a manual workflow that calls
+`eas android`. Choose AAB or APK, an optional profile override, and an exact
+EAS CLI version; configure the repository's `EXPO_TOKEN` secret first. The job
+composes `android-sdk container` with `eas toolchain` and uploads the result as
+a GitHub Actions artifact. It does not publish to a release or app store.
+
+The same composed function can be called directly from `.dagger`:
+
+```sh
+./bin/dagger api call -m eas android --source .. --project-dir apps/app \
+  --format aab --eas-version "$EAS_VERSION" --token env://EXPO_TOKEN \
+  --run-id "$BUILD_RUN" --output ../dist/app.aab
+```
+
+
+`android-sdk container` defaults to JDK 21 on Ubuntu 24.04, Android platform 36,
+build-tools 36.0.0, NDK 27.1.12297006 and CMake 3.22.1. Each is configurable.
+The command-line tools version and its SHA-256 are separate arguments and must
+be changed together. The default download/checksum comes from Google's
+[command-line tools table](https://developer.android.com/studio#command-tools).
+SDK setup accepts the Android SDK licenses through `sdkmanager --licenses`.
+
+The SDK container is deliberately Linux amd64 because the Android Linux build
+tools require it; arm64 hosts require engine emulation. `jdk-image` must provide
+a Debian/Ubuntu-compatible image with a JDK and `JAVA_HOME`. The module sets
+`ANDROID_HOME`, `ANDROID_SDK_ROOT`, `ANDROID_NDK_HOME`, `ANDROID_NDK_ROOT`, and
+adds SDK tools to `PATH` while preserving the JDK path.
+
+`eas toolchain` layers Node 22 and Bun 1.4.2 onto an SDK container. Override
+`node-image` and `bun-image` as needed. `eas-version` is required so consumers
+choose an explicit CLI version. For example, a composed Dagger shell command
+from `.dagger` (replace `YOUR_PINNED_EAS_VERSION` and the run ID):
+
+```sh
+./bin/dagger -c '
+  sdk=$(./android-sdk | container)
+  builder=$(./eas | toolchain --sdk=$sdk --eas-version=YOUR_PINNED_EAS_VERSION)
+  ./eas | aab --builder=$builder --source=.. --project-dir=apps/app \
+    --token=$(secret env://EXPO_TOKEN) --run-id=local-build-001 \
+    | export --path=../dist/app.aab
+'
+```
+
+Use `apk` instead of `aab` and export `app.apk` for the APK profile. `aab`
+defaults to `production`, `apk` defaults to `apk`, and both accept `profile`.
+The profile in `eas.json` controls the actual format and signing. The job checks
+ZIP contents to reject an APK renamed to `.aab` or the reverse. It runs
+`eas build --local --non-interactive`; it never submits to a store or uploads a
+release. Profiles may still update remote version counters, hence the run ID.
+
+Pass the repository root as `source` for a monorepo and use `project-dir` for
+the app directory. The build retains project hooks, including Rocksky's Rust
+and native library preparation. The prepared builder may be customized further
+with additional packages, environment variables and Dagger secret mounts.
+Source excludes host dependencies/build caches, `.env*`, `credentials.json`,
+and keystores. Supply secrets on the builder with `withSecretVariable` or
+`withMountedSecret`. For local signing, mount `credentials.json` at the app's
+`/src/<project-dir>/credentials.json` path and its referenced keystore; select a
+profile with `credentialsSource: local` (Rocksky has `production-local`). The
+standard `production` profile uses previously configured EAS credentials.
+
+[Expo local build requirements](https://docs.expo.dev/build-reference/local-builds/)
+apply: the token must have project access, remote signing credentials must
+already exist for noninteractive builds, and secret EAS environment values must
+be supplied locally. Local builds use the provided toolchain rather than cloud
+`image`/`node`/`ndk` settings from `eas.json`. The EAS module allows a two-hour
+API request timeout for native builds.
+
+### Reuse and verification
+
+The four modules have no Rocksky source dependency. Install their module paths
+as clients in another Dagger workspace, keeping the repository's vendored
+PureScript SDK available as their runtime. Pin a repository commit when using
+remote module references. Compose `Container`, `Directory`, and `File` results
+instead of exporting and importing intermediate artifacts.
+
+The committed core SDK bindings are shared with the existing modules and
+copied unchanged. After changing module dependency schemas, `generate.py`
+includes all nine modules. Compilation and mocked API tests require no engine:
+
+```sh
+# Run spago build in each of artifacts, github-release, android-sdk, eas and ops.
+node --test --test-concurrency=1 .dagger/tests/reusable-modules.test.mjs .dagger/tests/transport.test.mjs
+```
+
+The reusable-module tests cover release API failure handling, existing releases,
+archive normalization, invalid inputs, Android toolchain configuration, EAS
+artifact validation and the compatibility adapters. They do not execute builds,
+publish assets, or contact GitHub/Expo.
 
 ## Releases and operations
 

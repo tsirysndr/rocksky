@@ -1,0 +1,52 @@
+name: android-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      format:
+        description: Android artifact format
+        type: choice
+        options: [aab, apk]
+        default: aab
+      profile:
+        description: EAS profile (blank uses production for AAB, apk for APK)
+        type: string
+        default: ''
+      eas_version:
+        description: Exact EAS CLI version to install
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-dagger
+      - name: Build Android artifact with reusable SDK and EAS modules
+        working-directory: .dagger
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          ARTIFACT_FORMAT: ${{ inputs.format }}
+          EAS_PROFILE: ${{ inputs.profile }}
+          EAS_VERSION: ${{ inputs.eas_version }}
+          BUILD_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          dagger --progress plain -v api call -m eas android \
+            --source .. --project-dir apps/app --format "$ARTIFACT_FORMAT" \
+            --profile "$EAS_PROFILE" --eas-version "$EAS_VERSION" \
+            --token env://EXPO_TOKEN --run-id "$BUILD_RUN" \
+            --output "$RUNNER_TEMP/rocksky-android/app.$ARTIFACT_FORMAT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rocksky-android-${{ inputs.format }}
+          path: ${{ runner.temp }}/rocksky-android/app.${{ inputs.format }}
+          if-no-files-found: error

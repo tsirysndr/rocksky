@@ -3,7 +3,8 @@ module Main where
 import Prelude
 import Operations as Ops
 import Desktop as Desktop
-import Data.Array (null)
+import Data.Array (elem)
+import ReleaseClients as Release
 import Deploy as Deploy
 import SSH as SSH
 import Data.Either (Either(..))
@@ -13,7 +14,7 @@ import Dagger.Container as Container
 import Dagger.Directory as Directory
 import Dagger.Modules as Module
 import Dagger.Query as Query
-import Dagger.Types (Directory, File, Platform(..), Secret, ReturnType(..))
+import Dagger.Types (Directory, File, Platform(..), Secret)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff (Aff, throwError)
@@ -62,19 +63,7 @@ uploadArgs = ado
   in { assets, tag, token, runId }
 
 uploadRelease :: Client -> UploadArgs -> Aff String
-uploadRelease client args = do
-  files <- Directory.entries args.assets
-  when (null files) $ throwError (error "No release assets supplied")
-  void $ Container.sync $ Query.container client
-    # Container.from "node:24-bookworm-slim"
-    # Ops.apt [ "gh", "ca-certificates" ]
-    # Container.withDirectory "/assets" args.assets
-    # Container.withWorkdir "/assets"
-    # Container.withSecretVariable "GH_TOKEN" args.token
-    # Container.withEnvVariable "GH_REPO" "tsirysndr/rocksky"
-    # Container.withEnvVariable "WORKFLOW_RUN" args.runId
-    # Container.withExec ([ "gh", "release", "upload", args.tag, "--clobber", "--" ] <> files)
-  pure "Release assets uploaded"
+uploadRelease = Release.upload
 
 type DesktopArgs = { source :: Directory, version :: String, klipyKey :: Secret }
 
@@ -201,18 +190,11 @@ packageRelease client args = do
   version <- case stripPrefix (Pattern (args.project <> "-")) args.tag of
     Just value | value /= "" && not (contains (Pattern "/") value) -> pure value
     _ -> throwError (error "Release tag does not match the project")
-  let
-    asset = args.project <> "-" <> version <> "-" <> args.target <> ".tar.gz"
-    environment = Query.container client
-      # Container.from "node:24-bookworm-slim"
-      # Container.withFileWith ("/work/" <> args.project) args.binary
-          (Container.defaultWithFileOpts { permissions = Just 493 })
-      # Container.withExec [ "mkdir", "-p", "/out" ]
-      # Container.withExec [ "tar", "-C", "/work", "-czf", "/out/" <> asset, args.project ]
-      # Container.withWorkdir "/out"
-      # Container.withEnvVariable "ASSET" asset
-      # Ops.checksum asset
-  pure $ Container.directory "/out" environment
+  pure $ Release.binary client
+    { binary: args.binary
+    , name: args.project <> "-" <> version <> "-" <> args.target
+    , executableName: args.project
+    }
 
 type EnsureArgs = { project :: String, tag :: String, commit :: String, token :: Secret, runId :: String }
 
@@ -228,19 +210,10 @@ ensureArgs = ado
 ensureRelease :: Client -> EnsureArgs -> Aff String
 ensureRelease client args = do
   details <- Ops.releaseDetails args.project args.tag
-  let environment = Query.container client
-        # Container.from "node:24-bookworm-slim"
-        # Ops.apt [ "gh", "ca-certificates" ]
-        # Container.withWorkdir "/work"
-        # Container.withSecretVariable "GH_TOKEN" args.token
-        # Container.withEnvVariable "GH_REPO" "tsirysndr/rocksky"
-        # Container.withEnvVariable "WORKFLOW_RUN" args.runId
-  status <- Container.exitCode $ environment
-    # Container.withExecWith [ "gh", "release", "view", args.tag ]
-        (Container.defaultWithExecOpts { expect = Just ReturnTypeAny })
-  when (status /= 0) $ void $ Container.sync $ environment
-    # Container.withExec ([ "gh", "release", "create", args.tag, "--title", details.title, "--notes", details.notes, "--target", args.commit ] <> details.extra)
-  pure "Release is ready"
+  Release.ensure client
+    { tag: args.tag, commit: args.commit, token: args.token, runId: args.runId
+    , title: details.title, notes: details.notes, prerelease: elem "--prerelease" details.extra
+    }
 
 main :: Effect Unit
 main = CI.runModule

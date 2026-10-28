@@ -1,0 +1,23 @@
+package:
+  name: dagger-module
+  dependencies:
+    - aff
+    - argonaut-core
+    - argonaut-codecs
+    - either
+    - refs
+    - tuples
+    - foreign-object
+    - console
+    - arrays
+    - control
+    - foldable-traversable
+    - strings
+    - maybe
+    - dagger-sdk
+    - effect
+    - exceptions
+    - prelude
+workspace:
+  packageSet:
+    registry: 77.8.0

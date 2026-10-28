@@ -1,0 +1,9 @@
+name = "eas-android"
+engineVersion = "v1.0.0-beta.21"
+
+[runtime]
+  source = "../sdk/purescript"
+
+[[dependencies]]
+  name = "android-sdk"
+  source = "../android-sdk"

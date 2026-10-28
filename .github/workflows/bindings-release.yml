@@ -105,7 +105,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress plain -v api call -m ops upload-release --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+        run: dagger --progress plain -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   # BSDs — best-effort, built inside a cross-platform-actions VM. No system deps:
   # the SDK crates use rustls (no OpenSSL). RocksDB (dedup feature) is not built here.
@@ -150,4 +150,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress plain -v api call -m ops upload-release --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+        run: dagger --progress plain -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"

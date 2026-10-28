@@ -121,7 +121,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          dagger --progress plain -v api call -m ops package-release --binary "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp" \
-            --project rocksky-mcp --tag "$RELEASE_TAG" --target "$RELEASE_TARGET" --output "$RUNNER_TEMP/release-assets"
-          dagger --progress plain -v api call -m ops upload-release --assets "$RUNNER_TEMP/release-assets" \
+          dagger --progress plain -v api call -m artifacts binary --binary "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp" \
+            --executable-name rocksky-mcp --name "$RELEASE_TAG-$RELEASE_TARGET" --output "$RUNNER_TEMP/release-assets"
+          dagger --progress plain -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets "$RUNNER_TEMP/release-assets" \
             --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"

@@ -52,7 +52,7 @@ test('HTTP, malformed JSON, and structured execution errors survive transport', 
 });
 test('every committed module uses the patched transport', async () => {
   const source = await readFile(new URL('../sdk/purescript/src/Dagger/Internal/Runtime.js', import.meta.url), 'utf8');
-  for (const module of ['go', 'rust', 'typescript', 'elixir', 'ops']) {
+  for (const module of ['go', 'rust', 'typescript', 'elixir', 'ops', 'artifacts', 'github-release', 'eas', 'android-sdk']) {
     assert.equal(await readFile(new URL(`../${module}/dagger-sdk/src/Dagger/Internal/Runtime.js`, import.meta.url), 'utf8'), source);
   }
 });

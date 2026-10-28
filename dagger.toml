@@ -24,3 +24,21 @@ name = "elixir-checks"
 [sdks.purescript.scopes.".dagger/ops"]
 is-module = true
 name = "release-ops"
+clients = ["./.dagger/github-release", "./.dagger/artifacts"]
+
+[sdks.purescript.scopes.".dagger/github-release"]
+is-module = true
+name = "github-release"
+
+[sdks.purescript.scopes.".dagger/artifacts"]
+is-module = true
+name = "release-artifacts"
+
+[sdks.purescript.scopes.".dagger/eas"]
+is-module = true
+name = "eas-android"
+clients = ["./.dagger/android-sdk"]
+
+[sdks.purescript.scopes.".dagger/android-sdk"]
+is-module = true
+name = "android-sdk"
