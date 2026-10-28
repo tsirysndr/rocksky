@@ -22,6 +22,7 @@ const subject = { ...viewer, id: "s", did: "did:plc:subject", handle: "subject.t
 function mockDb(responses) {
   const calls = [];
   const db = {
+    async execute(query) { calls.push(["execute", dialect.sqlToQuery(query)]); assert.ok(responses.length, "Unexpected query"); return { rows: responses.shift() }; },
     select() {
       const q = {};
       for (const name of ["from", "where", "leftJoin", "innerJoin", "limit", "orderBy"]) q[name] = value => { if (name === "where") calls.push(["where", dialect.sqlToQuery(value)]); return q; };
@@ -45,25 +46,26 @@ function mockDb(responses) {
   return { db, calls, done() { assert.equal(responses.length, 0); } };
 }
 for (const followers of [false, true]) {
-  const mock = mockDb([[subject], [{ users: viewer }], [{ createdAt: date }], [{ count: 9 }]]);
+  const mock = mockDb([[{subject:{...subject,createdAt:date.toISOString(),updatedAt:date.toISOString()},profiles:[{...viewer,createdAt:date.toISOString(),updatedAt:date.toISOString()}],cursor:String(date.getTime()),count:9}]]);
   const result = await run(C.retrieve(followers)({ db: mock.db })({ actor: subject.did, cursor: "1792368000000", dids: [viewer.did] }));
   assert.equal(result.subject.createdAt, date.toISOString());
   assert.equal(result[followers ? "followers" : "follows"][0].did, viewer.did);
   assert.equal(result.cursor, String(date.getTime()));
   assert.equal(result.count, 9);
-  const conditions = mock.calls.filter(([key]) => key === "where").map(([, q]) => q);
-  assert.equal(conditions[1].params.length, 3);
-  assert.equal(conditions.at(-1).params.length, 2, "Total count must ignore cursor");
+  assert.equal(mock.calls.length,1);
+  const query=mock.calls[0][1];
+  assert.match(query.sql,/WITH page AS/);
+  assert.match(query.sql,/count\(\*\)::int FROM follows f WHERE/);
+  assert.equal(query.params.filter(p=>p instanceof Date).length,1,"Cursor only filters the page, not the count");
   mock.done();
 }
 {
-  const mock = mockDb([[], [], [], [{ count: 0 }]]);
+  const mock = mockDb([[{subject:{},profiles:[],cursor:null,count:0}]]);
   const result = await run(C.retrieve(true)({ db: mock.db })({ actor: subject.did, cursor: "1", dids: [] }));
   assert.deepEqual(result.subject, {});
   assert.equal(result.cursor, undefined);
-  const conditions = mock.calls.filter(([key]) => key === "where").map(([, q]) => q);
-  assert.equal(conditions[1].params.includes(false), false);
-  assert.equal(conditions[2].params.includes(false), true, "Preserve source empty-dids cursor query behavior");
+  assert.equal(mock.calls.length,1);
+  assert.equal(mock.calls[0][1].params.includes(false),false,"Empty dids must not suppress the page cursor");
   mock.done();
 }
 {

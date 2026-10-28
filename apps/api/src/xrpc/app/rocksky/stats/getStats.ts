@@ -10,6 +10,7 @@ import { readStats, writeStats } from "lib/statsCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
+  const pending = new Map<string, Promise<StatsView>>();
   const getStats = (params: QueryParams) =>
     pipe(
       { params, ctx },
@@ -28,7 +29,14 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.stats.getStats({
     handler: async ({ params }) => {
-      const result = await Effect.runPromise(getStats(params));
+      let work = pending.get(params.did);
+      if (!work) {
+        work = Effect.runPromise(getStats(params)).finally(() =>
+          pending.delete(params.did),
+        );
+        pending.set(params.did, work);
+      }
+      const result = await work;
       return {
         encoding: "application/json",
         body: result,
@@ -60,10 +68,8 @@ const retrieve = ({
       const cached = await readStats(ctx, params.did);
       if (cached) return { data: cached };
 
-      // Identity, not an aggregate: read it from the primary. On the replica a
-      // just-created account has not replicated yet, and "user not found" here
-      // returns zeros — which the clients render as the onboarding flow.
-      const user = await ctx.db
+      // Resolve the actor inside each aggregate, avoiding a separate round trip.
+      const userId = ctx.db
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(
@@ -72,20 +78,7 @@ const retrieve = ({
             eq(tables.users.handle, params.did),
           ),
         )
-        .execute()
-        .then((rows) => rows[0]);
-
-      if (!user) {
-        return {
-          data: {
-            scrobbles: 0,
-            artists: 0,
-            loved_tracks: 0,
-            albums: 0,
-            tracks: 0,
-          },
-        };
-      }
+        .limit(1);
 
       // One pass, not four. Every count here scans the same slice of
       // `scrobbles`, and issuing them as separate queries meant four pool slots
@@ -101,12 +94,12 @@ const retrieve = ({
             tracks: sql<number>`count(distinct ${tables.scrobbles.trackId})`,
           })
           .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.userId, user.id))
+          .where(eq(tables.scrobbles.userId, userId))
           .execute(),
         ctx.db
           .select({ n: count() })
           .from(tables.lovedTracks)
-          .where(eq(tables.lovedTracks.userId, user.id))
+          .where(eq(tables.lovedTracks.userId, userId))
           .execute(),
       ]);
 

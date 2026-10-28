@@ -2,12 +2,13 @@ import { AtpAgent } from "@atproto/api";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { consola } from "consola";
 import type { Context } from "context";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
 import { fetchBskyProfile, type ResolvedBskyProfile } from "lib/bskyProfile";
+import { queryCache } from "lib/queryCache";
 import { transientDbRetry } from "lib/dbRetry";
 import * as R from "ramda";
 import tables from "schema";
@@ -30,9 +31,55 @@ export default function (server: Server, ctx: Context) {
         return Effect.succeed({});
       }),
     );
+  const refreshes = queryCache(
+    ({ did }: { did: string }) =>
+      getActorProfile({ did }, { credentials: { did } } as HandlerAuth).pipe(
+        Effect.timeout("30 seconds"),
+      ),
+    "1 minute",
+    1000,
+  );
   server.app.rocksky.actor.getProfile({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
+      const actor = params.did || (auth as HandlerAuth).credentials?.did;
+      const [saved] = actor
+        ? await ctx.db
+            .select({
+              user: tables.users,
+              spotify: tables.spotifyAccounts,
+              tokenId: tables.spotifyTokens.id,
+            })
+            .from(tables.users)
+            .leftJoin(
+              tables.spotifyAccounts,
+              eq(tables.spotifyAccounts.userId, tables.users.id),
+            )
+            .leftJoin(
+              tables.spotifyTokens,
+              eq(tables.spotifyTokens.userId, tables.users.id),
+            )
+            .where(
+              or(eq(tables.users.did, actor), eq(tables.users.handle, actor)),
+            )
+            .limit(1)
+            .execute()
+        : [];
+      if (saved) {
+        // External identity/profile services cannot block a saved profile.
+        void Effect.runPromise(refreshes({ did: saved.user.did })).catch(
+          (error) => consola.warn("Profile refresh failed:", error),
+        );
+        const result = await Effect.runPromise(
+          presentation([
+            { ctx, did: saved.user.did, user: saved.user, resolved: {} },
+            saved.user.handle,
+            saved.spotify ?? undefined,
+            saved.tokenId ? { id: saved.tokenId } : undefined,
+          ]),
+        );
+        return { encoding: "application/json", body: result };
+      }
       const result = await Effect.runPromise(getActorProfile(params, auth));
       return {
         encoding: "application/json",
@@ -196,7 +243,7 @@ const refreshProfile = ([
           profile.user.avatar !== nextAvatar ||
           profile.user.displayName !== nextDisplayName
         ) {
-          profile.ctx.db
+          await profile.ctx.db
             .update(tables.users)
             .set({
               handle,

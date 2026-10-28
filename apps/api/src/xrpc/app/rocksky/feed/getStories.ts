@@ -3,10 +3,11 @@ import axios from "axios";
 import { consola } from "consola";
 import type { Context } from "context";
 import { desc, eq, inArray, sql } from "drizzle-orm";
-import { Cache, Data, Duration, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { StoriesView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getStories";
+import { queryCache } from "lib/queryCache";
 import { transientDbRetry } from "lib/dbRetry";
 import { env } from "lib/env";
 import albums from "schema/albums";
@@ -19,12 +20,8 @@ import tracks from "schema/tracks";
 import users from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  // The cache key must be a Data.struct — a plain object is compared by
-  // reference, so every request would miss and rerun the queries.
-  const storiesCache = Cache.make({
-    capacity: 100,
-    timeToLive: Duration.seconds(30),
-    lookup: (key: {
+  const storiesCache = queryCache(
+    (key: {
       readonly feed?: string;
       readonly following?: boolean;
       readonly size?: number;
@@ -42,7 +39,9 @@ export default function (server: Server, ctx: Context) {
         Effect.retry(transientDbRetry),
         Effect.timeout("120 seconds"),
       ),
-  });
+    "30 seconds",
+    100,
+  );
 
   const getStories = (params: QueryParams, auth: HandlerAuth) => {
     const did = auth.credentials?.did;
@@ -52,17 +51,12 @@ export default function (server: Server, ctx: Context) {
       );
     }
     return pipe(
-      storiesCache,
-      Effect.flatMap((cache) =>
-        cache.get(
-          Data.struct({
-            feed: params.feed,
-            following: params.following,
-            size: params.size,
-            did,
-          }),
-        ),
-      ),
+      storiesCache({
+        feed: params.feed,
+        following: params.following,
+        size: params.size,
+        did,
+      }),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({});
@@ -147,6 +141,14 @@ const retrieve = ({
             ? sql`WHERE ${sql.join(innerFilters, sql` AND `)}`
             : sql``;
 
+        const latestIds = followedUserIds
+          ? sql`SELECT (SELECT inner_s.xata_id FROM scrobbles inner_s
+              ${innerWhere} AND inner_s.user_id = story_user.xata_id
+              ORDER BY inner_s.timestamp DESC, inner_s.xata_id DESC LIMIT 1)
+              FROM users story_user WHERE story_user.xata_id IN ${followedUserIds}`
+          : sql`SELECT DISTINCT ON (inner_s.user_id) inner_s.xata_id
+              FROM scrobbles inner_s ${innerWhere}
+              ORDER BY inner_s.user_id, inner_s.timestamp DESC, inner_s.xata_id DESC`;
         return ctx.db
           .select(baseSelect)
           .from(scrobbles)
@@ -154,14 +156,7 @@ const retrieve = ({
           .leftJoin(albums, eq(scrobbles.albumId, albums.id))
           .leftJoin(tracks, eq(scrobbles.trackId, tracks.id))
           .leftJoin(users, eq(scrobbles.userId, users.id))
-          .where(
-            sql`${scrobbles.id} IN (
-              SELECT DISTINCT ON (inner_s.user_id) inner_s.xata_id
-              FROM scrobbles inner_s
-              ${innerWhere}
-              ORDER BY inner_s.user_id, inner_s.timestamp DESC, inner_s.xata_id DESC
-            )`,
-          )
+          .where(sql`${scrobbles.id} IN (${latestIds})`)
           .orderBy(desc(scrobbles.timestamp))
           .limit(size)
           .execute();
@@ -172,11 +167,11 @@ const retrieve = ({
       // scan when the window can't fill the page.
       // Feed skeletons already bound the candidates; include old entries
       // immediately instead of repeating the query for a short page.
-      let rows = await fetchRows(feedUris ? undefined : 3);
-      if (!feedUris && rows.length < size) {
+      let rows = await fetchRows(feedUris || followedUserIds ? undefined : 3);
+      if (!feedUris && !followedUserIds && rows.length < size) {
         rows = await fetchRows(30);
       }
-      if (!feedUris && rows.length < size) {
+      if (!feedUris && !followedUserIds && rows.length < size) {
         rows = await fetchRows();
       }
 
@@ -230,7 +225,8 @@ const resolveFeedScrobbleUris = async (
   if (!feed) {
     throw new Error(`Feed not found`);
   }
-  const isOwnFeedgen = env.PUBLIC_URL.includes("localhost") ||
+  const isOwnFeedgen =
+    env.PUBLIC_URL.includes("localhost") ||
     feed.did === env.ROCKSKY_FEEDGEN_DID;
   const feedUrl = isOwnFeedgen
     ? `http://localhost:${env.ROCKSKY_FEEDGEN_PORT}`
