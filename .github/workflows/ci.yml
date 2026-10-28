@@ -24,4 +24,4 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m rust tracklist --source ..
+            dagger --progress logs -v api call -m rust tracklist --source ..

@@ -40,7 +40,7 @@ jobs:
           EAS_VERSION: ${{ inputs.eas_version }}
           BUILD_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          dagger --progress plain -v api call -m eas android \
+          dagger --progress logs -v api call -m eas android \
             --source .. --project-dir apps/app --format "$ARTIFACT_FORMAT" \
             --profile "$EAS_PROFILE" --eas-version "$EAS_VERSION" \
             --token env://EXPO_TOKEN --run-id "$BUILD_RUN" \

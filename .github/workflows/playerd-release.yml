@@ -45,7 +45,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.tag.outputs.tag }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress plain -v api call -m ops ensure-release --project playerd --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+        run: dagger --progress logs -v api call -m ops ensure-release --project playerd --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -92,7 +92,7 @@ jobs:
         with:
           command: |
             mkdir -p ../playerd/target/release
-            dagger --progress plain -v api call -m rust playerd-release --source .. --target "$RELEASE_TARGET" --output ../playerd/target/release/playerd
+            dagger --progress logs -v api call -m rust playerd-release --source .. --target "$RELEASE_TARGET" --output ../playerd/target/release/playerd
 
       - name: Package tarball
         if: runner.os != 'Linux'
@@ -119,7 +119,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          dagger --progress plain -v api call -m artifacts binary --binary "../playerd/target/release/playerd" \
+          dagger --progress logs -v api call -m artifacts binary --binary "../playerd/target/release/playerd" \
             --executable-name playerd --name "$RELEASE_TAG-$RELEASE_TARGET" --output "$RUNNER_TEMP/release-assets"
-          dagger --progress plain -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets "$RUNNER_TEMP/release-assets" \
+          dagger --progress logs -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets "$RUNNER_TEMP/release-assets" \
             --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"

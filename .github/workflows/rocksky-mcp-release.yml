@@ -44,7 +44,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.tag.outputs.tag }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress plain -v api call -m ops ensure-release --project rocksky-mcp --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+        run: dagger --progress logs -v api call -m ops ensure-release --project rocksky-mcp --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
 
   build:
     needs: prepare-release
@@ -92,7 +92,7 @@ jobs:
         with:
           command: |
             mkdir -p "../rocksky-mcp/target/$RELEASE_TARGET/release"
-            dagger --progress plain -v api call -m rust mcp-release --source .. --target "$RELEASE_TARGET" \
+            dagger --progress logs -v api call -m rust mcp-release --source .. --target "$RELEASE_TARGET" \
               --output "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp"
 
       # Native macOS and Windows builds and all release packaging stay on the runner.
@@ -121,7 +121,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          dagger --progress plain -v api call -m artifacts binary --binary "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp" \
+          dagger --progress logs -v api call -m artifacts binary --binary "../rocksky-mcp/target/$RELEASE_TARGET/release/rocksky-mcp" \
             --executable-name rocksky-mcp --name "$RELEASE_TAG-$RELEASE_TARGET" --output "$RUNNER_TEMP/release-assets"
-          dagger --progress plain -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets "$RUNNER_TEMP/release-assets" \
+          dagger --progress logs -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets "$RUNNER_TEMP/release-assets" \
             --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"

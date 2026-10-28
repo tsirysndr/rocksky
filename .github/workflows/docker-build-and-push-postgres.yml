@@ -37,6 +37,6 @@ jobs:
           GH_USER: ${{ github.actor }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          dagger --progress plain -v api call -m ops publish-postgres --source ../crates/xataid-extension \
+          dagger --progress logs -v api call -m ops publish-postgres --source ../crates/xataid-extension \
             --docker-user "$DOCKER_USER" --docker-password env://DOCKER_PASSWORD \
             --github-user "$GH_USER" --github-token env://GH_TOKEN

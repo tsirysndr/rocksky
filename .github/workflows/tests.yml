@@ -140,7 +140,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m typescript api-contracts --source ..
+            dagger --progress logs -v api call -m typescript api-contracts --source ..
 
   submissions:
     needs: changes
@@ -158,7 +158,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m rust submissions --source ..
+            dagger --progress logs -v api call -m rust submissions --source ..
 
   matching:
     needs: changes
@@ -176,7 +176,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m rust matching --source ..
+            dagger --progress logs -v api call -m rust matching --source ..
 
   cli:
     needs: changes
@@ -194,7 +194,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m typescript cli --source ../apps/cli
+            dagger --progress logs -v api call -m typescript cli --source ../apps/cli
 
   typescript-sdk:
     needs: changes
@@ -212,7 +212,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m typescript sdk --source ../sdk/typescript
+            dagger --progress logs -v api call -m typescript sdk --source ../sdk/typescript
 
   go-sdk:
     needs: changes
@@ -230,7 +230,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m go sdk --source ../sdk/go
+            dagger --progress logs -v api call -m go sdk --source ../sdk/go
 
   rust-sdk:
     needs: changes
@@ -248,7 +248,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m rust sdk --source ../sdk/rust
+            dagger --progress logs -v api call -m rust sdk --source ../sdk/rust
 
   deezer:
     needs: changes
@@ -266,7 +266,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m go deezer --source ../deezer --otel ../otel
+            dagger --progress logs -v api call -m go deezer --source ../deezer --otel ../otel
 
   remote-ws:
     needs: changes
@@ -284,7 +284,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m elixir remote-ws --source ../remote-ws
+            dagger --progress logs -v api call -m elixir remote-ws --source ../remote-ws
 
   musicbrainz:
     needs: changes
@@ -302,4 +302,4 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger --progress plain -v api call -m go musicbrainz --source ../musicbrainz --otel ../otel
+            dagger --progress logs -v api call -m go musicbrainz --source ../musicbrainz --otel ../otel
