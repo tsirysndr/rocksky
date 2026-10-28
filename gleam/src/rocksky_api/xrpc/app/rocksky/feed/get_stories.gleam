@@ -10,10 +10,10 @@ import gleam/string
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
-  all, all_columns, and, asc, column, desc, distinct_on, eq, eq_columns, field,
-  from, gt_columns, in_array, inner_join, left_join, limit, nested,
-  now_minus_seconds, nullable, omit_column, one, order_by, pair, reference,
-  select, subquery, text, where,
+  alias, aliased_field, all, all_columns, and, asc, column, desc, distinct_on,
+  eq, eq_columns, field, from, gt_columns, in_array, inner_join, left_join,
+  limit, nested, now_minus_seconds, nullable, omit_column, one, order_by, pair,
+  reference, scalar, select, subquery, text, where,
 }
 import rocksky_api/drizzle/schema/albums as al
 import rocksky_api/drizzle/schema/artists as ar
@@ -74,7 +74,7 @@ fn feed_uris(ctx: Context, uri: String) {
   |> task.from_result
 }
 
-fn rows(ctx: Context, size: Int, conditions, window_days: Int) {
+fn rows(ctx: Context, size: Int, conditions, window_days: Int, audience) {
   let s = sc.table()
   let t = tr.table()
   let u = us.table()
@@ -87,12 +87,32 @@ fn rows(ctx: Context, size: Int, conditions, window_days: Int) {
     ]
     _ -> conditions
   }
-  let latest =
-    select(s, field("id", sc.id(s)))
-    |> where(and(conditions))
-    |> distinct_on([reference(sc.user_id(s))])
-    |> order_by([asc(sc.user_id(s)), desc(sc.timestamp(s)), desc(sc.id(s))])
-    |> subquery("latest")
+  let latest = case audience {
+    Some(ids) -> {
+      // One indexed lookup per followed user, independent of their history size.
+      // Keep URI conditions inside the lookup for feed + following requests.
+      let candidate = alias(us.table(), "story_user")
+      let latest_id =
+        select(s, field("id", sc.id(s)))
+        |> where(
+          and([
+            eq_columns(sc.user_id(s), nullable(us.id(candidate))),
+            ..conditions
+          ]),
+        )
+        |> order_by([desc(sc.timestamp(s)), desc(sc.id(s))])
+        |> limit(1)
+      select(candidate, aliased_field("id", scalar(latest_id, text())))
+      |> where(in_array(us.id(candidate), ids))
+      |> subquery("latest")
+    }
+    None ->
+      select(s, field("id", sc.id(s)))
+      |> where(and(conditions))
+      |> distinct_on([reference(sc.user_id(s))])
+      |> order_by([asc(sc.user_id(s)), desc(sc.timestamp(s)), desc(sc.id(s))])
+      |> subquery("latest")
+  }
   select(
     s,
     pair(
@@ -161,18 +181,18 @@ pub fn retrieve(
       }
       // A feed already bounds the candidate set. Query it once, including
       // older entries, rather than retrying when it has fewer unique users.
-      use rows <- task.then(case uris {
-        Some(_) -> rows(ctx, size, conditions, 0)
-        None -> {
+      use rows <- task.then(case uris, audience {
+        Some(_), _ | _, Some(_) -> rows(ctx, size, conditions, 0, audience)
+        None, None -> {
           // Most pages fit within three days. Keep wider fallbacks for
           // inactive audiences and larger page sizes.
-          use recent <- task.then(rows(ctx, size, conditions, 3))
+          use recent <- task.then(rows(ctx, size, conditions, 3, None))
           use recent <- task.then(case list.length(recent) < size {
-            True -> rows(ctx, size, conditions, 30)
+            True -> rows(ctx, size, conditions, 30, None)
             False -> task.ok(recent)
           })
           case list.length(recent) < size {
-            True -> rows(ctx, size, conditions, 0)
+            True -> rows(ctx, size, conditions, 0, None)
             False -> task.ok(recent)
           }
         }

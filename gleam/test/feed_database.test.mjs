@@ -46,6 +46,20 @@ test('Feed hydration respects timestamps, per-track likes, caller cache and gene
  story=await stories.retrieve(ctx,new GetStoriesParams(new Some(1),new None(),new None()),new None());
  assert.ok(story instanceof Ok);assert.equal(encode_feed_stories_view(story[0]).stories[0].uri,'at://newer');
  assert.equal(sqlCalls.filter(sql=>/distinct on/i.test(sql)).length,1);
+ // Following pages query each user's latest row once, even for old activity,
+ // ties, users without scrobbles, and pages larger than the audience.
+ await query("INSERT INTO users(xata_id,did,handle,display_name,avatar) VALUES ('idle','did:idle','idle.test','Idle','')");
+ await query("INSERT INTO follows(uri,follower_did,subject_did) VALUES ('at://follow/u','did:viewer','did:u'),('at://follow/idle','did:viewer','did:idle')");
+ await query("UPDATE scrobbles SET timestamp='2025-02-01'; INSERT INTO scrobbles(xata_id,user_id,track_id,timestamp,uri) VALUES ('s3','u','t','2025-02-01','at://tie')");
+ sqlCalls.length=0;
+ story=await stories.retrieve(ctx,new GetStoriesParams(new Some(80),new None(),new Some(true)),new Some('did:viewer'));
+ assert.ok(story instanceof Ok,story instanceof Ok?'':describe(story[0]));
+ assert.deepEqual(encode_feed_stories_view(story[0]).stories.map(s=>s.uri),['at://tie']);
+ assert.equal(sqlCalls.filter(sql=>/"scrobbles"/.test(sql)).length,1);
+ assert.equal(sqlCalls.filter(sql=>/distinct on/i.test(sql)).length,0);
+ story=await stories.retrieve(ctx,new GetStoriesParams(new Some(80),new Some('at://feed'),new Some(true)),new Some('did:viewer'));
+ assert.ok(story instanceof Ok,story instanceof Ok?'':describe(story[0]));
+ assert.deepEqual(encode_feed_stories_view(story[0]).stories.map(s=>s.uri),['at://newer']);
  pool.query=query;
  // Identical simultaneous API requests share work, but different viewers do not.
  cache.clear();let handler;feed.register({method:(_name,config)=>{handler=config.handler;}},ctx);
