@@ -54,7 +54,7 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger api call -m rust production-binaries --source .. export --path ../target/release
+            dagger --progress plain -v api call -m rust production-binaries --source .. export --path ../target/release
       - name: Upload production Rust executables
         uses: actions/upload-artifact@v4
         with:
@@ -99,7 +99,7 @@ jobs:
           DEPLOY_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           mkdir -p ../target/release
-          dagger api call -m ops deploy --artifacts ../target/release \
+          dagger --progress plain -v api call -m ops deploy --artifacts ../target/release \
             --private-key env://SSH_PRIVATE_KEY \
             --services "$DEPLOY_SERVICES" --commit "$DEPLOY_COMMIT" --run-id "$DEPLOY_RUN" \
             --host "$DEPLOY_HOST" --known-hosts "$DEPLOY_KNOWN_HOSTS"

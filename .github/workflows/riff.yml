@@ -37,4 +37,4 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger api call -m rust riff --source ../riff
+            dagger --progress plain -v api call -m rust riff --source ../riff

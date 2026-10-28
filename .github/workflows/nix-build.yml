@@ -93,4 +93,4 @@ jobs:
         uses: ./.github/actions/dagger
         with:
           command: |
-            dagger api call -m ops nix-build --source .. --cachix-token env://CACHIX_AUTH_TOKEN --run-id "$NIX_RUN"
+            dagger --progress plain -v api call -m ops nix-build --source .. --cachix-token env://CACHIX_AUTH_TOKEN --run-id "$NIX_RUN"
