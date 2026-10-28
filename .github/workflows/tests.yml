@@ -13,6 +13,9 @@ concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
 jobs:
   # Detect which areas changed so each suite only runs when its files (or this
   # workflow) changed.

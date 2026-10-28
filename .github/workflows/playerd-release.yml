@@ -19,6 +19,9 @@ defaults:
   run:
     working-directory: playerd
 
+env:
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
 jobs:
   prepare-release:
     runs-on: ubuntu-latest

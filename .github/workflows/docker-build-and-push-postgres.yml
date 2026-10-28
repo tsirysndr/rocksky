@@ -11,6 +11,9 @@ on:
       - "dagger.lock"
       - ".github/workflows/docker-build-and-push-postgres.yml"
 
+env:
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
 jobs:
   build-and-push:
     # Publishing is disabled until explicitly re-enabled.

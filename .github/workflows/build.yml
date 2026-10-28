@@ -9,6 +9,9 @@ on:
       - "playerd-[0-9]*"
       - "desktop-v*"
 
+env:
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
 jobs:
   changes:
     runs-on: ubuntu-latest

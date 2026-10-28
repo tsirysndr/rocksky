@@ -18,6 +18,9 @@ defaults:
   run:
     working-directory: rocksky-mcp
 
+env:
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
 jobs:
   prepare-release:
     runs-on: ubuntu-latest

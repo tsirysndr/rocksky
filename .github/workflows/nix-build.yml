@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
 jobs:
   nix-build:
     name: nix build (${{ matrix.os }})

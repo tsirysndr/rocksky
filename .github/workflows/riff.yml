@@ -22,6 +22,9 @@ defaults:
   run:
     working-directory: .dagger
 
+env:
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
 jobs:
   test:
     runs-on: ubuntu-latest

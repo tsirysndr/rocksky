@@ -28,6 +28,7 @@ permissions:
 
 env:
   WORKDIR: sdk/scripts
+  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
 jobs:
   prepare-release:
