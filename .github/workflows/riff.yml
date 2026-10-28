@@ -36,8 +36,5 @@ jobs:
       - name: Riff lint, tests, and HTTP smoke checks (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-riff
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-riff
           command: |
             dagger api call -m rust riff --source ../riff

@@ -90,9 +90,6 @@ jobs:
           RELEASE_TARGET: ${{ matrix.target }}
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-mcp-release
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-mcp-release-${{ matrix.target }}
           command: |
             mkdir -p "../rocksky-mcp/target/$RELEASE_TARGET/release"
             dagger api call -m rust mcp-release --source .. --target "$RELEASE_TARGET" \

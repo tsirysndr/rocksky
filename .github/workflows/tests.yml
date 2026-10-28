@@ -139,9 +139,6 @@ jobs:
       - name: API contracts and regression tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: typescript
-          key: typescript-api-contracts
-          volumes: rocksky-api-bun
           command: |
             dagger api call -m typescript api-contracts --source ..
 
@@ -160,9 +157,6 @@ jobs:
       - name: Submissions dashboard and worker checks (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-submissions
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-submissions,rocksky-submissions-bun
           command: |
             dagger api call -m rust submissions --source ..
 
@@ -181,9 +175,6 @@ jobs:
       - name: Matching regression suite (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-matching
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-matching
           command: |
             dagger api call -m rust matching --source ..
 
@@ -202,9 +193,6 @@ jobs:
       - name: CLI smoke tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: typescript
-          key: typescript-cli
-          volumes: rocksky-cli-bun
           command: |
             dagger api call -m typescript cli --source ../apps/cli
 
@@ -223,9 +211,6 @@ jobs:
       - name: TypeScript SDK tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: typescript
-          key: typescript-sdk
-          volumes: rocksky-typescript-bun
           command: |
             dagger api call -m typescript sdk --source ../sdk/typescript
 
@@ -244,9 +229,6 @@ jobs:
       - name: Go SDK tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: go
-          key: go-sdk
-          volumes: rocksky-go-modules,rocksky-go-build
           command: |
             dagger api call -m go sdk --source ../sdk/go
 
@@ -265,9 +247,6 @@ jobs:
       - name: Rust SDK tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-sdk
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rust-sdk
           command: |
             dagger api call -m rust sdk --source ../sdk/rust
 
@@ -286,9 +265,6 @@ jobs:
       - name: Deezer tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: go
-          key: go-deezer
-          volumes: rocksky-go-modules,rocksky-go-build
           command: |
             dagger api call -m go deezer --source ../deezer --otel ../otel
 
@@ -307,9 +283,6 @@ jobs:
       - name: Remote WebSocket relay tests (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: elixir
-          key: elixir-remote-ws
-          volumes: rocksky-elixir-hex,rocksky-remote-ws-deps,rocksky-remote-ws-build-1.18-27
           command: |
             dagger api call -m elixir remote-ws --source ../remote-ws
 
@@ -328,8 +301,5 @@ jobs:
       - name: MusicBrainz race tests and build (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: go
-          key: go-musicbrainz
-          volumes: rocksky-go-modules,rocksky-go-build
           command: |
             dagger api call -m go musicbrainz --source ../musicbrainz --otel ../otel

@@ -92,8 +92,5 @@ jobs:
           NIX_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
         uses: ./.github/actions/dagger
         with:
-          module: ops
-          key: ops-nix-build
-          volumes: rocksky-nix-store
           command: |
             dagger api call -m ops nix-build --source .. --cachix-token env://CACHIX_AUTH_TOKEN --run-id "$NIX_RUN"

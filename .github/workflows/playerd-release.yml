@@ -90,9 +90,6 @@ jobs:
           RELEASE_TARGET: ${{ matrix.target }}
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-playerd-release
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-playerd-release-${{ matrix.target }}
           command: |
             mkdir -p ../playerd/target/release
             dagger api call -m rust playerd-release --source .. --target "$RELEASE_TARGET" --output ../playerd/target/release/playerd

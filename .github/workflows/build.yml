@@ -53,9 +53,6 @@ jobs:
       - name: Build production Rust executables (PureScript Dagger)
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-rockskyd
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-rockskyd-release-amd64
           command: |
             dagger api call -m rust production-binaries --source .. export --path ../target/release
       - name: Upload production Rust executables

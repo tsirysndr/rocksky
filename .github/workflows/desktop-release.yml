@@ -131,9 +131,6 @@ jobs:
           KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
         uses: ./.github/actions/dagger
         with:
-          module: ops
-          key: ops-desktop-release
-          volumes: rocksky-desktop-cargo-registry,rocksky-desktop-cargo-git,rocksky-desktop-bun,rocksky-desktop-tauri,rocksky-desktop-release-amd64
           command: |
             dagger api call -m ops desktop-release --source .. --version "$VERSION" --klipy-key env://KLIPY_API_KEY --output "$RUNNER_TEMP/desktop-assets"
 

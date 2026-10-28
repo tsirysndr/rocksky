@@ -88,9 +88,6 @@ jobs:
           RELEASE_TARGET: ${{ matrix.target }}
         uses: ./.github/actions/dagger
         with:
-          module: rust
-          key: rust-bindings-release
-          volumes: rocksky-cargo-registry,rocksky-cargo-git,rocksky-bindings-release-${{ matrix.target }}
           command: |
             dagger api call -m rust bindings-release --source .. --target "$RELEASE_TARGET" --output ../sdk/scripts/dist
 

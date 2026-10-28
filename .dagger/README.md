@@ -190,34 +190,6 @@ runners for both architectures; macOS and Windows retain their original native
 build steps. Tag selection and archive names are unchanged. Linux packaging and release
 uploads now use `ops`; native-platform packaging/uploads remain on their runners.
 
-## Persistent GitHub Actions caches
-
-`.github/actions/dagger/action.yml` restores a GitHub Actions cache, imports it
-into the owning module's named Dagger volumes, runs the pipeline, snapshots the
-updated volumes, and saves them through `actions/cache`. The key includes the
-engine/cache format version, OS, architecture, pipeline, dependency-lock hash,
-and workflow run/attempt; fallback keys reuse the pipeline's previous snapshot.
-Snapshots are attempted after failed builds too, but not after cancellation.
-A failed snapshot does not replace a successful build result.
-
-Cache volumes are namespaced by Dagger module. Each module therefore exposes
-`save-caches` and `restore-caches` through its identical `CI.Cache` helper;
-calling those functions on another module would address different volumes.
-A unique run ID prevents a cached copy operation from returning an older snapshot.
-The wrapper selects Cargo, Go, Bun, Hex, build-output, Tauri, or Nix volumes for
-the job. It does not archive the engine, repository checkout, or credential files.
-SDK bootstrap layers are rebuilt by a fresh engine.
-
-For manual cache transfer, use the same module for both operations:
-
-```sh
-./bin/dagger api call -m rust save-caches \
-  --volumes rocksky-cargo-registry,rocksky-cargo-git \
-  --run-id manual-save-1 --output /tmp/rocksky-cargo-cache
-./bin/dagger api call -m rust restore-caches --source /tmp/rocksky-cargo-cache \
-  --volumes rocksky-cargo-registry,rocksky-cargo-git --run-id manual-restore-1
-```
-
 ## Releases and operations
 
 Linux playerd releases retain the default build, both playback test commands,

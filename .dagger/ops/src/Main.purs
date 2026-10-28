@@ -8,7 +8,6 @@ import Deploy as Deploy
 import SSH as SSH
 import Data.Either (Either(..))
 import CI.Runtime as CI
-import CI.Cache as Cache
 import Dagger (Client)
 import Dagger.Container as Container
 import Dagger.Directory as Directory
@@ -253,7 +252,5 @@ main = CI.runModule
       , Module.function "desktopRelease" "Build and verify Ubuntu-compatible Linux desktop bundles." desktopArgs desktopRelease
       , Module.function "deploy" "Deploy selected Rocksky services over SSH." deployArgs deploy
       , Module.function "nixBuild" "Build Linux flake packages and publish closures when Cachix credentials are present." nixArgs nixBuild
-      , Module.function "saveCaches" "Snapshot named cache volumes for GitHub Actions cache." Cache.cacheArgs Cache.saveCaches
-      , Module.function "restoreCaches" "Restore named cache volumes before a build." Cache.restoreArgs Cache.restoreCaches
       ]
   ]
