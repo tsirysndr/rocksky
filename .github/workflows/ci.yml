@@ -8,7 +8,6 @@ on:
       - main
 env:
   DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-  DAGGER_ENGINE: cloud
 
 jobs:
   tests:
