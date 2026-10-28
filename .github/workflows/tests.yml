@@ -15,6 +15,7 @@ concurrency:
 
 env:
   DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+  DAGGER_ENGINE: cloud
 
 jobs:
   # Detect which areas changed so each suite only runs when its files (or this

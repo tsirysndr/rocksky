@@ -46,6 +46,8 @@ jobs:
     if: needs.changes.outputs.rockskyd == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      DAGGER_ENGINE: cloud
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Dagger CLI
