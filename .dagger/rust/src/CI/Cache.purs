@@ -35,7 +35,9 @@ saveCaches client args = do
   snapshot <- foldM (\container name -> pure $ container
     # Container.withMountedCache "/cache" (Query.cacheVolume name client)
     # Container.withExec [ "mkdir", "-p", "/out/" <> name ]
-    # Container.withExec [ "cp", "-a", "/cache/.", "/out/" <> name ]) base names
+    # Container.withExec [ "cp", "-a", "/cache/.", "/out/" <> name ]
+    -- Go and Cargo leave their caches read-only; the host exporter cannot write into 0555 dirs.
+    # Container.withExec [ "chmod", "-R", "u+w", "/out/" <> name ]) base names
   pure $ Container.directory "/out" snapshot
 
 type RestoreArgs = { source :: Directory, volumes :: String, runId :: String }
