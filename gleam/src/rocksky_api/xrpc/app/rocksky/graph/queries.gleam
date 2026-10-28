@@ -3,12 +3,13 @@ import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
-  alias, all, and, count as db_count, desc, eq, eq_columns, exists, field,
-  in_array, inner_join, left_join, limit as db_limit, lt, nested, one, order_by,
-  pair, required, select, where,
+  alias, and, count as db_count, desc, eq, eq_columns, exists, field, in_array,
+  inner_join, integer, json_rows, left_join, limit as db_limit, lt, one,
+  order_by, pair, required, scalar, select, select_values, value, where,
 }
 import rocksky_api/drizzle/schema/follows as f
 import rocksky_api/drizzle/schema/users as u
@@ -84,7 +85,7 @@ pub fn page(
     select(
       follows,
       pair(
-        nested("profile", profile.selection(users)),
+        profile.selection(users),
         field("followed_at", f.created_at(follows)),
       ),
     )
@@ -92,20 +93,32 @@ pub fn page(
     Some(_) -> inner_join(query, users, eq_columns(u.did(users), target))
     None -> left_join(query, users, eq_columns(u.did(users), target))
   }
-  use #(subject, rows, count) <- task.map(
-    task.all3(
-      subject(ctx, actor),
-      query
-        |> where(and(filters))
-        |> order_by([desc(f.created_at(follows))])
-        |> db_limit(limit)
-        |> all(ctx.db),
-      case known {
-        Some(_) -> task.ok(0)
-        None -> required(count, ctx.db, "Missing follow count")
-      },
-    ),
+  let subjects =
+    select(users, profile.selection(users))
+    |> where(eq(u.did(users), actor))
+    |> db_limit(1)
+  let rows =
+    query
+    |> where(and(filters))
+    |> order_by([desc(f.created_at(follows))])
+    |> db_limit(limit)
+  // A graph page needs one connection, even when the relation is absent.
+  // Count remains independent of the cursor, as in the original response.
+  use #(subjects, #(rows, count)) <- task.map(
+    select_values(pair(
+      field("subject", json_rows(subjects)),
+      pair(
+        field("rows", json_rows(rows)),
+        field("count", case known {
+          Some(_) -> value(0, integer())
+          None -> scalar(count, integer())
+        }),
+      ),
+    ))
+    |> required(ctx.db, "Missing graph page"),
   )
+  let subject =
+    list.first(subjects) |> result.unwrap(models.new_actor_profile_view_basic())
   #(
     subject,
     list.map(rows, fn(r) { r.0 }),
