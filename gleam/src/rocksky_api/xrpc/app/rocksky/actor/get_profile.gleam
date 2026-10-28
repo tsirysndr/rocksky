@@ -8,7 +8,7 @@ import rocksky_api/context.{type Context}
 import rocksky_api/db/row
 import rocksky_api/drizzle/orm.{
   all_columns, eq, eq_columns, field, left_join, nested, nullable, one,
-  optional_selection, pair, returning_one, select, set, update, where,
+  optional_selection, or, pair, returning_one, select, set, update, where,
 }
 import rocksky_api/drizzle/schema/spotify_accounts as sa
 import rocksky_api/drizzle/schema/spotify_tokens as st
@@ -19,6 +19,8 @@ import rocksky_api/lib/agent
 import rocksky_api/lib/bsky_profile
 import rocksky_api/lib/id_resolver
 import rocksky_api/lib/profile_user
+import rocksky_api/lib/query_cache
+import rocksky_api/log
 import rocksky_api/node/js
 import rocksky_api/node/nats
 import rocksky_api/node/xrpc_server.{type Server}
@@ -29,6 +31,7 @@ import rocksky_api/xrpc/auth
 import rocksky_api/xrpc/handler
 
 pub fn register(server: Server, ctx: Context) -> Nil {
+  let refreshes = query_cache.new(60_000, 1000)
   xrpc_server.method(
     server,
     "app.rocksky.actor.getProfile",
@@ -39,13 +42,59 @@ pub fn register(server: Server, ctx: Context) -> Nil {
         handler.options("getProfile") |> handler.timeout(120_000),
         models.get_profile_params_decoder(),
       )
-      use view <- task.map(retrieve(ctx, params.did, handler.caller(req)))
+      use view <- task.map(cached_profile(
+        ctx,
+        params.did,
+        handler.caller(req),
+        refreshes,
+      ))
       profile.encode_detailed(view)
     },
   )
 }
 
-fn retrieve(ctx: Context, requested, caller) {
+fn cached_profile(ctx: Context, requested, caller, refreshes) {
+  let actor = case requested {
+    Some(value) if value != "" -> value
+    _ -> option.unwrap(caller, "")
+  }
+  let users = u.table()
+  let spotify = sa.table()
+  let tokens = st.table()
+  use existing <- task.then(
+    select(
+      users,
+      pair(
+        nested("user", all_columns(users)),
+        pair(
+          nested("spotify", optional_selection(all_columns(spotify))),
+          field("tokenId", nullable(st.id(tokens))),
+        ),
+      ),
+    )
+    |> left_join(spotify, eq_columns(sa.user_id(spotify), u.id(users)))
+    |> left_join(tokens, eq_columns(st.user_id(tokens), u.id(users)))
+    |> where(or([eq(u.did(users), actor), eq(u.handle(users), actor)]))
+    |> one(ctx.db),
+  )
+  case existing {
+    None -> retrieve(ctx, requested, caller)
+    Some(#(user, #(spotify, token))) -> {
+      // Serve saved profiles without waiting on DNS, AppView, or a user's PDS.
+      // Refresh once per minute; account/Spotify state is still read every time.
+      query_cache.get(refreshes, user.did, fn() {
+        retrieve(ctx, Some(user.did), caller)
+        |> task.timeout(30_000, "Profile refresh")
+      })
+      |> task.background(fn(e) {
+        log.warn("Profile refresh failed: " <> error.describe(e))
+      })
+      task.ok(profile.Detailed(user, spotify, token != None))
+    }
+  }
+}
+
+pub fn retrieve(ctx: Context, requested, caller) {
   use did <- task.then(case requested {
     Some(value) if value != "" ->
       case

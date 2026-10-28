@@ -3,9 +3,10 @@ import { test } from 'node:test';
 import pg from 'pg';
 import axios from 'axios';
 import { createTables } from './helpers/postgres.mjs';
-import { register } from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/actor/get_profile.mjs';
+import { register, retrieve } from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/app/rocksky/actor/get_profile.mjs';
 import { fetch as profile, fetch_with_fallback } from '../build/dev/javascript/rocksky_api/rocksky_api/lib/bsky_profile.mjs';
-import { Some } from '../build/dev/javascript/gleam_stdlib/gleam/option.mjs';
+import { Some, None } from '../build/dev/javascript/gleam_stdlib/gleam/option.mjs';
+import { encode_detailed } from '../build/dev/javascript/rocksky_api/rocksky_api/views/profile.mjs';
 import { Ok } from '../build/dev/javascript/rocksky_api/gleam.mjs';
 
 test('Profile refresh preserves partial fields, creates accounts, publishes changes, and hides Spotify email', {skip:!process.env.GLEAM_TEST_PGHOST}, async()=>{
@@ -24,7 +25,7 @@ test('Profile refresh preserves partial fields, creates accounts, publishes chan
       resolver:{handle:{resolve:async h=>h==='missing.test'?undefined:'did:plc:one'},did:{resolveAtprotoData:async()=>({did:'did:plc:one',handle,pds:'https://pds.test',signingKey:'key'})}},
       nc:{publish:(subject,bytes)=>messages.push({subject,data:JSON.parse(new TextDecoder().decode(bytes))})}};
     let method; register({method:(name,config)=>method=config},ctx);
-    const call=async did=>method.handler({params:{did},auth:{}});
+    const call=async did=>{const r=await retrieve(ctx,new Some(did),new None());return {body:r instanceof Ok?encode_detailed(r[0]):{}};};
     const first=(await call('one.test')).body;
     assert.equal(first.displayName,'Original'); assert.equal(first.avatar,'good-avatar'); assert.equal(first.handle,'one.test');
     assert.equal(queries.filter(q=>q.startsWith('select ')).length,1);
@@ -51,6 +52,15 @@ test('Profile refresh preserves partial fields, creates accounts, publishes chan
     assert.equal(tokenOnly.did,'did:plc:one');assert.deepEqual(tokenOnly.spotifyUser,{});assert.equal(tokenOnly.spotifyConnected,true);
     assert.ok(!JSON.stringify(tokenOnly).includes('secret-'));
     await pool.query('DELETE FROM spotify_tokens');
+    // A stalled external profile service cannot delay a saved profile.
+    let release;const slow=new Promise(resolve=>{release=resolve;});let resolutions=0;
+    const resolve=ctx.resolver.did.resolveAtprotoData;
+    ctx.resolver.did.resolveAtprotoData=async()=>{resolutions++;await slow;return resolve();};
+    const fast=await Promise.race([method.handler({params:{did:'one.test'},auth:{}}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Saved profile waited on upstream')),1000))]);
+    assert.equal(fast.body.did,'did:plc:one');assert.equal(fast.body.displayName,'Updated');
+    await method.handler({params:{did:'did:plc:one'},auth:{}});assert.equal(resolutions,1);
+    release();ctx.resolver.did.resolveAtprotoData=resolve;
+    await new Promise(resolve=>setTimeout(resolve,50));
     await pool.query('DELETE FROM users'); fetched={};
     const created=(await call('did:plc:one')).body;
     assert.equal(created.displayName,''); assert.equal(created.avatar,undefined); assert.deepEqual(created.spotifyUser,{});
