@@ -18,3 +18,11 @@ when refreshing the vendored SDK until it is incorporated upstream.
 
 Local patch: `runtime/main.go` uses `node:24-bookworm-slim` for the module
 runtime, matching the CI containers. Preserve this when refreshing the SDK.
+
+Local patch: `runtime/main.go` mounts Spago's global cache with LOCKED sharing
+in both runtime and codegen paths. `scripts/prepare-spago-cache.mjs` initializes
+missing/incomplete registry checkouts before compilation, retries failed clones
+up to three times, and retains Git's stderr. Spago builds use verbose output.
+This prevents concurrent module dependencies from racing on registry clones or
+the registry database. Preserve both files when refreshing the SDK.
+Regression coverage: `.dagger/tests/spago-cache.test.mjs` (no engine/network).

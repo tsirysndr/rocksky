@@ -91,7 +91,9 @@ func (m *PurescriptSdk) ModuleRuntime(ctx context.Context, modSource *dagger.Mod
 	if err != nil {
 		return nil, err
 	}
-	return ctr.WithExec([]string{"spago", "build"}).
+	return ctr.WithFile("/usr/local/lib/prepare-spago-cache.mjs", m.Source.File("scripts/prepare-spago-cache.mjs")).
+		WithExec([]string{"node", "/usr/local/lib/prepare-spago-cache.mjs"}).
+		WithExec([]string{"spago", "build", "--verbose"}).
 		WithEntrypoint([]string{"node", "--input-type=module", "-e", fmt.Sprintf("import(%q).then(m => m.main()).catch(e => { console.error(e); process.exitCode = 1; })", path.Join("/src", subpath, "output/Main/index.js"))}), nil
 }
 
@@ -106,7 +108,8 @@ func (m *PurescriptSdk) prepare(ctx context.Context, modSource *dagger.ModuleSou
 	workdir := path.Join("/src", subpath)
 	if introspectionJSON == nil {
 		return ctr.WithDirectory("/src", modSource.ContextDirectory()).WithWorkdir(workdir).
-			WithMountedCache("/root/.cache/spago-nodejs", dag.CacheVolume("purescript-spago-0.15.16")), subpath, nil
+			WithMountedCache("/root/.cache/spago-nodejs", dag.CacheVolume("purescript-spago-0.15.16"),
+				dagger.ContainerWithMountedCacheOpts{Sharing: dagger.CacheSharingModeLocked}), subpath, nil
 	}
 	name, err := modSource.ModuleOriginalName(ctx)
 	if err != nil {
@@ -128,6 +131,7 @@ func (m *PurescriptSdk) prepare(ctx context.Context, modSource *dagger.ModuleSou
 		WithDirectory(path.Join(workdir, "dagger-sdk"), sdk).
 		WithWorkdir(workdir).
 		WithExec([]string{"node", "/sdk/scripts/init-module.mjs", name}).
-		WithMountedCache("/root/.cache/spago-nodejs", dag.CacheVolume("purescript-spago-0.15.16"))
+		WithMountedCache("/root/.cache/spago-nodejs", dag.CacheVolume("purescript-spago-0.15.16"),
+			dagger.ContainerWithMountedCacheOpts{Sharing: dagger.CacheSharingModeLocked})
 	return ctr, subpath, nil
 }

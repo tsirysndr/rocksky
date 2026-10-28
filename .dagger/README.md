@@ -405,6 +405,18 @@ deployment execution is left to CI unless explicitly requested.
 
 ## SDK and generated bindings
 
+Module compilation and codegen mount Spago's shared cache with `LOCKED` sharing
+so dependency modules cannot mutate its registry checkouts/database concurrently.
+Before compilation, the SDK initializes missing or incomplete registry checkouts
+with up to three clone attempts. Git errors remain visible; failed initialization
+stops before Spago tries to read a missing package-set directory. Healthy caches
+and downloaded packages are retained. Test this bootstrap without an engine:
+
+```sh
+node --test .dagger/tests/spago-cache.test.mjs
+```
+
+
 `sdk/purescript` vendors the reviewed beta SDK from `tsirysndr/dagger-sdk` at
 commit `156eb76`. This avoids relying on a sibling checkout or an unpublished
 remote commit. See `sdk/purescript/VENDORED.md` for provenance and updating it.
