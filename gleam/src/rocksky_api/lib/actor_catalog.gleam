@@ -1,12 +1,11 @@
-import gleam/dict
 import gleam/list
 import gleam/option.{None, Some}
 import rocksky_api/context.{type Context}
 import rocksky_api/drizzle/orm.{
-  aliased_field, all, and, asc, column, count, count_distinct, desc, eq,
-  eq_columns, field, from, group_by, in_array, inner_join, integer,
-  limit as db_limit, nullable, offset as db_offset, one, optional, or, order_by,
-  pair, reference, select, subquery, text, where,
+  type Table, aliased_field, all, all_columns, and, asc, column, count,
+  count_distinct, desc, eq, eq_columns, field, group_by, inner_join, integer,
+  limit as db_limit, nested, nullable, offset as db_offset, optional, or,
+  order_by, pair, reference, scalar, select, subquery, text, where,
 }
 import rocksky_api/drizzle/schema/scrobbles as sc
 import rocksky_api/drizzle/schema/users as u
@@ -15,9 +14,9 @@ import rocksky_api/xrpc/app/rocksky/charts/filters
 
 pub fn retrieve(
   ctx: Context,
-  table,
+  table: Table(a),
   id,
-  get_id,
+  _get_id: fn(a) -> String,
   foreign,
   metadata_filter,
   did: String,
@@ -28,86 +27,64 @@ pub fn retrieve(
 ) {
   let users = u.table()
   let scrobbles = sc.table()
-  use user <- task.then(
-    select(users, field("id", u.id(users)))
+  let user_id =
+    select(users, field("id", nullable(u.id(users))))
     |> where(or([eq(u.did(users), did), eq(u.handle(users), did)]))
-    |> one(ctx.read_db),
-  )
-  case user {
-    None -> task.ok([])
-    Some(user_id) -> {
-      use dates <- task.then(filters.conditions(
-        ctx,
-        scrobbles,
-        None,
-        start,
-        end,
-      ))
-      let counts =
-        select(
-          scrobbles,
-          pair(aliased_field("id", foreign), aliased_field("plays", count())),
-        )
-        |> where(and([eq(sc.user_id(scrobbles), Some(user_id)), ..dates]))
-        |> group_by([reference(foreign)])
-        |> subquery("counts")
-      let count_id = column(counts, "id", optional(text()))
-      let plays = column(counts, "plays", integer())
-      let ranked =
-        select(counts, pair(field("id", count_id), field("plays", plays)))
-      let ranked = case metadata_filter {
-        None -> ranked
-        Some(condition) ->
-          ranked
-          |> inner_join(table, eq_columns(count_id, nullable(id)))
-          |> where(condition)
-      }
-      use ranked <- task.then(
-        ranked
-        |> order_by([desc(plays), asc(count_id)])
-        |> db_limit(limit)
-        |> db_offset(offset)
-        |> all(ctx.read_db),
-      )
-      let ids = list.filter_map(ranked, fn(r) { option.to_result(r.0, Nil) })
-      case ids {
-        [] -> task.ok([])
-        _ -> {
-          use #(rows, totals) <- task.map(task.all2(
-            from(table) |> where(in_array(id, ids)) |> all(ctx.read_db),
-            select(
-              scrobbles,
-              pair(
-                field("id", foreign),
-                field("listeners", count_distinct(sc.user_id(scrobbles))),
-              ),
-            )
-              |> where(and([in_array(foreign, list.map(ids, Some)), ..dates]))
-              |> group_by([reference(foreign)])
-              |> all(ctx.read_db),
-          ))
-          let rows =
-            rows |> list.map(fn(row) { #(get_id(row), row) }) |> dict.from_list
-          let totals = dict.from_list(totals)
-          list.filter_map(ranked, fn(r) {
-            case r.0 {
-              None -> Error(Nil)
-              Some(id) ->
-                case dict.get(rows, id) {
-                  Error(_) -> Error(Nil)
-                  Ok(row) ->
-                    Ok(#(
-                      row,
-                      r.1,
-                      dict.get(totals, r.0)
-                        |> option.from_result
-                        |> option.unwrap(0),
-                    ))
-                }
-            }
-          })
-        }
-      }
-    }
+    |> db_limit(1)
+    |> scalar(optional(text()))
+  use dates <- task.then(filters.conditions(ctx, scrobbles, None, start, end))
+  let counts =
+    select(
+      scrobbles,
+      pair(aliased_field("id", foreign), aliased_field("plays", count())),
+    )
+    |> where(and([eq_columns(sc.user_id(scrobbles), user_id), ..dates]))
+    |> group_by([reference(foreign)])
+    |> subquery("counts")
+  let count_id = column(counts, "id", optional(text()))
+  let plays = column(counts, "plays", integer())
+  let ranked =
+    select(
+      counts,
+      pair(aliased_field("id", count_id), aliased_field("plays", plays)),
+    )
+  let ranked = case metadata_filter {
+    None -> ranked
+    Some(condition) ->
+      ranked
+      |> inner_join(table, eq_columns(count_id, nullable(id)))
+      |> where(condition)
   }
+  let page =
+    ranked
+    |> order_by([desc(plays), asc(count_id)])
+    |> db_limit(limit)
+    |> db_offset(offset)
+    |> subquery("page")
+  // Count listeners only for this page, in the same database request.
+  // The date filter applies to all listeners, not just the profile owner.
+  let listeners =
+    select(scrobbles, field("listeners", count_distinct(sc.user_id(scrobbles))))
+    |> where(and([eq_columns(foreign, nullable(id)), ..dates]))
+    |> scalar(integer())
+  select(
+    table,
+    pair(
+      nested("entity", all_columns(table)),
+      pair(
+        field("plays", column(page, "plays", integer())),
+        field("listeners", listeners),
+      ),
+    ),
+  )
+  |> inner_join(
+    page,
+    eq_columns(nullable(id), column(page, "id", optional(text()))),
+  )
+  |> order_by([desc(column(page, "plays", integer())), asc(id)])
+  |> all(ctx.read_db)
+  |> task.map(fn(rows) {
+    // Keep the tuple consumed by artists, albums and songs handlers.
+    list.map(rows, fn(row) { #(row.0, row.1.0, row.1.1) })
+  })
 }

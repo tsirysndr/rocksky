@@ -131,17 +131,31 @@ test('Drizzle catalog returns album tracks, counts, artist and Discogs metadata'
 
 
 
+    const originalQuery=client.query.bind(client); let profileQueries=0;
+    client.query=(...args)=>{profileQueries++; return originalQuery(...args);};
     for(const [name,key,id] of [['getActorSongs','tracks','t3'],['getActorAlbums','albums','al'],['getActorArtists','artists','ar']]) {
+      profileQueries=0;
       const page=(await invoke('actor.'+name,{did:'u.test',startDate:'2024-01-01',endDate:'2024-01-03'})).body[key];
+      assert.equal(profileQueries,1);
       assert.equal(page[0].id,id); assert.equal(page[0].playCount,2); assert.equal(page[0].uniqueListeners,1);
       assert.deepEqual((await invoke('actor.'+name,{did:'unknown'})).body[key],[]);
       assert.deepEqual((await invoke('actor.'+name,{did:'u.test',offset:1})).body[key],[]);
     }
-    const personalStats=(await invoke('stats.getStats',{did:'u.test'})).body;
+    profileQueries=0;
+    const simultaneous=await Promise.all(Array.from({length:8},()=>invoke('stats.getStats',{did:'u.test'})));
+    assert.equal(profileQueries,2);
+    const personalStats=simultaneous[0].body;
+    assert.ok(simultaneous.every(r=>JSON.stringify(r.body)===JSON.stringify(personalStats)));
+    client.query=originalQuery;
     assert.deepEqual(personalStats,{scrobbles:2,artists:1,lovedTracks:1,albums:1,tracks:1});
     assert.ok(cache.has('stats:v1:u.test'));
     assert.deepEqual((await invoke('stats.getStats',{did:'missing'})).body,{scrobbles:0,artists:0,lovedTracks:0,albums:0,tracks:0});
     assert.equal(cache.has('stats:v1:missing'),false);
+    cache.delete('stats:v1:u.test');
+    await client.query("INSERT INTO loved_tracks(user_id,track_id) VALUES ('u','t2')");
+    assert.equal((await invoke('stats.getStats',{did:'u.test'})).body.lovedTracks,2);
+    await client.query("DELETE FROM loved_tracks WHERE user_id='u' AND track_id='t2'");
+    cache.delete('stats:v1:u.test');
     await client.query("CREATE TEMP TABLE scrobbles_per_day_mv (day date,count bigint); INSERT INTO scrobbles_per_day_mv VALUES ('2024-01-01',1)");
     for(const scope of [{},{did:'u.test'},{artisturi:'at://artist'},{albumuri:'at://album'}]) {
       const chart=(await invoke('charts.getScrobblesChart',{...scope,from:'2024-01-01',to:'2024-01-02'})).body.scrobbles;
