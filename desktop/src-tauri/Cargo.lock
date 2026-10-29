@@ -5110,7 +5110,7 @@ dependencies = [
 
 [[package]]
 name = "rocksky-desktop"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "pcsc",
  "reqwest 0.12.28",
