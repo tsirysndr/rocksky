@@ -57,6 +57,7 @@ const GROUPS: Group[] = [
       },
       { keys: ["\\"], label: "Show / hide the side panel" },
       { keys: ["f"], label: "Toggle the fullscreen player" },
+      { keys: ["⇧", "F"], label: "Album Cover Flow" },
       { keys: ["e"], label: "Equalizer (audio settings)" },
       { keys: ["c"], label: "Create a playlist" },
     ],

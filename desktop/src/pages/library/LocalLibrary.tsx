@@ -1,3 +1,5 @@
+import { useAtom } from "jotai";
+import { libraryAlbumSelectionAtom } from "../../atoms/librarySource";
 import styled from "@emotion/styled";
 import {
   IconArrowLeft,
@@ -246,6 +248,15 @@ export default function LocalLibrary({ sourceSwitcher }: { sourceSwitcher: React
   const [detail, setDetail] = useState<Detail | null>(null);
   const [menu, setMenu] = useState<{ track: LocalTrack; anchor: HTMLElement } | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [selection, setSelection] = useAtom(libraryAlbumSelectionAtom);
+  useEffect(() => {
+    if (selection?.source !== "local") return;
+    setDetail({ kind: "album", album: selection.album });
+    setSearch("");
+    setQuery("");
+    setSelection(null);
+  }, [selection, setSelection]);
+
   const [error, setError] = useState("");
 
   useEffect(() => {

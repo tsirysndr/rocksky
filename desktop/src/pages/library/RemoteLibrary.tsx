@@ -1,3 +1,5 @@
+import { useAtom } from "jotai";
+import { libraryAlbumSelectionAtom } from "../../atoms/librarySource";
 import styled from "@emotion/styled";
 import {
   IconArrowLeft,
@@ -384,6 +386,16 @@ export default function RemoteLibrary({
   const [error, setError] = useState("");
   const [menu, setMenu] = useState<{ item: LibraryEntry; anchor: HTMLElement } | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [selection, setSelection] = useAtom(libraryAlbumSelectionAtom);
+  useEffect(() => {
+    if (selection?.source !== "remote" || selection.sourceId !== source.id) return;
+    setPath([{ id: selection.album.id, title: selection.album.title }]);
+    setTab("Albums");
+    setSearch("");
+    setDebounced("");
+    setSelection(null);
+  }, [selection, setSelection, source.id]);
+
   const folder = path.at(-1);
 
   const categories =
@@ -453,6 +465,7 @@ export default function RemoteLibrary({
 
   useEffect(() => {
     if (source.kind !== "upnp" || upnpCategories.length || !items.length) return;
+    if (selection?.source === "remote" && selection.sourceId === source.id) return;
     const found = items
       .filter((item) => item.kind === "folder")
       .flatMap((item) => {
@@ -469,7 +482,7 @@ export default function RemoteLibrary({
     setPath([]);
     setSearch("");
     setDebounced("");
-  }, [source.kind, upnpCategories.length, items]);
+  }, [source.kind, source.id, upnpCategories.length, items, selection]);
 
   const artistNames = useMemo(
     () => items.filter((i) => i.kind === "artist" && !i.art).map((i) => i.title),

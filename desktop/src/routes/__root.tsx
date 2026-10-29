@@ -6,6 +6,7 @@ import AddToLibraryPlaylistPalette from "../components/AddToLibraryPlaylistPalet
 import AddToPlaylistPalette from "../components/AddToPlaylistPalette";
 import CreatePlaylistModal from "../components/CreatePlaylistModal";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
+import CoverFlow from "../pages/library/CoverFlow";
 import LibraryPlaylistModal from "../components/LibraryPlaylistModal";
 import LibraryPrefetch from "../components/LibraryPrefetch";
 import NfcListener from "../components/NfcListener";
@@ -62,6 +63,7 @@ function RootComponent() {
       <Outlet />
       <StickyPlayer />
       <KeyboardShortcuts />
+      <CoverFlow />
       <ShortcutsButton />
       <SearchModal />
       <LibrarySearchModal />

@@ -211,8 +211,9 @@ fn build_response(
             if let Some(uri) = &a.uri {
                 obj["uri"] = json!(uri);
             }
-            if a.album_art.is_some() {
+            if let Some(art) = &a.album_art {
                 obj["coverArt"] = json!(format!("al-{}", a.xata_id));
+                obj["coverArtUrl"] = json!(art);
             }
             obj
         })
@@ -242,4 +243,36 @@ fn build_response(
     }
 
     response::ok(format, json!({ "searchResult3": result }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::xata::album::AlbumWithStats;
+
+    #[actix_web::test]
+    async fn album_search_includes_public_artwork_url() {
+        for artwork in [Some("https://cdn.example/album.jpg"), None] {
+            let album = AlbumWithStats {
+                xata_id: "album-id".into(),
+                title: "Album".into(),
+                artist: "Artist".into(),
+                year: None,
+                album_art: artwork.map(str::to_owned),
+                song_count: 10,
+                total_duration: Some(200_000),
+                created_at: None,
+                artist_id: None,
+                uri: None,
+            };
+            let response = build_response("json", "user", None, Some(vec![album]), None, None);
+            let body = actix_web::body::to_bytes(response.into_body())
+                .await
+                .unwrap();
+            let json: Value = serde_json::from_slice(&body).unwrap();
+            let result = &json["subsonic-response"]["searchResult3"]["album"][0];
+            assert_eq!(result["coverArtUrl"].as_str(), artwork);
+            assert_eq!(result["coverArt"].as_str(), artwork.map(|_| "al-album-id"));
+        }
+    }
 }

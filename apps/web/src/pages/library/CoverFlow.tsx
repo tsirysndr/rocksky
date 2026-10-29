@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useAtom, useSetAtom } from "jotai";
 import { coverFlowOpenAtom } from "../../atoms/coverFlow";
 import { coverArtUrlOf, type NavidromeAlbum } from "../../api/navidrome";
-import AlbumArt from "../../components/AlbumArt";
+import CoverFlowArtwork from "./CoverFlowArtwork";
 import { useNavidromeAlbumsQuery } from "../../hooks/useNavidrome";
 
 const Launch = styled.button`
@@ -120,7 +120,7 @@ const SearchField = styled.input`
   box-sizing: border-box;
   padding: 12px 16px;
   border: 1px solid #ffffff30;
-  border-radius: 12px;
+  border-radius: 999px;
   background: #18181bee;
   color: white;
   font: inherit;
@@ -449,17 +449,9 @@ export default function CoverFlow({
                         pointerEvents: distance > 5 ? "none" : "auto",
                       }}
                     >
-                      <AlbumArt
+                      <CoverFlowArtwork
                         src={coverArtUrlOf(album)}
-                        alt=""
-                        draggable={false}
-                      />
-                      <AlbumArt
-                        className="reflection"
-                        src={coverArtUrlOf(album)}
-                        alt=""
-                        aria-hidden="true"
-                        draggable={false}
+                        albumId={album.id}
                       />
                     </Cover>
                   );
