@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 import { setImmediate } from 'node:timers/promises';
+import { inspect } from 'node:util';
 import test from 'node:test';
 
 // Exercise the SDK source and every committed module copy.
@@ -69,6 +70,28 @@ for (const path of ['../sdk/purescript', '../go/dagger-sdk', '../rust/dagger-sdk
     await closed;
     await setImmediate();
     assert.equal(completed, false);
+  });
+
+  test(`${path}: long exec logs retain their final diagnostics when printed`, async t => {
+    const stdout = 'build output\n'.repeat(2000) + 'FINAL STDOUT DIAGNOSTIC';
+    const stderr = 'fetching dependency\n'.repeat(6000) + 'FINAL COMPILER ERROR';
+    const extensions = { _type: 'EXEC_ERROR', cmd: ['nix', 'build', '.#rockskyd'], exitCode: 1, stdout, stderr };
+    const config = await fixture(t, (req, res) => {
+      req.resume();
+      res.end(JSON.stringify({ errors: [
+        { message: 'another error' },
+        { message: 'exit code: 1', extensions },
+      ] }));
+    });
+    await assert.rejects(start(runtime.connectWith(config)()).result, error => {
+      assert.equal(error.name, 'DaggerExecError');
+      assert.deepEqual(error.errors[1].extensions, extensions);
+      const printed = inspect(error);
+      assert.ok(printed.includes(`Command: ${JSON.stringify(extensions.cmd)}`));
+      assert.ok(printed.includes(`stdout:\n${stdout}`));
+      assert.ok(printed.includes(`stderr:\n${stderr}`));
+      return true;
+    });
   });
 
   test(`${path}: HTTP and GraphQL errors retain diagnostics`, async t => {

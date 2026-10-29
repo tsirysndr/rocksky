@@ -96,7 +96,20 @@ function request(session, document, project, onError, onSuccess) {
       req.end(JSON.stringify(document));
     });
     if (body.errors?.length) {
-      const error = new Error(body.errors.map(e => e.message).join("\n"));
+      // Node truncates long strings in inspected object properties. Put exec
+      // output in the message too, so uncaught errors retain the compiler
+      // diagnostics at the end of long Nix/Cargo logs in CI.
+      const error = new Error(body.errors.map(e => {
+        const details = e.extensions;
+        if (details?._type !== "EXEC_ERROR") return e.message;
+        return [
+          e.message,
+          ...(Array.isArray(details.cmd) ? [`Command: ${JSON.stringify(details.cmd)}`] : []),
+          ...["stdout", "stderr"].flatMap(stream =>
+            typeof details[stream] === "string" && details[stream].length
+              ? [`${stream}:\n${details[stream]}`] : []),
+        ].join("\n");
+      }).join("\n"));
       error.name = body.errors.some(e => e.extensions?._type === "EXEC_ERROR") ? "DaggerExecError" : "DaggerGraphQLError";
       error.errors = body.errors;
       error.extensions = body.errors[0].extensions ?? {};
