@@ -45,6 +45,7 @@ import type { QueueTrack } from "../../atoms/queue";
 import type { NavidromePlaylist } from "../../api/navidrome";
 import { fetchNavidromePlaylist } from "../../api/navidrome";
 import Main from "../../layouts/Main";
+import { CoverFlowButton } from "./CoverFlow";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import PlaylistSearch from "../../components/PlaylistSearch";
@@ -1206,9 +1207,12 @@ export default function Library() {
       <Page>
         <Header>
           <Title>My Library</Title>
-          <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
-            <IconUpload size={15} /> Upload Music
-          </UploadButton>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <CoverFlowButton />
+            <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
+              <IconUpload size={15} /> Upload Music
+            </UploadButton>
+          </div>
         </Header>
 
         <SearchWrap>
