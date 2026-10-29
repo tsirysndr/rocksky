@@ -9,10 +9,10 @@ import Effect.Aff (launchAff_)
 
 foreign import sessionCredentials :: Effect { port :: Int, token :: String }
 
--- Local Android builds (including native hooks) can exceed 25 minutes.
+-- A request can execute a full native build. Let the workflow bound its lifetime.
 runModule :: Array ObjectDefinition -> Effect Unit
 runModule definitions = do
   credentials <- sessionCredentials
   client <- Dagger.connectWith
-    { port: credentials.port, token: credentials.token, timeoutMs: 2 * 60 * 60 * 1000 }
+    { port: credentials.port, token: credentials.token, timeoutMs: 0 }
   launchAff_ (Runtime.serve client definitions)

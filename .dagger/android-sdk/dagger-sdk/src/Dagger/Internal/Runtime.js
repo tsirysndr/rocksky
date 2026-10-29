@@ -22,7 +22,7 @@ export const connectWith = config => () => {
   if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535)
     throw new Error("Dagger session port must be an integer between 1 and 65535");
   if (typeof config.token !== "string" || !config.token) throw new Error("Dagger session token is required");
-  if (!Number.isInteger(config.timeoutMs) || config.timeoutMs <= 0) throw new Error("Dagger request timeout must be a positive integer");
+  if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 0 || config.timeoutMs > 2147483647) throw new Error("Dagger request timeout must be an integer from 0 to 2147483647 (0 disables the deadline)");
   const session = Object.freeze({});
   sessions.set(session, { ...config });
   return session;
@@ -31,7 +31,7 @@ export const connect = () => {
   const port = process.env.DAGGER_SESSION_PORT, token = process.env.DAGGER_SESSION_TOKEN;
   if (!port || !token) throw new Error("No Dagger session. Run your program with `dagger api with-session` (DAGGER_SESSION_PORT and DAGGER_SESSION_TOKEN are required).");
   if (!/^\d+$/.test(port)) throw new Error("Invalid DAGGER_SESSION_PORT");
-  return connectWith({ port: Number(port), token, timeoutMs: 300000 })();
+  return connectWith({ port: Number(port), token, timeoutMs: 0 })();
 };
 // User values always travel as GraphQL variables, including enums and input objects.
 export function buildQuery(steps) {
@@ -70,11 +70,12 @@ function request(session, document, project, onError, onSuccess) {
   let cancelled = false;
   const config = sessions.get(session);
   if (!config) { onError(new Error("Invalid Dagger session"))(); return () => {}; }
-  const timer = setTimeout(() => controller.abort(new Error("Dagger request timed out")), config.timeoutMs);
+  const timer = config.timeoutMs === 0 ? null : setTimeout(
+    () => controller.abort(new Error(`Dagger request timed out after ${config.timeoutMs}ms`)), config.timeoutMs);
   (async () => {
     // Node fetch has a separate five-minute Undici headers timeout. Dagger
     // queries may legitimately wait much longer while a build runs. Use the
-    // session's one explicit deadline for both headers and response body.
+    // session's optional deadline for both headers and response body.
     const body = await new Promise((resolve, reject) => {
       const req = httpRequest({
         hostname: "127.0.0.1", port: config.port, path: "/query",

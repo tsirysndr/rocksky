@@ -82,9 +82,8 @@ Edit the relevant module’s `src/Main.purs` under `go/`, `typescript/`, `rust/`
 `elixir/`, or `ops/`. Each module exposes typed
 `Aff String`, `Aff File`, or `Aff Directory` handlers with typed inputs. A successful call returns a short result;
 container output appears in Dagger's trace. Nonzero test or build exits fail the
-function and the GitHub job. The entrypoint uses a 25-minute engine request
-timeout for cold downloads and compilation, below the workflow’s 30-minute
-job limit. `CI.Runtime.js` only reads the session credentials injected by Dagger;
+function and the GitHub job. Entrypoints disable per-request deadlines because a single request can
+execute a full build; each workflow’s job timeout bounds the overall run. `CI.Runtime.js` only reads the session credentials injected by Dagger;
 all pipeline logic stays in PureScript.
 
 The Go image version is read from each project's `go.mod`, as in the original
@@ -324,8 +323,8 @@ standard `production` profile uses previously configured EAS credentials.
 apply: the token must have project access, remote signing credentials must
 already exist for noninteractive builds, and secret EAS environment values must
 be supplied locally. Local builds use the provided toolchain rather than cloud
-`image`/`node`/`ndk` settings from `eas.json`. The EAS module allows a two-hour
-API request timeout for native builds.
+`image`/`node`/`ndk` settings from `eas.json`. The EAS module also leaves request deadlines disabled; the Android workflow’s
+150-minute job timeout bounds native builds.
 
 ### Reuse and verification
 
@@ -391,7 +390,9 @@ Dagger container; it is never exported to the workflow workspace.
 ## Transport and validation
 
 The vendored HTTP transport uses Node's native HTTP client so a long build can
-wait for headers up to the configured request deadline. Node `fetch` previously
+wait for headers without a default deadline. An explicit positive `timeoutMs`
+still bounds both headers and body; `0` disables the deadline, and cancellation
+still closes the request. Node `fetch` previously
 imposed a separate five-minute headers timeout. The patch is present in every
 committed module SDK and in the vendored source used by regeneration.
 
