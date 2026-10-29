@@ -353,8 +353,12 @@ pub fn ilike_optional(
   column: Expression(Option(String)),
   pattern: String,
 ) -> Condition {
-  compare_value(column.raw, "ilike", param.string(pattern))
+  // Match the lower(column) trigram indexes used by catalog filters.
+  indexed_ilike_ffi(column.raw, pattern)
 }
+
+@external(javascript, "./orm_ffi.mjs", "indexedIlike")
+fn indexed_ilike_ffi(column: Raw, pattern: String) -> Condition
 
 pub fn integer_as_real(
   column: Expression(Option(Int)),

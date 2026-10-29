@@ -40,6 +40,7 @@ export const having = (q, having) => ({...q,having});
 export const distinct = q => ({...q,distinct:true});
 export const orderExpression = (c, descending) => descending ? d.desc(c) : d.asc(c);
 export const compareValue = (column, op, value) => d[op](column,value);
+export const indexedIlike = (column, pattern) => d.sql`lower(${column}) LIKE lower(${pattern})`;
 export const compareColumns = (a, op, b) => d[op](a,b);
 export const inArray = (column, values, negated) => (negated ? d.notInArray : d.inArray)(column,values.toArray());
 export const isNull = (column, negated) => (negated ? d.isNotNull : d.isNull)(column);

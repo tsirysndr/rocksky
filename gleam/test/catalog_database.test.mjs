@@ -76,6 +76,14 @@ test('Drizzle catalog returns album tracks, counts, artist and Discogs metadata'
     assert.equal(filtered[0].playCount,0);
     const wildcard=(await querySongs({filter:'title==First*',limit:1,offset:1})).body.tracks;
     assert.deepEqual(wildcard.map(t=>t.id),['t2']);
+    await client.query("UPDATE tracks SET album='Album (rEmAsTeReD 100%_)' WHERE xata_id='t2'");
+    const remasters=(await querySongs({filter:'album=="*Remaster*"',limit:50,offset:0})).body.tracks;
+    assert.deepEqual(remasters.map(t=>t.id),['t2']);
+    const escaped=(await querySongs({filter:'album=="*100%_*"'})).body.tracks;
+    assert.deepEqual(escaped.map(t=>t.id),['t2']);
+    const excluded=(await querySongs({filter:'album!="*Remaster*"'})).body.tracks;
+    assert.deepEqual(excluded.map(t=>t.id),['t1','t3']);
+    await client.query("UPDATE tracks SET album='Album' WHERE xata_id='t2'");
     const bad=await querySongs({filter:'password==secret'});
     assert.equal(bad.status,400); assert.equal(bad.error,'InvalidFilter');
     await client.query("UPDATE tracks SET mb_id = 'mbid' WHERE xata_id = 't3'");

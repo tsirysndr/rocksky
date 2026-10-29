@@ -35,10 +35,18 @@ pub fn comparison_and_parameters_test() {
 
 pub fn wildcard_escaping_test() {
   let q = query("artist==\"*100%_*\"")
-  string.contains(q.sql, " ilike $1") |> should.be_true
+  string.contains(q.sql, "lower(\"tracks\".\"artist\") LIKE lower($1)")
+  |> should.be_true
   q.params |> should.equal([param.string("%100\\%\\_%")])
   let q = query("artist!=Daft*")
   string.contains(q.sql, "not ") |> should.be_true
+}
+
+pub fn album_wildcard_uses_index_expression_test() {
+  let q = query("album==\"*Remaster*\"")
+  string.contains(q.sql, "lower(\"tracks\".\"album\") LIKE lower($1)")
+  |> should.be_true
+  q.params |> should.equal([param.string("%Remaster%")])
 }
 
 pub fn arrays_and_membership_test() {
