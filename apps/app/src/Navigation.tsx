@@ -1,3 +1,6 @@
+import { CommonActions, useNavigation } from "@react-navigation/native";
+import { useCallback } from "react";
+import { usePushNotifications } from "./hooks/usePushNotifications";
 import RendererSettings from "./screens/Account/RendererSettings";
 import { mediaRenderer } from "../modules/rocksky-engine";
 import RemoteLibraryDetails from "./screens/Library/RemoteLibraryDetails";
@@ -103,6 +106,12 @@ function CustomTabBar(props: BottomTabBarProps) {
 }
 
 function HomeTabs() {
+  const navigation = useNavigation();
+  const auth = useAtomValue(authTokenAtom);
+  const openAlerts = useCallback(() => {
+    navigation.dispatch(CommonActions.navigate("HomeTabs", { screen: "AlertsTab" }));
+  }, [navigation]);
+  usePushNotifications(auth, openAlerts);
   const insets = useSafeAreaInsets();
   const { data: unread } = useUnreadCountQuery();
   const unreadCount = unread?.count ?? 0;

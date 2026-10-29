@@ -27,6 +27,7 @@ import rocksky_api/log
 import rocksky_api/node/js
 import rocksky_api/node/nats
 import rocksky_api/node/pg
+import rocksky_api/notifications/push
 import rocksky_api/schema/notifications
 import rocksky_api/task.{type Task}
 
@@ -51,6 +52,7 @@ pub fn subject(user_id: String) -> String {
 }
 
 pub fn publish(ctx: Context, user_id: String, payload: json.Json) -> Nil {
+  push.publish(ctx.db, user_id, json.to_string(payload))
   case
     js.try_catch(fn() {
       nats.publish(ctx.nc, subject(user_id), json.to_string(payload))

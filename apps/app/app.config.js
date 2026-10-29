@@ -3,7 +3,7 @@ const isTestBuild = process.env.ROCKSKY_VARIANT === "test";
 module.exports = {
   name: isTestBuild ? "Rocksky Test" : "Rocksky",
   slug: "rocksky",
-  version: "2.3.13",
+  version: "2.3.14",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: isTestBuild ? "rocksky-test" : "rocksky",
@@ -26,6 +26,7 @@ module.exports = {
     associatedDomains: isTestBuild ? [] : ["applinks:rocksky.app"],
   },
   android: {
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON || (isTestBuild ? undefined : "./google-services.json"),
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundImage: "./assets/images/icon-background.png",
@@ -53,6 +54,7 @@ module.exports = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    ["expo-notifications", { defaultChannel: "social", color: "#8b5cf6" }],
     ["react-native-google-cast", {
       receiverAppId: process.env.GOOGLE_CAST_RECEIVER_APP_ID || "833D8703",
       androidPlayServicesCastFrameworkVersion: "22.3.1",

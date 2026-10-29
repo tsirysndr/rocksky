@@ -1,7 +1,7 @@
 {
   "name": "@rocksky/app",
   "main": "index.js",
-  "version": "2.3.13",
+  "version": "2.3.14",
   "scripts": {
     "assets:brand": "node scripts/generate-brand-assets.cjs",
     "start": "expo start",
@@ -41,6 +41,7 @@
     "expo-image": "~3.0.11",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
+    "expo-notifications": "~0.32.17",
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",

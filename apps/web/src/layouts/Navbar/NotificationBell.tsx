@@ -1,3 +1,4 @@
+import BrowserNotificationButton from "../../components/BrowserNotificationButton";
 import styled from "@emotion/styled";
 import { IconMusic } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -371,6 +372,7 @@ function NotificationBell() {
       content={({ close }) => (
         <Dropdown>
           <DropdownHeader>Notifications</DropdownHeader>
+          <BrowserNotificationButton />
           {isLoading ? (
             <NotificationsSkeleton />
           ) : !list || list.notifications.length === 0 ? (

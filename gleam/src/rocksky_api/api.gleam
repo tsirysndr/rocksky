@@ -14,6 +14,7 @@ import rocksky_api/webscrobbler/app as webscrobbler
 import rocksky_api/access_tokens/app as access_tokens
 import rocksky_api/apikeys/app as apikeys
 import rocksky_api/notifications/sse
+import rocksky_api/notifications/push
 import rocksky_api/subscribers/index as subscribers
 
 import rocksky_api/submissions/app as submissions
@@ -113,6 +114,7 @@ pub fn app(ctx: Context) -> App {
   |> hono.route("/", bsky.app(ctx))
   |> hono.route("/apikeys", apikeys.app(ctx))
   |> hono.route("/access-tokens", access_tokens.app(ctx))
+  |> hono.route("/notifications", push.app(ctx))
   |> hono.route("/notifications", sse.app(ctx))
   |> hono.route("/storage", storage.app(ctx))
   |> hono.route("/webscrobbler", webscrobbler.app(ctx))

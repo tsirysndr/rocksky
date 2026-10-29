@@ -1,3 +1,4 @@
+import BrowserNotificationButton from "../../components/BrowserNotificationButton";
 import { IconMusic, IconUser } from "@tabler/icons-react";
 import { Avatar } from "baseui/avatar";
 import { useEffect } from "react";
@@ -223,6 +224,7 @@ export default function NotificationsPage() {
         >
           Notifications
         </h1>
+        <BrowserNotificationButton />
         {!isLoading && (!data || data.notifications.length === 0) ? (
           <p
             className="text-center py-16 px-4"

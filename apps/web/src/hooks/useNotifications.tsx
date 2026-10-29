@@ -1,3 +1,4 @@
+import { showBrowserNotification } from "../lib/browserNotifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
@@ -66,6 +67,9 @@ export const useNotificationStream = () => {
     es.addEventListener("notification", ((e: MessageEvent) => {
       try {
         const payload = JSON.parse(e.data);
+        if (payload.type === "notification" && payload.notification) {
+          void showBrowserNotification(payload.notification, token).catch(() => {});
+        }
         if (typeof payload.unreadCount === "number") {
           setCount(payload.unreadCount);
         }

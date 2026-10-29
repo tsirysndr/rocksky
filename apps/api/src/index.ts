@@ -36,6 +36,7 @@ import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
 import { requestCounter, requestDuration } from "./metrics";
 import notificationsSse from "./notifications/sse";
+import notificationPush from "./notifications/push";
 import storageApp from "./storage/app";
 import uploadsApp from "./uploads/app";
 import "./profiling";
@@ -100,6 +101,7 @@ app.route("/apikeys", apikeys);
 app.route("/access-tokens", accessTokensApp);
 
 
+app.route("/notifications", notificationPush);
 app.route("/notifications", notificationsSse);
 
 app.route("/public/og", opengraph);

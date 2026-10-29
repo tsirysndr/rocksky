@@ -47,3 +47,6 @@ app-example
 
 *.aab
 *.apk
+
+google-services.json
+rocksky-2caf4-firebase-adminsdk-fbsvc-b884652daf.json

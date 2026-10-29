@@ -1,3 +1,4 @@
+import { removePushToken } from "../lib/pushNotifications";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { authTokenAtom } from "../atoms/auth";
@@ -33,6 +34,7 @@ export function useSignOut() {
   const setActive = useSetAtom(localEngineActiveAtom);
   const setProgress = useSetAtom(progressAtom);
   return async () => {
+    await removePushToken(storage.getToken() ?? undefined);
     // Hide authenticated playback UI before native or asynchronous cleanup.
     setToken(null);
     const clearingStorage = storage.clear();

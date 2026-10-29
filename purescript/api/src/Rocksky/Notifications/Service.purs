@@ -21,6 +21,7 @@ import Effect.Class (liftEffect)
 import Foreign (Foreign)
 import Nats as Nats
 import Rocksky.Context (Context)
+import Rocksky.Notifications.Push as Push
 import Rocksky.Lib.Aff (recoverWith)
 import Rocksky.Lib.Common (withFallbackAlbumArt)
 import Rocksky.Lib.Foreign (omitNulls, stringify, toForeign)
@@ -34,7 +35,9 @@ notificationSubject userId = "rocksky.notification." <> case regex "[^A-Za-z0-9_
   Left _ -> userId
 
 publish :: Context -> String -> Foreign -> Aff Unit
-publish ctx userId payload = recoverWith unit $ liftEffect (Nats.publishString ctx.nc (notificationSubject userId) (stringify payload))
+publish ctx userId payload = do
+  liftEffect (Push.publish ctx userId (stringify payload))
+  recoverWith unit $ liftEffect (Nats.publishString ctx.nc (notificationSubject userId) (stringify payload))
 
 type CreateNotificationParams = { userId :: Nullable String, actorId :: Nullable String, type :: String, shoutId :: Nullable String, subjectUri :: Nullable String }
 

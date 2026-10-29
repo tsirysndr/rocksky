@@ -413,6 +413,13 @@
       "tag": "0054_library_junction_covering_indexes",
       "breakpoints": true,
       "transaction": false
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792314855472,
+      "tag": "0055_notification_devices",
+      "breakpoints": true
     }
   ]
 }

@@ -30,6 +30,7 @@ import Rocksky.Storage.App as Storage
 import Rocksky.Apikeys.App as Apikeys
 import Rocksky.AccessTokens.App as AccessTokens
 import Rocksky.Notifications.Sse as Notifications
+import Rocksky.Notifications.Push as NotificationPush
 import Rocksky.Opengraph.App as Opengraph
 import Rocksky.Uploads.App as Uploads
 import Rocksky.Users.App as Users
@@ -62,6 +63,7 @@ app ctx = do
   Storage.app ctx >>= Hono.route a "/storage"
   Apikeys.app ctx >>= Hono.route a "/apikeys"
   AccessTokens.app ctx >>= Hono.route a "/access-tokens"
+  NotificationPush.app ctx >>= Hono.route a "/notifications"
   Notifications.app ctx >>= Hono.route a "/notifications"
   Opengraph.app ctx >>= Hono.route a "/public/og"
   Reads.register ctx a

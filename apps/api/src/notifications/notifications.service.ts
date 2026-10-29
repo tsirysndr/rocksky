@@ -1,3 +1,5 @@
+import { publish as publishPush } from "./push-runtime.mjs";
+import { pool } from "../drizzle";
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
@@ -358,6 +360,7 @@ async function resolveSubjects(
 }
 
 function publish(ctx: Context, userId: string, payload: unknown): void {
+  publishPush({ pool }, userId, JSON.stringify(payload));
   try {
     ctx.nc.publish(
       notificationSubject(userId),
