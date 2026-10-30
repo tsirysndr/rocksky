@@ -17,7 +17,7 @@ rocksky-metadata = { path = "../metadata" }
 rusty-chromaprint = "0.3"
 base64 = "0.22"
 symphonia = { version = "0.5", default-features = false, features = ["flac", "mp3", "pcm", "aac", "alac", "isomp4", "vorbis", "ogg", "wav", "adpcm"] }
-rockbox-playback = { version = "0.7", path = "vendor/rockbox-playback" }
+rockbox-playback = { version = "0.9", path = "vendor/rockbox-playback" }
 # Feature union: make reqwest (pulled by rockbox-playback's http feature)
 # carry the webpki root store too — rustls-native-certs has nothing to read
 # on Android, which would otherwise break https stream URLs.

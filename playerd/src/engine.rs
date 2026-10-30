@@ -12,8 +12,8 @@ use std::time::{Duration, Instant};
 
 use rockbox_playback::{
     BassEnhancement, ChannelMode, Compressor, CrossfadeSettings, Crossfeed, Equalizer,
-    InsertPosition, PlaybackState, Player, PlayerConfig, RepeatMode, ReplayGainMode, Status,
-    Surround, ToneControls,
+    InsertPosition, Levels, PlaybackState, Player, PlayerConfig, RepeatMode, ReplayGainMode,
+    Status, Surround, ToneControls,
 };
 
 pub enum EngineCmd {
@@ -111,6 +111,7 @@ impl Default for Snapshot {
                 queue_len: 0,
                 shuffle: false,
                 repeat: RepeatMode::Off,
+                levels: Levels::default(),
             },
             queue: Vec::new(),
             next_track: None,

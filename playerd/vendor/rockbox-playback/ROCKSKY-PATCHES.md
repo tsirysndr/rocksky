@@ -1,9 +1,15 @@
-Vendored from crates.io rockbox-playback 0.6.0 (GPL-2.0-or-later).
+Vendored from crates.io rockbox-playback 0.9.0 (GPL-2.0-or-later).
 
 Local patch: publish the actual next automatic track through `Player::next_track()`.
 The playback engine computes this from its private shuffle order and repeat mode;
 playerd uses it for waveform prefetching without changing queue or transport.
-Android carries the same patch in its existing 0.7.0 vendor copy.
+Android carries the same patch in its own 0.9.0 vendor copy.
+
+MP4 handling: 0.9.0 upstream grew its own header-window metadata recovery
+(extending past a large ID3v2 tag, walking the atom chain to the `moov` box,
+and a tail fallback). That path is kept for every other container; only
+`m4a`/`mp4`/`m4b` are routed to the complete-cache native `Decoder::open`,
+which is what HE-AAC SBR seek correction and gapless trim require.
 
 HTTP recovery: retry interrupted finite range reads, validate range boundaries and
 body length, and handle a server switching from 206 to 200 without corrupting the

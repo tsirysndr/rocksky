@@ -304,6 +304,9 @@ impl EqPreset {
 }
 
 /// Bass/treble shelving tone controls (0/0 dB disables the stage).
+/// Positive gains reserve headroom equal to the larger boost before the
+/// DSP converts to 16-bit PCM. This lowers overall level while preserving
+/// the bass/treble balance; output volume cannot undo clipping in the DSP.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ToneControls {
     pub bass_db: i32,
@@ -540,6 +543,38 @@ const ST_STOPPED: u8 = 0;
 const ST_PLAYING: u8 = 1;
 const ST_PAUSED: u8 = 2;
 
+/// Output levels for a meter, as produced by the audio callback.
+///
+/// Each value is a 0..1 RMS over one callback buffer — roughly 10-20 ms —
+/// taken *after* volume, balance and fade, so it reflects what is actually
+/// leaving the device rather than what was decoded.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Levels {
+    pub left: f32,
+    pub right: f32,
+    /// The same signal through a one-pole low-pass at roughly 200 Hz. A meter
+    /// driven by this moves with the bass, which is what reads as "following
+    /// the music"; full-band RMS is dominated by whatever is loudest and
+    /// tends to sit near the top.
+    pub low_left: f32,
+    pub low_right: f32,
+    /// A coarse spectrum: RMS per band, low to high, over the same buffer.
+    /// Bands come from a ladder of one-pole low-passes at log-spaced cutoffs
+    /// (the difference of two neighbours is a band-pass) — trivial per-sample
+    /// arithmetic, safe inside the audio callback. What a spectrum visualiser
+    /// draws; the two scalar pairs above stay for plain meters.
+    pub bands: [f32; SPECTRUM_BANDS],
+}
+
+/// How many spectrum bands [`Levels::bands`] carries.
+pub const SPECTRUM_BANDS: usize = 16;
+
+/// Ladder cutoffs, Hz — log-spaced ~28 Hz → 16 kHz, one per band edge.
+const BAND_CUTOFFS: [f32; SPECTRUM_BANDS] = [
+    40.0, 60.0, 90.0, 135.0, 200.0, 300.0, 450.0, 675.0, 1_000.0, 1_500.0, 2_250.0, 3_400.0,
+    5_000.0, 7_500.0, 11_000.0, 16_000.0,
+];
+
 /// A snapshot of the player's status.
 #[derive(Debug, Clone)]
 pub struct Status {
@@ -559,6 +594,9 @@ pub struct Status {
     pub shuffle: bool,
     /// The current repeat mode.
     pub repeat: RepeatMode,
+    /// Output levels at the moment of the call, for a meter. Zero when
+    /// nothing is playing.
+    pub levels: Levels,
 }
 
 /// Configuration for [`Player::with_config`].
@@ -804,6 +842,19 @@ struct Shared {
     /// The current [`RepeatMode`] as `u8` (mirrored from the engine).
     repeat: AtomicU8,
     ring: Mutex<VecDeque<i16>>,
+    /// Output levels, for a meter. Four `f32`s bit-packed into atomics so the
+    /// audio callback never takes a lock to publish them — a meter is not
+    /// worth a priority inversion in the callback that feeds the speakers.
+    ///
+    /// Each is a 0..1 RMS over the callback's own buffer: `low_*` is the same
+    /// signal through a one-pole low-pass, which is what makes a meter move
+    /// with the bass rather than with sibilance.
+    level_l: AtomicU32,
+    level_r: AtomicU32,
+    level_low_l: AtomicU32,
+    level_low_r: AtomicU32,
+    /// One atomic per spectrum band; written by the callback, read anywhere.
+    level_bands: [AtomicU32; SPECTRUM_BANDS],
     meta: Mutex<Option<Metadata>>,
     /// Live mirror of the DSP-chain settings, updated by the engine as it
     /// applies each `Set*` command, so [`Player::dsp_settings`] can read the
@@ -842,6 +893,34 @@ impl Shared {
     }
     fn ring_frames(&self) -> usize {
         self.ring.lock().unwrap().len() / 2
+    }
+
+    /// The levels the audio callback last published.
+    fn levels(&self) -> Levels {
+        Levels {
+            left: f32::from_bits(self.level_l.load(Ordering::Relaxed)),
+            right: f32::from_bits(self.level_r.load(Ordering::Relaxed)),
+            low_left: f32::from_bits(self.level_low_l.load(Ordering::Relaxed)),
+            low_right: f32::from_bits(self.level_low_r.load(Ordering::Relaxed)),
+            bands: std::array::from_fn(|i| {
+                f32::from_bits(self.level_bands[i].load(Ordering::Relaxed))
+            }),
+        }
+    }
+
+    /// Publish one buffer's levels. Called from the audio callback, so it
+    /// takes no locks and allocates nothing.
+    fn set_levels(&self, levels: Levels) {
+        self.level_l.store(levels.left.to_bits(), Ordering::Relaxed);
+        self.level_r
+            .store(levels.right.to_bits(), Ordering::Relaxed);
+        self.level_low_l
+            .store(levels.low_left.to_bits(), Ordering::Relaxed);
+        self.level_low_r
+            .store(levels.low_right.to_bits(), Ordering::Relaxed);
+        for (slot, band) in self.level_bands.iter().zip(levels.bands) {
+            slot.store(band.to_bits(), Ordering::Relaxed);
+        }
     }
 }
 
@@ -1381,6 +1460,7 @@ impl Player {
             queue_len: self.shared.queue_len.load(Ordering::Relaxed),
             shuffle: self.shared.shuffle.load(Ordering::Relaxed),
             repeat: RepeatMode::from_u8(self.shared.repeat.load(Ordering::Relaxed)),
+            levels: self.shared.levels(),
         }
     }
 }
@@ -1412,6 +1492,11 @@ fn make_shared(config: &PlayerConfig, rate: u32) -> Arc<Shared> {
         shuffle: AtomicBool::new(config.shuffle),
         repeat: AtomicU8::new(config.repeat.to_u8()),
         ring: Mutex::new(VecDeque::new()),
+        level_l: AtomicU32::new(0),
+        level_r: AtomicU32::new(0),
+        level_bands: std::array::from_fn(|_| AtomicU32::new(0)),
+        level_low_l: AtomicU32::new(0),
+        level_low_r: AtomicU32::new(0),
         meta: Mutex::new(None),
         dsp: Mutex::new(config.dsp.clone()),
         queue: Mutex::new(Vec::new()),
@@ -1484,6 +1569,9 @@ fn spawn_stream_writer(
             // 2 channels * 2 bytes/sample.
             let mut buf = vec![0u8; chunk_frames * 4];
             let mut cur_amp = 0.0f32;
+            let mut meter = LevelMeter::default();
+            let alpha = LevelMeter::alpha(rate);
+            let band_alphas = LevelMeter::band_alphas(rate);
             let mut next = Instant::now() + frame_dur;
 
             while !stop_thread.load(Ordering::Relaxed) {
@@ -1513,7 +1601,18 @@ fn spawn_stream_writer(
                         let rv = ((r as f32) * cur_amp * gain_r).clamp(-32768.0, 32767.0) as i16;
                         frame[0..2].copy_from_slice(&lv.to_le_bytes());
                         frame[2..4].copy_from_slice(&rv.to_le_bytes());
+                        // Measured after gain, balance and fade: what the
+                        // meter shows is what leaves the output.
+                        meter.push(
+                            alpha,
+                            &band_alphas,
+                            (lv as f32 / 32768.0).abs(),
+                            (rv as f32 / 32768.0).abs(),
+                            (lv as f32 + rv as f32) / (2.0 * 32768.0),
+                        );
                     }
+                    drop(ring);
+                    shared.set_levels(meter.take());
                 }
 
                 // A write/flush error means the consumer went away (pipe
@@ -1548,6 +1647,107 @@ fn spawn_stream_writer(
 /// (~⅓ s full-range, matching Rockbox's pause/stop fade) for click-free
 /// transitions.
 #[cfg(feature = "cpal")]
+/// Accumulates one callback buffer's worth of level, full-band and low.
+///
+/// A one-pole low-pass per channel, carried across callbacks so the filter
+/// does not restart every buffer, plus running sums of squares. Deliberately
+/// trivial arithmetic: this runs inside the audio callback, where anything
+/// that can block or allocate is a dropout.
+#[derive(Default)]
+struct LevelMeter {
+    /// Low-pass state, one per channel.
+    lp_l: f32,
+    lp_r: f32,
+    sum_l: f32,
+    sum_r: f32,
+    sum_low_l: f32,
+    sum_low_r: f32,
+    /// The spectrum ladder: one low-pass per cutoff over the mono mix. The
+    /// difference of two neighbouring stages is a band-pass, so `ladder[k] -
+    /// ladder[k+1]` is band k's signal without any real filter design.
+    ladder: [f32; SPECTRUM_BANDS],
+    sum_bands: [f32; SPECTRUM_BANDS],
+    frames: u32,
+}
+
+impl LevelMeter {
+    /// `alpha` for a one-pole low-pass at `cutoff` Hz, for a given rate.
+    fn alpha_at(rate: u32, cutoff: f32) -> f32 {
+        let rc = 1.0 / (std::f32::consts::TAU * cutoff);
+        let dt = 1.0 / rate.max(1) as f32;
+        dt / (rc + dt)
+    }
+
+    /// `alpha` for the meters' 200 Hz bass band.
+    fn alpha(rate: u32) -> f32 {
+        Self::alpha_at(rate, 200.0)
+    }
+
+    /// One alpha per ladder stage, precomputed outside the callback.
+    fn band_alphas(rate: u32) -> [f32; SPECTRUM_BANDS] {
+        std::array::from_fn(|i| Self::alpha_at(rate, BAND_CUTOFFS[i]))
+    }
+
+    /// `left` / `right` are the rectified per-channel magnitudes the meters
+    /// have always eaten; `signed_mono` is the un-rectified mix, which is what
+    /// the band ladder must filter — a rectified signal has its spectrum
+    /// folded, and every band would just see the envelope.
+    fn push(
+        &mut self,
+        alpha: f32,
+        band_alphas: &[f32; SPECTRUM_BANDS],
+        left: f32,
+        right: f32,
+        signed_mono: f32,
+    ) {
+        self.lp_l += alpha * (left - self.lp_l);
+        self.lp_r += alpha * (right - self.lp_r);
+        self.sum_l += left * left;
+        self.sum_r += right * right;
+        self.sum_low_l += self.lp_l * self.lp_l;
+        self.sum_low_r += self.lp_r * self.lp_r;
+
+        let mono = signed_mono;
+        for k in 0..SPECTRUM_BANDS {
+            self.ladder[k] += band_alphas[k] * (mono - self.ladder[k]);
+        }
+        for k in 0..SPECTRUM_BANDS {
+            let band = if k + 1 < SPECTRUM_BANDS {
+                self.ladder[k + 1] - self.ladder[k]
+            } else {
+                mono - self.ladder[k]
+            };
+            self.sum_bands[k] += band * band;
+        }
+        self.frames += 1;
+    }
+
+    /// The buffer's RMS, resetting the sums but keeping the filter state.
+    fn take(&mut self) -> Levels {
+        let frames = self.frames.max(1) as f32;
+        let rms = |sum: f32| (sum / frames).sqrt().clamp(0.0, 1.0);
+        let levels = Levels {
+            left: rms(self.sum_l),
+            right: rms(self.sum_r),
+            // Low-passing removes most of the energy, so the band is scaled
+            // to reach the top of a meter on bass-heavy material rather than
+            // hovering near the floor.
+            low_left: (rms(self.sum_low_l) * 3.0).clamp(0.0, 1.0),
+            low_right: (rms(self.sum_low_r) * 3.0).clamp(0.0, 1.0),
+            // Narrow bands carry little of the total energy; the same
+            // reach-the-top scaling as the bass band, a little stronger.
+            bands: std::array::from_fn(|k| (rms(self.sum_bands[k]) * 4.0).clamp(0.0, 1.0)),
+        };
+        self.sum_l = 0.0;
+        self.sum_r = 0.0;
+        self.sum_low_l = 0.0;
+        self.sum_low_r = 0.0;
+        self.sum_bands = [0.0; SPECTRUM_BANDS];
+        self.frames = 0;
+        levels
+    }
+}
+
 fn build_stream(
     device: &cpal::Device,
     rate: u32,
@@ -1561,6 +1761,9 @@ fn build_stream(
     // ~1/3 second to fade the full 0..1 range, matching pcmbuf_fade_tick.
     let step = 3.0 / rate as f32;
     let mut cur_amp = 0.0f32;
+    let mut meter = LevelMeter::default();
+    let alpha = LevelMeter::alpha(rate);
+    let band_alphas = LevelMeter::band_alphas(rate);
 
     let err_fn = |e| eprintln!("rockbox-playback: output stream error: {e}");
     let stream = device
@@ -1575,6 +1778,9 @@ fn build_stream(
                 // resume is click-free from where it left off.
                 if target == 0.0 && cur_amp == 0.0 {
                     data.fill(0.0);
+                    // Silence is a level too: a meter left holding its last
+                    // reading looks stuck rather than stopped.
+                    shared.set_levels(Levels::default());
                     return;
                 }
                 let mut ring = shared.ring.lock().unwrap();
@@ -1596,7 +1802,17 @@ fn build_stream(
                     if frame.len() > 1 {
                         frame[1] = (r as f32 / 32768.0) * cur_amp * gain_r;
                     }
+                    // Measured here, after gain, balance and fade: what the
+                    // meter shows is what leaves the device.
+                    meter.push(
+                        alpha,
+                        &band_alphas,
+                        frame[0].abs(),
+                        frame.get(1).copied().unwrap_or(0.0).abs(),
+                        (frame[0] + frame.get(1).copied().unwrap_or(frame[0])) * 0.5,
+                    );
                 }
+                shared.set_levels(meter.take());
             },
             err_fn,
             None,
@@ -2403,6 +2619,8 @@ impl Engine {
     fn open_remote(&mut self, url: &str) -> Option<bool> {
         #[cfg(feature = "http")]
         {
+            // Reuse the background-prefetched cache when it is the track we
+            // are about to open; otherwise fetch it now.
             let remote = self
                 .prefetch
                 .take(url)
@@ -2410,17 +2628,90 @@ impl Engine {
                 .map(Ok)
                 .unwrap_or_else(|| source::open_remote(url));
             match remote {
-                Ok(source::Remote::File(src)) => {
+                Ok(source::Remote::File(mut src)) => {
                     self.current_source = None;
-                    match src.open_decoder() {
-                        Ok((dec, cache)) => {
-                            self.current_source = cache.map(|src| Box::new(src) as _);
-                            Some(self.install_decoder(dec, true))
+                    // MP4 codecs need the native metadata that `Decoder::open`
+                    // initializes — HE-AAC SBR seek correction and gapless
+                    // trim. The callback decoder only receives the sample rate,
+                    // so it cannot seek these files correctly; that needs the
+                    // complete cache rather than a header window.
+                    if src
+                        .cache_path()
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .is_some_and(|e| {
+                            matches!(e.to_ascii_lowercase().as_str(), "m4a" | "mp4" | "m4b")
+                        })
+                    {
+                        return match src.open_decoder() {
+                            Ok((dec, cache)) => {
+                                self.current_source = cache.map(|src| Box::new(src) as _);
+                                Some(self.install_decoder(dec, true))
+                            }
+                            Err(error) => {
+                                eprintln!(
+                                    "rockbox-playback: cannot open remote audio file: {error}"
+                                );
+                                Some(false)
+                            }
+                        };
+                    }
+                    // Buffer only the header via range requests, then decode
+                    // the rest on demand — no full download, playback starts
+                    // as soon as the header is present. ~512 KiB covers the
+                    // format/rate/duration for the common codecs.
+                    const HEADER_BYTES: u64 = 512 * 1024;
+                    const TAIL_BYTES: u64 = 1024 * 1024;
+                    if src.prefetch(HEADER_BYTES).is_err() {
+                        return Some(false);
+                    }
+                    let size = src.size();
+                    // Parse tags/duration from the prefetched header (the cache
+                    // file is full-size and sparse, so this reads what's there).
+                    let mut meta = rockbox_metadata::read(src.cache_path()).unwrap_or_default();
+                    // An MP3 can carry an ID3v2 tag (cover art) larger than the
+                    // header window, leaving the first MPEG frame — and the
+                    // Xing/VBR header that holds the duration — unfetched.
+                    // Extend the front past the tag and retry.
+                    if meta.duration.is_zero() && size > HEADER_BYTES {
+                        if let Some(tag_len) = source::id3v2_len(src.cache_path()) {
+                            let want = tag_len.saturating_add(256 * 1024).min(size);
+                            if want > HEADER_BYTES && src.prefetch_range(0, want).is_ok() {
+                                meta = rockbox_metadata::read(src.cache_path()).unwrap_or_default();
+                            }
                         }
-                        Err(error) => {
-                            eprintln!("rockbox-playback: cannot open remote audio file: {error}");
-                            Some(false)
+                    }
+                    // A non-faststart MP4 keeps `moov` at EOF, so the header
+                    // window can't reach it. Walk the atom chain to find the
+                    // box and fetch exactly it — a fixed tail guess misses the
+                    // ones whose `moov` is bigger than the guess. The parser
+                    // seeks over `mdat` rather than reading it, so header +
+                    // `moov` is enough and the hole between is never touched.
+                    if meta.duration.is_zero() && size > HEADER_BYTES {
+                        if let Some((start, end)) = source::mp4_moov_extent(&mut src) {
+                            if src.prefetch_range(start, end).is_ok() {
+                                meta = rockbox_metadata::read(src.cache_path()).unwrap_or_default();
+                            }
                         }
+                    }
+                    // Last resort for a container whose chain we can't walk:
+                    // take the tail and hope the trailer lives there.
+                    if meta.duration.is_zero() && size > HEADER_BYTES {
+                        let tail = size.saturating_sub(TAIL_BYTES).max(HEADER_BYTES);
+                        if src.prefetch_range(tail, size).is_ok() {
+                            meta = rockbox_metadata::read(src.cache_path()).unwrap_or_default();
+                        }
+                    }
+                    let ext = src
+                        .cache_path()
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let freq = meta.sample_rate;
+                    match Decoder::open_seekable(Box::new(src), size, freq, &ext, meta) {
+                        Ok(dec) => Some(self.install_decoder(dec, true)),
+                        Err(_) => Some(false),
                     }
                 }
                 Ok(source::Remote::Adaptive(stream)) => {
@@ -3036,6 +3327,7 @@ fn apply_tone(dsp: &mut rockbox_dsp::Dsp, t: ToneControls) {
     // Cutoffs must be set before set_tone: its prescale step recomputes the
     // shelf coefficients.
     dsp.set_tone_cutoffs(t.bass_cutoff_hz, t.treble_cutoff_hz);
+    dsp.set_tone_prescale(t.bass_db.max(t.treble_db).max(0));
     dsp.set_tone(t.bass_db, t.treble_db);
 }
 
@@ -3350,6 +3642,57 @@ mod dsp_tests {
 
     use super::*;
 
+    // Keep all native-DSP checks in one test: the C DSP is a singleton.
+    #[test]
+    fn tone_boosts_reserve_headroom_and_neutral_restores_level() {
+        let mut dsp = rockbox_dsp::Dsp::new(44100);
+        apply_dsp_settings(&mut dsp, &DspSettings::default());
+        for (bass, treble, hz) in [(6, 0, 40.0), (0, 6, 15000.0), (6, 6, 40.0)] {
+            let render = |dsp: &mut rockbox_dsp::Dsp, amplitude: f64| {
+                let input: Vec<i16> = (0..44100)
+                    .flat_map(|i| {
+                        let sample = (amplitude
+                            * 32767.0
+                            * (std::f64::consts::TAU * hz * i as f64 / 44100.0).sin())
+                            as i16;
+                        [sample, sample]
+                    })
+                    .collect();
+                dsp.flush();
+                let mut out = Vec::new();
+                dsp.process(&input, &mut out);
+                out
+            };
+            apply_tone(
+                &mut dsp,
+                ToneControls {
+                    bass_db: bass,
+                    treble_db: treble,
+                    ..ToneControls::default()
+                },
+            );
+            let quiet = render(&mut dsp, 0.1);
+            let loud = render(&mut dsp, 0.95);
+            let peak = loud.iter().map(|&s| i32::from(s).abs()).max().unwrap();
+            assert!(peak < 32760, "tone {bass}/{treble} clipped: {peak}");
+            let rms = |samples: &[i16]| {
+                let tail = &samples[samples.len() / 2..];
+                (tail.iter().map(|&s| f64::from(s).powi(2)).sum::<f64>() / tail.len() as f64).sqrt()
+            };
+            assert!(
+                (rms(&loud) / rms(&quiet) - 9.5).abs() < 0.05,
+                "boost must remain linear on loud input"
+            );
+            apply_tone(&mut dsp, ToneControls::default());
+            let neutral = render(&mut dsp, 0.95);
+            let peak = neutral.iter().map(|&s| i32::from(s).abs()).max().unwrap();
+            assert!(
+                (31000..=31200).contains(&peak),
+                "neutral retained attenuation: {peak}"
+            );
+        }
+    }
+
     #[test]
     fn preset_builds_full_enabled_equalizer() {
         let eq = EqPreset::Rock.equalizer();
@@ -3529,5 +3872,119 @@ mod shuffle_repeat_tests {
         let reordered =
             (0..8).any(|_| shuffled_order(10, 0, &mut rng) != (0..10).collect::<Vec<_>>());
         assert!(reordered, "shuffle never reordered a 10-track queue");
+    }
+}
+
+#[cfg(test)]
+mod level_meter_tests {
+    use super::*;
+
+    fn drive(meter: &mut LevelMeter, alpha: f32, sample: f32, frames: usize) {
+        let band_alphas = LevelMeter::band_alphas(44_100);
+        for _ in 0..frames {
+            meter.push(alpha, &band_alphas, sample, sample, sample);
+        }
+    }
+
+    /// One second of a pure tone; returns the band index holding the peak.
+    fn dominant_band(hz: f32) -> usize {
+        let rate = 44_100u32;
+        let alpha = LevelMeter::alpha(rate);
+        let band_alphas = LevelMeter::band_alphas(rate);
+        let mut meter = LevelMeter::default();
+        for i in 0..rate {
+            let t = i as f32 / rate as f32;
+            let sample = (std::f32::consts::TAU * hz * t).sin() * 0.8;
+            meter.push(alpha, &band_alphas, sample.abs(), sample.abs(), sample);
+        }
+        let levels = meter.take();
+        levels
+            .bands
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .map(|(i, _)| i)
+            .unwrap()
+    }
+
+    /// The ladder is a spectrum, not a shape: a bass tone peaks in a low band,
+    /// a treble tone in a high one, and they must not land anywhere near each
+    /// other. Exact bins are not asserted — one-pole skirts are wide — only
+    /// the ordering that makes a visualiser honest.
+    #[test]
+    fn bands_separate_bass_from_treble() {
+        let low = dominant_band(60.0);
+        let mid = dominant_band(1_000.0);
+        let high = dominant_band(8_000.0);
+        assert!(low < mid, "60 Hz in band {low}, 1 kHz in band {mid}");
+        assert!(mid < high, "1 kHz in band {mid}, 8 kHz in band {high}");
+        assert!(low <= 2, "60 Hz should land at the bottom, got {low}");
+        assert!(high >= 10, "8 kHz should land near the top, got {high}");
+    }
+
+    /// Silence reads as silence, not as the last thing that played.
+    #[test]
+    fn silence_is_zero() {
+        let mut meter = LevelMeter::default();
+        drive(&mut meter, LevelMeter::alpha(44_100), 0.0, 512);
+        assert_eq!(meter.take(), Levels::default());
+    }
+
+    /// A constant signal is entirely below 200 Hz, so both bands see it.
+    #[test]
+    fn a_steady_signal_fills_both_bands() {
+        let mut meter = LevelMeter::default();
+        let alpha = LevelMeter::alpha(44_100);
+        // Long enough for the one-pole to settle.
+        drive(&mut meter, alpha, 0.5, 44_100);
+
+        let levels = meter.take();
+        assert!((levels.left - 0.5).abs() < 0.01, "{levels:?}");
+        assert!(
+            levels.low_left > 0.9,
+            "bass should reach the top: {levels:?}"
+        );
+    }
+
+    /// The point of the low band: something that alternates every sample is
+    /// the highest frequency representable, and must not move a bass meter.
+    #[test]
+    fn the_low_band_ignores_high_frequencies() {
+        let mut meter = LevelMeter::default();
+        let alpha = LevelMeter::alpha(44_100);
+        let band_alphas = LevelMeter::band_alphas(44_100);
+        for i in 0..44_100 {
+            let sample = if i % 2 == 0 { 0.9 } else { -0.9 };
+            meter.push(alpha, &band_alphas, sample, sample, sample);
+        }
+
+        let levels = meter.take();
+        assert!(levels.left > 0.8, "full band should see it: {levels:?}");
+        assert!(levels.low_left < 0.1, "bass band should not: {levels:?}");
+    }
+
+    /// Taking resets the window but keeps the filter, so the next buffer does
+    /// not start from a re-settling low-pass.
+    #[test]
+    fn taking_resets_the_window_but_not_the_filter() {
+        let mut meter = LevelMeter::default();
+        let alpha = LevelMeter::alpha(44_100);
+        drive(&mut meter, alpha, 0.5, 44_100);
+        let settled = meter.take().low_left;
+
+        drive(&mut meter, alpha, 0.5, 64);
+        let next = meter.take().low_left;
+        assert!(
+            (next - settled).abs() < 0.05,
+            "the filter restarted: {settled} then {next}"
+        );
+    }
+
+    #[test]
+    fn levels_never_exceed_one() {
+        let mut meter = LevelMeter::default();
+        drive(&mut meter, LevelMeter::alpha(44_100), 1.0, 4_096);
+        let levels = meter.take();
+        assert!(levels.left <= 1.0 && levels.low_left <= 1.0, "{levels:?}");
     }
 }
