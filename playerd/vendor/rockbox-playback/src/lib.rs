@@ -1912,31 +1912,12 @@ struct IcyLive {
     last_title: Option<String>,
 }
 
-/// Serializes use of the process-global DSP pipeline.
-///
-/// `rockbox_dsp::Dsp` is a handle to one static `dsp_config`, and the C tone
-/// stage keeps its gains in file-scope globals — upstream Rockbox does that
-/// deliberately so tone controls apply to every stream, like hardware ones.
-/// Building a `Dsp` also issues `DSP_RESET`, clearing what another handle
-/// configured. Anything that configures the pipeline and then depends on
-/// those settings across a run of `process()` calls must hold this guard for
-/// the whole sequence.
-///
-/// Rocksky patch: upstream carries this as `rockbox_dsp::lock_pipeline()`;
-/// it lives here until a rockbox-dsp release exposes it. Re-acquired after
-/// poisoning so one failing test does not cascade into unrelated ones.
-static DSP_PIPELINE: Mutex<()> = Mutex::new(());
-
-fn lock_pipeline() -> std::sync::MutexGuard<'static, ()> {
-    DSP_PIPELINE.lock().unwrap_or_else(|e| e.into_inner())
-}
-
 impl Engine {
     fn new(shared: Arc<Shared>, rx: Receiver<Command>, cfg: EngineConfig) -> Self {
         // `Dsp::new` resets the process-global pipeline, so hold the lock
         // while configuring it: another thread may be measuring settings it
-        // applied earlier (see `lock_pipeline`).
-        let dsp_lock = lock_pipeline();
+        // applied earlier (see `rockbox_dsp::lock_pipeline`).
+        let dsp_lock = rockbox_dsp::lock_pipeline();
         let mut dsp = rockbox_dsp::Dsp::new(cfg.output_rate);
         apply_replaygain_mode(&mut dsp, &cfg.replaygain);
         apply_dsp_settings(&mut dsp, &cfg.dsp);
@@ -3669,7 +3650,7 @@ mod dsp_tests {
     // Keep all native-DSP checks in one test: the C DSP is a singleton.
     #[test]
     fn tone_boosts_reserve_headroom_and_neutral_restores_level() {
-        let _pipeline = lock_pipeline();
+        let _pipeline = rockbox_dsp::lock_pipeline();
         let mut dsp = rockbox_dsp::Dsp::new(44100);
         apply_dsp_settings(&mut dsp, &DspSettings::default());
         for (bass, treble, hz) in [(6, 0, 40.0), (0, 6, 15000.0), (6, 6, 40.0)] {
