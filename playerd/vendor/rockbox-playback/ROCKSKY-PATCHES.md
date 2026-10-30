@@ -11,6 +11,16 @@ and a tail fallback). That path is kept for every other container; only
 `m4a`/`mp4`/`m4b` are routed to the complete-cache native `Decoder::open`,
 which is what HE-AAC SBR seek correction and gapless trim require.
 
+Pipeline lock: `rockbox_dsp::Dsp` is a handle to one static `dsp_config`, and
+the C tone stage keeps its gains in file-scope globals (upstream Rockbox does
+this deliberately, so tone controls apply to every stream like hardware ones).
+Building a `Dsp` also issues `DSP_RESET`. A local `lock_pipeline()` serializes
+`Engine::new` against anything measuring those settings; without it the fork's
+own `Engine`-building tests cleared the prescale the tone test was measuring,
+and that test failed under parallel `cargo test`. Upstream now carries this as
+`rockbox_dsp::lock_pipeline()` — drop the local copy once a rockbox-dsp release
+exposes it.
+
 HTTP recovery: retry interrupted finite range reads, validate range boundaries and
 body length, and handle a server switching from 206 to 200 without corrupting the
 cache. Decoder exits before the advertised duration now produce diagnostics.

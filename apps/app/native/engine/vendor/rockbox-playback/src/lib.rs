@@ -1911,11 +1911,35 @@ struct IcyLive {
     last_title: Option<String>,
 }
 
+/// Serializes use of the process-global DSP pipeline.
+///
+/// `rockbox_dsp::Dsp` is a handle to one static `dsp_config`, and the C tone
+/// stage keeps its gains in file-scope globals — upstream Rockbox does that
+/// deliberately so tone controls apply to every stream, like hardware ones.
+/// Building a `Dsp` also issues `DSP_RESET`, clearing what another handle
+/// configured. Anything that configures the pipeline and then depends on
+/// those settings across a run of `process()` calls must hold this guard for
+/// the whole sequence.
+///
+/// Rocksky patch: upstream carries this as `rockbox_dsp::lock_pipeline()`;
+/// it lives here until a rockbox-dsp release exposes it. Re-acquired after
+/// poisoning so one failing test does not cascade into unrelated ones.
+static DSP_PIPELINE: Mutex<()> = Mutex::new(());
+
+fn lock_pipeline() -> std::sync::MutexGuard<'static, ()> {
+    DSP_PIPELINE.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 impl Engine {
     fn new(shared: Arc<Shared>, rx: Receiver<Command>, cfg: EngineConfig) -> Self {
+        // `Dsp::new` resets the process-global pipeline, so hold the lock
+        // while configuring it: another thread may be measuring settings it
+        // applied earlier (see `lock_pipeline`).
+        let dsp_lock = lock_pipeline();
         let mut dsp = rockbox_dsp::Dsp::new(cfg.output_rate);
         apply_replaygain_mode(&mut dsp, &cfg.replaygain);
         apply_dsp_settings(&mut dsp, &cfg.dsp);
+        drop(dsp_lock);
         let dsp_state = cfg.dsp.clone();
         let (shuffle, repeat) = (cfg.shuffle, cfg.repeat);
         Engine {
@@ -3613,6 +3637,7 @@ mod dsp_tests {
     // Keep all native-DSP checks in one test: the C DSP is a singleton.
     #[test]
     fn tone_boosts_reserve_headroom_and_neutral_restores_level() {
+        let _pipeline = lock_pipeline();
         let mut dsp = rockbox_dsp::Dsp::new(44100);
         apply_dsp_settings(&mut dsp, &DspSettings::default());
         for (bass, treble, hz) in [(6, 0, 40.0), (0, 6, 15000.0), (6, 6, 40.0)] {
@@ -3657,6 +3682,62 @@ mod dsp_tests {
             assert!(
                 (31000..=31200).contains(&peak),
                 "neutral retained attenuation: {peak}"
+            );
+        }
+    }
+
+    /// Regression guard for the pipeline lock (Rocksky patch, mirrors
+    /// upstream). The fork's own tests build an `Engine`, which resets the
+    /// process-global DSP; before the lock that ran concurrently with the
+    /// tone test above and cleared the prescale it was measuring.
+    #[test]
+    fn building_a_pipeline_does_not_disturb_a_concurrent_one() {
+        let build = || {
+            let _dsp_lock = lock_pipeline();
+            let mut dsp = rockbox_dsp::Dsp::new(44100);
+            apply_dsp_settings(&mut dsp, &DspSettings::default());
+            apply_tone(
+                &mut dsp,
+                ToneControls {
+                    bass_db: 6,
+                    ..ToneControls::default()
+                },
+            );
+            let render = |dsp: &mut rockbox_dsp::Dsp, amplitude: f64| {
+                let input: Vec<i16> = (0..8192)
+                    .flat_map(|i| {
+                        let sample = (amplitude
+                            * 32767.0
+                            * (std::f64::consts::TAU * 40.0 * i as f64 / 44100.0).sin())
+                            as i16;
+                        [sample, sample]
+                    })
+                    .collect();
+                dsp.flush();
+                let mut out = Vec::new();
+                dsp.process(&input, &mut out);
+                out
+            };
+            let quiet = render(&mut dsp, 0.1);
+            let loud = render(&mut dsp, 0.95);
+            let rms = |samples: &[i16]| {
+                let tail = &samples[samples.len() / 2..];
+                (tail.iter().map(|&s| f64::from(s).powi(2)).sum::<f64>() / tail.len() as f64).sqrt()
+            };
+            // `dsp` drops before `_dsp_lock` (reverse declaration order), so
+            // the pipeline is never left configured outside the lock.
+            rms(&loud) / rms(&quiet)
+        };
+
+        let threads: Vec<_> = (0..4).map(|_| std::thread::spawn(build)).collect();
+        let mut ratios = vec![build()];
+        for t in threads {
+            ratios.push(t.join().unwrap());
+        }
+        for ratio in ratios {
+            assert!(
+                (ratio - 9.5).abs() < 0.05,
+                "a concurrent pipeline clobbered the tone settings: {ratio}"
             );
         }
     }
