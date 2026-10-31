@@ -26,7 +26,8 @@ Environment=HOME=/root
 Environment=USER=root
 Environment=SUBMISSIONS_BIND=127.0.0.1:8098
 Environment=SUBMISSIONS_API_URL=http://127.0.0.1:8099/internal/submissions/process
-Environment=SUBMISSIONS_CONCURRENCY=24
+Environment=SUBMISSIONS_CONCURRENCY=32
+Environment=SUBMISSIONS_TEAL_CONCURRENCY=12
 Environment=SUBMISSIONS_MAX_ATTEMPTS=20
 # Configure SUBMISSIONS_DATABASE_URL and SUBMISSIONS_SECRET in Doppler.
 EnvironmentFile=-/etc/default/rocksky-submissions
