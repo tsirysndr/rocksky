@@ -117,7 +117,7 @@ is unavailable.
 | `SUBMISSIONS_SECRET` | Worker and both API processes | Required for submission traffic; at least 32 bytes |
 | `SUBMISSIONS_BIND` | Worker | `127.0.0.1:8098` |
 | `SUBMISSIONS_URL` | API | `http://127.0.0.1:8098` |
-| `SUBMISSIONS_API_URL` | Worker | `http://127.0.0.1:8000/internal/submissions/process` |
+| `SUBMISSIONS_API_URL` | Worker | `http://127.0.0.1:8000/internal/submissions/process`; prod points at the loopback callbacks process on `:8099` |
 | `SUBMISSIONS_CONCURRENCY` | Worker | `8` |
 | `SUBMISSIONS_TEAL_CONCURRENCY` | Worker | `4` (independent Teal pool) |
 | `SUBMISSIONS_TEAL_API_URL` | Worker | `/tealfm/process` alongside `SUBMISSIONS_API_URL` |

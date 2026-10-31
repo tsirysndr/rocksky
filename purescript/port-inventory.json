@@ -60,6 +60,12 @@
     "status": "mapped"
   },
   {
+    "source": "callbacks.ts",
+    "module": "Rocksky.Callbacks",
+    "target": "api/src/Rocksky/Callbacks.purs",
+    "status": "mapped"
+  },
+  {
     "source": "index.ts",
     "module": "Rocksky.Index",
     "target": "api/src/Rocksky/Index.purs",

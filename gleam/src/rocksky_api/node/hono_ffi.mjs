@@ -32,6 +32,9 @@ export const route = (app, path, sub) => {
 export const serve = (app, port) => {
   nodeServe({ fetch: app.fetch, port });
 };
+export const serveOn = (app, hostname, port) => {
+  nodeServe({ fetch: app.fetch, hostname, port });
+};
 
 export const param = (c, name) => c.req.param(name) ?? "";
 export const query = (c, name) => opt(c.req.query(name));

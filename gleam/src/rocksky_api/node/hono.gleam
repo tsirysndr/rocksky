@@ -62,6 +62,9 @@ pub fn route(app: App, path: String, sub: App) -> App
 @external(javascript, "./hono_ffi.mjs", "serve")
 pub fn serve(app: App, port: Int) -> Nil
 
+@external(javascript, "./hono_ffi.mjs", "serveOn")
+pub fn serve_on(app: App, hostname: String, port: Int) -> Nil
+
 // ---- request ---------------------------------------------------------------
 
 @external(javascript, "./hono_ffi.mjs", "param")
