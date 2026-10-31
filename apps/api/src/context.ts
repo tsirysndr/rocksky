@@ -2,7 +2,7 @@ import sqliteKv from "sqliteKv";
 import { createClient } from "auth/client";
 import axios from "axios";
 import { consola } from "consola";
-import { createDb, migrateToLatest } from "db";
+import { createDb, createPostgresAuthDb, migrateToLatest } from "db";
 import drizzle, { ensureWritable } from "drizzle";
 import authVerifier from "lib/authVerifier";
 import { env } from "lib/env";
@@ -17,9 +17,12 @@ import { createStorage } from "unstorage";
 // host of outbound requests to PDSes this server cannot reach directly.
 installPdsProxyFetch();
 
-const { DB_PATH } = env;
-export const db = createDb(DB_PATH);
-await migrateToLatest(db);
+const { DB_PATH, AUTH_DATABASE_URL } = env;
+export const db = AUTH_DATABASE_URL
+  ? await createPostgresAuthDb(AUTH_DATABASE_URL)
+  : createDb(DB_PATH);
+if (AUTH_DATABASE_URL) consola.info("[auth] OAuth sessions in Postgres");
+else await migrateToLatest(db);
 
 // Unlike the write-only Rust services, this one is mostly a read API, so a
 // read-only primary is logged as loudly as possible rather than made fatal —

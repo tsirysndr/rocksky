@@ -36,13 +36,13 @@ updateExpiresAt db = do
       Just value | isUndefined value -> throwError (error "Session tokenSet.expires_at is undefined")
       Just value -> pure value
     liftEffect (Consola.infoF session.key [expiry])
-    Kysely.raw db "update auth_session set expiresAt = ? where key = ?" [expiry, F.toForeign session.key]
+    Kysely.raw db "update \"auth_session\" set \"expiresAt\" = ? where \"key\" = ?" [expiry, F.toForeign session.key]
   liftEffect (Consola.info ("Updated " <> show (A.length sessions) <> " sessions"))
 
 refreshWith :: Database -> String -> (String -> Aff Unit) -> Aff Unit -> Aff Unit
 refreshWith db now refresh pause = do
   -- Source selects all future expiries, not only a short near-expiry window.
-  sessions <- Kysely.rawRows db "select * from auth_session where expiresAt is not ? and expiresAt > ? order by expiresAt asc" [F.toForeign "NULL", F.toForeign now]
+  sessions <- Kysely.rawRows db "select * from \"auth_session\" where \"expiresAt\" is not null and \"expiresAt\" <> ? and \"expiresAt\" > ? order by \"expiresAt\" asc" [F.toForeign "NULL", F.toForeign now]
   for_ sessions \session -> do
     let row = F.unsafeFromForeign session :: { key :: String }
     liftEffect (Consola.infoF ("Session about to expire: " <> row.key) [session])

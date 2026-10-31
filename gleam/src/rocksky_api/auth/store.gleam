@@ -1,5 +1,6 @@
-//// The shared `atproto.sqlite` database: OAuth state and session rows,
-//// plus app-password sessions under `atp:<did>`.
+//// OAuth state and session rows, plus app-password sessions under
+//// `atp:<did>`: in `atproto.sqlite`, or in Postgres when `AUTH_DATABASE_URL`
+//// is set so processes on more than one host can share them.
 
 import gleam/dynamic.{type Dynamic}
 import gleam/dynamic/decode
@@ -8,14 +9,17 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import rocksky_api/atproto/oauth
+import rocksky_api/db/retry
 import rocksky_api/error.{type Error}
 import rocksky_api/log
 import rocksky_api/node/js.{type Exception}
+import rocksky_api/node/pg
 import rocksky_api/node/sqlite.{type Database}
 import rocksky_api/task.{type Task}
 
 pub type Store {
-  Store(db: Database)
+  Sqlite(db: Database)
+  Postgres(pool: pg.Pool)
 }
 
 pub type Session {
@@ -29,8 +33,36 @@ pub fn open(location: String) -> Result(Store, Error) {
   sqlite.pragma(db, "busy_timeout = 5000")
   sqlite.pragma(db, "synchronous = NORMAL")
   use _ <- result.try(migrate(db))
-  Ok(Store(db))
+  Ok(Sqlite(db))
 }
+
+/// A dedicated pool, so exhaustion of the main pool cannot fail a session
+/// read or write.
+pub fn open_postgres(url: String) -> Task(Store) {
+  let pool =
+    pg.new_pool(pg.PoolConfig(
+      connection_string: url,
+      max: 4,
+      idle_timeout_ms: 30_000,
+      connection_timeout_ms: 5000,
+      application_name: "rocksky-auth-store",
+      statement_timeout_ms: Some(10_000),
+      idle_in_transaction_timeout_ms: None,
+    ))
+  pg.watch(pool, "auth store", log.warn)
+  use _ <- task.map(
+    pg.query(pool, postgres_schema, []) |> task.attempt_result,
+  )
+  Postgres(pool)
+}
+
+/// Same tables and columns as `atproto.sqlite`, in their own schema, so the
+/// Kysely queries in apps/api run unchanged against either.
+const postgres_schema = "
+CREATE SCHEMA IF NOT EXISTS atproto_auth;
+CREATE TABLE IF NOT EXISTS atproto_auth.auth_session (key text PRIMARY KEY, session text NOT NULL, \"expiresAt\" text);
+CREATE TABLE IF NOT EXISTS atproto_auth.auth_state (key text PRIMARY KEY, state text NOT NULL);
+"
 
 fn migrate(db: Database) -> Result(Nil, Error) {
   use _ <- result.try(
@@ -89,17 +121,13 @@ fn apply(
 
 const busy_delays = [10, 25, 50, 100, 250]
 
-/// Retries while SQLite reports the file as locked. A transient lock must
-/// never reach the OAuth SDK: it treats a failed read as a deleted session
-/// and a failed write as a reason to revoke the refresh token.
-fn retry_on_busy(
-  label: String,
-  op: fn() -> Result(a, Exception),
-) -> Promise(Result(a, Exception)) {
-  retry_loop(label, op, busy_delays)
-}
+const connection_delays = [50, 100, 250, 500, 1000, 2000]
 
-fn retry_loop(
+/// Retries while SQLite reports the file as locked, or while Postgres cannot
+/// be reached. A transient failure must never reach the OAuth SDK: it treats
+/// a failed read as a deleted session and a failed write as a reason to
+/// revoke the refresh token.
+fn retry_sqlite(
   label: String,
   op: fn() -> Result(a, Exception),
   delays: List(Int),
@@ -110,7 +138,7 @@ fn retry_loop(
       case sqlite.is_busy(e), delays {
         True, [delay, ..rest] -> {
           use _ <- promise.await(promise.wait(delay))
-          retry_loop(label, op, rest)
+          retry_sqlite(label, op, rest)
         }
         True, [] -> {
           log.error_exception(
@@ -121,6 +149,70 @@ fn retry_loop(
         }
         False, _ -> promise.resolve(Error(e))
       }
+  }
+}
+
+fn retry_postgres(
+  label: String,
+  pool: pg.Pool,
+  sql: String,
+  params: List(Dynamic),
+  delays: List(Int),
+) -> Promise(Result(pg.QueryResult, Exception)) {
+  use r <- promise.await(pg.query(pool, sql, params))
+  case r {
+    Ok(v) -> promise.resolve(Ok(v))
+    Error(e) ->
+      case retry.is_connection_error(error.Js(e)), delays {
+        True, [delay, ..rest] -> {
+          use _ <- promise.await(promise.wait(delay))
+          retry_postgres(label, pool, sql, params, rest)
+        }
+        True, [] -> {
+          log.error_exception(
+            "auth store " <> label <> " unreachable after retries",
+            e,
+          )
+          promise.resolve(Error(e))
+        }
+        False, _ -> promise.resolve(Error(e))
+      }
+  }
+}
+
+fn rows(
+  store: Store,
+  label: String,
+  sqlite_sql: String,
+  postgres_sql: String,
+  params: List(Dynamic),
+) -> Promise(Result(List(Dynamic), Exception)) {
+  case store {
+    Sqlite(db) ->
+      retry_sqlite(label, fn() { sqlite.all(db, sqlite_sql, params) }, busy_delays)
+    Postgres(pool) ->
+      retry_postgres(label, pool, postgres_sql, params, connection_delays)
+      |> promise.map(result.map(_, fn(r) { r.rows }))
+  }
+}
+
+fn write(
+  store: Store,
+  label: String,
+  sqlite_sql: String,
+  postgres_sql: String,
+  params: List(Dynamic),
+) -> Promise(Result(Nil, Exception)) {
+  case store {
+    Sqlite(db) ->
+      retry_sqlite(
+        label,
+        fn() { sqlite.run(db, sqlite_sql, params) |> result.replace(Nil) },
+        busy_delays,
+      )
+    Postgres(pool) ->
+      retry_postgres(label, pool, postgres_sql, params, connection_delays)
+      |> promise.map(result.replace(_, Nil))
   }
 }
 
@@ -139,63 +231,72 @@ fn one_string(
 pub fn state_store(store: Store) -> oauth.Store {
   oauth.Store(
     get: fn(key) {
-      retry_on_busy("state.get", fn() {
-        sqlite.all(store.db, "SELECT state FROM auth_state WHERE key = ?", [
-          dynamic.string(key),
-        ])
-        |> one_string("state")
-      })
+      rows(
+        store,
+        "state.get",
+        "SELECT state FROM auth_state WHERE key = ?",
+        "SELECT state FROM atproto_auth.auth_state WHERE key = $1",
+        [dynamic.string(key)],
+      )
+      |> promise.map(one_string(_, "state"))
     },
     set: fn(key, state, _) {
-      retry_on_busy("state.set", fn() {
-        sqlite.run(
-          store.db,
-          "INSERT INTO auth_state (key, state) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET state = excluded.state",
-          [dynamic.string(key), dynamic.string(state)],
-        )
-        |> result.replace(Nil)
-      })
+      write(
+        store,
+        "state.set",
+        "INSERT INTO auth_state (key, state) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET state = excluded.state",
+        "INSERT INTO atproto_auth.auth_state (key, state) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET state = excluded.state",
+        [dynamic.string(key), dynamic.string(state)],
+      )
     },
     del: fn(key) {
-      retry_on_busy("state.del", fn() {
-        sqlite.run(store.db, "DELETE FROM auth_state WHERE key = ?", [
-          dynamic.string(key),
-        ])
-        |> result.replace(Nil)
-      })
+      write(
+        store,
+        "state.del",
+        "DELETE FROM auth_state WHERE key = ?",
+        "DELETE FROM atproto_auth.auth_state WHERE key = $1",
+        [dynamic.string(key)],
+      )
     },
   )
 }
 
 pub fn session_store(store: Store) -> oauth.Store {
   oauth.Store(
-    get: fn(key) {
-      retry_on_busy("session.get", fn() {
-        sqlite.all(store.db, "SELECT session FROM auth_session WHERE key = ?", [
-          dynamic.string(key),
-        ])
-        |> one_string("session")
-      })
-    },
+    get: fn(key) { read_session(store, key) },
     set: fn(key, session, expires_at) {
-      retry_on_busy("session.set", fn() {
-        sqlite.run(
-          store.db,
-          "INSERT INTO auth_session (key, session, expiresAt) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET session = excluded.session, expiresAt = excluded.expiresAt",
-          [dynamic.string(key), dynamic.string(session), optional(expires_at)],
-        )
-        |> result.replace(Nil)
-      })
+      write(
+        store,
+        "session.set",
+        "INSERT INTO auth_session (key, session, expiresAt) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET session = excluded.session, expiresAt = excluded.expiresAt",
+        "INSERT INTO atproto_auth.auth_session (key, session, \"expiresAt\") VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET session = excluded.session, \"expiresAt\" = excluded.\"expiresAt\"",
+        [dynamic.string(key), dynamic.string(session), optional(expires_at)],
+      )
     },
     del: fn(key) {
-      retry_on_busy("session.del", fn() {
-        sqlite.run(store.db, "DELETE FROM auth_session WHERE key = ?", [
-          dynamic.string(key),
-        ])
-        |> result.replace(Nil)
-      })
+      write(
+        store,
+        "session.del",
+        "DELETE FROM auth_session WHERE key = ?",
+        "DELETE FROM atproto_auth.auth_session WHERE key = $1",
+        [dynamic.string(key)],
+      )
     },
   )
+}
+
+fn read_session(
+  store: Store,
+  key: String,
+) -> Promise(Result(Option(String), Exception)) {
+  rows(
+    store,
+    "session.get",
+    "SELECT session FROM auth_session WHERE key = ?",
+    "SELECT session FROM atproto_auth.auth_session WHERE key = $1",
+    [dynamic.string(key)],
+  )
+  |> promise.map(one_string(_, "session"))
 }
 
 fn optional(o: Option(String)) -> Dynamic {
@@ -207,13 +308,7 @@ fn optional(o: Option(String)) -> Dynamic {
 
 /// The stored app-password session JSON for `atp:<did>`, if any.
 pub fn get_session(store: Store, key: String) -> Task(Option(String)) {
-  retry_on_busy("session.get", fn() {
-    sqlite.all(store.db, "SELECT session FROM auth_session WHERE key = ?", [
-      dynamic.string(key),
-    ])
-    |> one_string("session")
-  })
-  |> task.attempt_result
+  read_session(store, key) |> task.attempt_result
 }
 
 pub fn put_session(store: Store, key: String, session: String) -> Task(Nil) {
@@ -225,22 +320,28 @@ pub fn delete_session(store: Store, key: String) -> Task(Nil) {
 }
 
 pub fn all_sessions(store: Store) -> Task(List(Session)) {
-  sqlite.all(store.db, "SELECT key, session, expiresAt FROM auth_session", [])
-  |> error.map_js
-  |> result.try(fn(rows) {
-    list.try_map(rows, fn(row) {
-      decode.run(row, {
-        use key <- decode.field("key", decode.string)
-        use session <- decode.field("session", decode.string)
-        use expires_at <- decode.field(
-          "expiresAt",
-          decode.optional(decode.string),
-        )
-        decode.success(Session(key, session, expires_at))
-      })
+  use rows <- task.then(
+    rows(
+      store,
+      "session.all",
+      "SELECT key, session, expiresAt FROM auth_session",
+      "SELECT key, session, \"expiresAt\" FROM atproto_auth.auth_session",
+      [],
+    )
+    |> task.attempt_result,
+  )
+  list.try_map(rows, fn(row) {
+    decode.run(row, {
+      use key <- decode.field("key", decode.string)
+      use session <- decode.field("session", decode.string)
+      use expires_at <- decode.field(
+        "expiresAt",
+        decode.optional(decode.string),
+      )
+      decode.success(Session(key, session, expires_at))
     })
-    |> error.decode("auth_session rows", _)
   })
+  |> error.decode("auth_session rows", _)
   |> task.from_result
 }
 
@@ -249,11 +350,12 @@ pub fn update_expires_at(
   key: String,
   expires_at: Option(String),
 ) -> Task(Nil) {
-  sqlite.run(store.db, "UPDATE auth_session SET expiresAt = ? WHERE key = ?", [
-    optional(expires_at),
-    dynamic.string(key),
-  ])
-  |> error.map_js
-  |> result.replace(Nil)
-  |> task.from_result
+  write(
+    store,
+    "session.expiry",
+    "UPDATE auth_session SET expiresAt = ? WHERE key = ?",
+    "UPDATE atproto_auth.auth_session SET \"expiresAt\" = $1 WHERE key = $2",
+    [optional(expires_at), dynamic.string(key)],
+  )
+  |> task.attempt_result
 }

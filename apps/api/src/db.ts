@@ -6,8 +6,12 @@ import {
   type Migration,
   type MigrationProvider,
   Migrator,
+  PostgresDialect,
   SqliteDialect,
+  sql,
+  WithSchemaPlugin,
 } from "kysely";
+import pg from "pg";
 import { createAgent } from "lib/agent";
 import { consola } from "consola";
 
@@ -120,6 +124,36 @@ export const createDb = (location: string): Database => {
   });
 };
 
+/**
+ * The same tables and columns as `atproto.sqlite`, in their own schema, so
+ * every Kysely query here runs unchanged against either store. A dedicated
+ * pool keeps exhaustion of the main pool away from session reads and writes.
+ */
+export const createPostgresAuthDb = async (url: string): Promise<Database> => {
+  const pool = new pg.Pool({
+    connectionString: url,
+    max: 4,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 5_000,
+    application_name: "rocksky-auth-store",
+    statement_timeout: 10_000,
+  });
+  pool.on("error", (err) =>
+    consola.warn(`Idle pg client error on auth store: ${err.message}`),
+  );
+  const db = new Kysely<DatabaseSchema>({
+    dialect: new PostgresDialect({ pool }),
+  });
+  await sql`CREATE SCHEMA IF NOT EXISTS atproto_auth`.execute(db);
+  await sql`CREATE TABLE IF NOT EXISTS atproto_auth.auth_session (key text PRIMARY KEY, session text NOT NULL, "expiresAt" text)`.execute(
+    db,
+  );
+  await sql`CREATE TABLE IF NOT EXISTS atproto_auth.auth_state (key text PRIMARY KEY, state text NOT NULL)`.execute(
+    db,
+  );
+  return db.withPlugin(new WithSchemaPlugin("atproto_auth"));
+};
+
 export const migrateToLatest = async (db: Database) => {
   const migrator = new Migrator({ db, provider: migrationProvider });
   const { error } = await migrator.migrateToLatest();
@@ -154,7 +188,8 @@ export const refreshSessionsAboutToExpire = async (
   const sessions = await db
     .selectFrom("auth_session")
     .selectAll()
-    .where("expiresAt", "is not", "NULL")
+    .where("expiresAt", "is not", null)
+    .where("expiresAt", "!=", "NULL")
     .where("expiresAt", ">", now)
     .orderBy("expiresAt", "asc")
     .execute();

@@ -1,9 +1,10 @@
--- | Bindings for `kysely` over better-sqlite3, covering what the auth
+-- | Bindings for `kysely` over better-sqlite3 or node-postgres, covering what the auth
 -- | session store and the KV driver need: raw SQL with parameters, a
 -- | migrator with up/down SQL steps, and transactions.
 module Kysely
   ( Kysely
   , fromSqlite
+  , fromPostgres
   , raw
   , rawRows
   , rawOne
@@ -28,6 +29,10 @@ foreign import data Kysely :: Type
 
 -- | `new Kysely({ dialect: new SqliteDialect({ database }) })`.
 foreign import fromSqlite :: Sqlite.Database -> Effect Kysely
+
+-- | A small dedicated pool whose connections resolve unqualified table names
+-- | in `schema`.
+foreign import fromPostgres :: String -> String -> Effect Kysely
 
 foreign import rawImpl :: Kysely -> String -> Array Foreign -> Effect (Promise (Array Foreign))
 

@@ -14,15 +14,21 @@ import Effect.Class (liftEffect)
 import Rocksky.Db (Database)
 import Rocksky.Db as Db
 import Rocksky.Lib.Aff (sleep)
-import Rocksky.Lib.Error (errorCode, errorToForeign)
+import Rocksky.Lib.Error (errorCode, errorToForeign, messageIncludes)
 import Rocksky.Lib.Foreign (parseJson, readStringAt)
 
 -- SQLite reports "the file is locked right now" as an error, not as a wait,
 -- so every call here has to treat it as retryable. `busy_timeout` handles most
 -- of it, but two processes share `atproto.sqlite` and either can be mid-write
 -- when the other arrives.
+-- Postgres (AUTH_DATABASE_URL) has no lock to wait on, but an unreachable
+-- server must not reach the SDK either.
 busyCodes :: Array String
-busyCodes = [ "SQLITE_BUSY", "SQLITE_BUSY_SNAPSHOT", "SQLITE_LOCKED", "SQLITE_PROTOCOL" ]
+busyCodes =
+  [ "SQLITE_BUSY", "SQLITE_BUSY_SNAPSHOT", "SQLITE_LOCKED", "SQLITE_PROTOCOL"
+  , "ECONNRESET", "ECONNREFUSED", "EPIPE", "ETIMEDOUT", "EAI_AGAIN"
+  , "57P01", "57P03", "08000", "08001", "08003", "08006"
+  ]
 
 -- | Retries a store operation while SQLite reports the file as busy.
 -- |
@@ -34,13 +40,15 @@ busyCodes = [ "SQLITE_BUSY", "SQLITE_BUSY_SNAPSHOT", "SQLITE_LOCKED", "SQLITE_PR
 retryOnBusy :: forall a. String -> Aff a -> Aff a
 retryOnBusy label op = go 0
   where
-  delays = [ 10, 25, 50, 100, 250 ]
+  delays = [ 10, 25, 50, 100, 250, 500, 1000, 2000 ]
   go attemptNo = do
     r <- attempt op
     case r of
       Right a -> pure a
       Left err -> do
         let busy = fromMaybe false (map (_ `elem` busyCodes) (errorCode err))
+              || messageIncludes "timeout exceeded when trying to connect" err
+              || messageIncludes "Connection terminated" err
         if not busy || attemptNo >= length delays then do
           when busy $ liftEffect $ Consola.errorF
             ("auth store " <> label <> " still locked after " <> show (length delays) <> " retries")

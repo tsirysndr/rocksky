@@ -20,8 +20,31 @@ const BUSY_CODES = new Set([
   "SQLITE_PROTOCOL",
 ]);
 
+// Postgres (AUTH_DATABASE_URL) has no lock to wait on, but an unreachable
+// server or an exhausted pool must not reach the SDK either.
+const CONNECTION_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EPIPE",
+  "ETIMEDOUT",
+  "EAI_AGAIN",
+  "57P01",
+  "57P03",
+  "08000",
+  "08001",
+  "08003",
+  "08006",
+]);
+
+const isConnectionError = (err: unknown) =>
+  CONNECTION_CODES.has((err as { code?: string })?.code ?? "") ||
+  /^(connection terminated|timeout exceeded when trying to connect)/i.test(
+    (err as Error)?.message ?? "",
+  );
+
 const isBusy = (err: unknown) =>
-  BUSY_CODES.has((err as { code?: string })?.code ?? "");
+  BUSY_CODES.has((err as { code?: string })?.code ?? "") ||
+  isConnectionError(err);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -41,7 +64,7 @@ async function retryOnBusy<T>(
   label: string,
   op: () => T | Promise<T>,
 ): Promise<T> {
-  const delays = [10, 25, 50, 100, 250];
+  const delays = [10, 25, 50, 100, 250, 500, 1000, 2000];
   for (let attempt = 0; ; attempt++) {
     try {
       // Awaited, not returned: Kysely hands back a promise, so a SQLITE_BUSY
@@ -81,7 +104,7 @@ export class StateStore implements NodeSavedStateStore {
       this.db
         .insertInto("auth_state")
         .values({ key, state })
-        .onConflict((oc) => oc.doUpdateSet({ state }))
+        .onConflict((oc) => oc.column("key").doUpdateSet({ state }))
         .execute(),
     );
   }
@@ -112,7 +135,9 @@ export class SessionStore implements NodeSavedSessionStore {
         .insertInto("auth_session")
         .values({ key, session, expiresAt: val.tokenSet.expires_at })
         .onConflict((oc) =>
-          oc.doUpdateSet({ session, expiresAt: val.tokenSet.expires_at }),
+          oc
+            .column("key")
+            .doUpdateSet({ session, expiresAt: val.tokenSet.expires_at }),
         )
         .execute(),
     );

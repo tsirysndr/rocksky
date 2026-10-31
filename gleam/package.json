@@ -12,6 +12,7 @@
     "prod": "node entry/api.mjs",
     "prod:xrpc": "node entry/server.mjs",
     "prod:callbacks": "node entry/callbacks.mjs",
+    "auth:migrate-postgres": "node scripts/migrate_auth_to_postgres.mjs",
     "test": "gleam test && node --test test/*.test.mjs && node --test app-proxy/test/*.test.mjs && node cli/scripts/build.mjs && node --test cli/test/*.test.mjs && node --test feeds/test/*.test.mjs",
     "db:migrate": "gleam run -m rocksky_api/scripts/migrate",
     "sync": "gleam run -m rocksky_api/scripts/sync",

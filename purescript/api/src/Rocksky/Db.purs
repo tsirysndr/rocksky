@@ -1,8 +1,9 @@
--- | The SQLite database holding OAuth sessions and state (`src/db.ts`),
--- | through Kysely over better-sqlite3.
+-- | The database holding OAuth sessions and state (`src/db.ts`): SQLite
+-- | through better-sqlite3, or Postgres when `AUTH_DATABASE_URL` is set.
 module Rocksky.Db
   ( Database
   , createDb
+  , createPostgresDb
   , migrateToLatest
   , AuthSessionRow
   , getAuthSession
@@ -22,6 +23,7 @@ import Data.Maybe (Maybe)
 import Data.Nullable (Nullable)
 import Effect (Effect)
 import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
 import Kysely (Kysely)
 import Kysely as Kysely
 import Rocksky.Lib.Foreign (toForeign, unsafeFromForeign)
@@ -48,6 +50,15 @@ createDb location = do
   -- or two, and a lost session refresh is re-fetched on next use.
   Sqlite.pragma sqlite "synchronous = NORMAL"
   Kysely.fromSqlite sqlite
+
+-- | The same tables and columns as SQLite, in their own schema.
+createPostgresDb :: String -> Aff Database
+createPostgresDb url = do
+  db <- liftEffect (Kysely.fromPostgres url "atproto_auth")
+  Kysely.raw db "create schema if not exists atproto_auth" []
+  Kysely.raw db "create table if not exists atproto_auth.auth_session (\"key\" text primary key, \"session\" text not null, \"expiresAt\" text)" []
+  Kysely.raw db "create table if not exists atproto_auth.auth_state (\"key\" text primary key, \"state\" text not null)" []
+  pure db
 
 -- Migration names must stay "001"/"002": existing databases recorded them.
 migrations :: Array Kysely.Migration

@@ -29,7 +29,7 @@ import Nats as Nats
 import Node.Process (exit')
 import Redis as Redis
 import Rocksky.Auth.Client (createClient)
-import Rocksky.Db (createDb, migrateToLatest)
+import Rocksky.Db (createDb, createPostgresDb, migrateToLatest)
 import Rocksky.Drizzle (Pools, createPools, ensureWritable)
 import Rocksky.Lexicon (loadLexicons)
 import Rocksky.Lib.AuthVerifier (authVerifier)
@@ -77,8 +77,14 @@ createContext = do
   -- Must run before anything builds an agent or an OAuth client: it swaps the
   -- host of outbound requests to PDSes this server cannot reach directly.
   liftEffect installPdsProxyFetch
-  sqliteDb <- liftEffect (createDb env."DB_PATH")
-  migrateToLatest sqliteDb
+  sqliteDb <- case env."AUTH_DATABASE_URL" of
+    "" -> do
+      db <- liftEffect (createDb env."DB_PATH")
+      migrateToLatest db
+      pure db
+    url -> do
+      liftEffect (Consola.info "[auth] OAuth sessions in Postgres")
+      createPostgresDb url
   pools <- liftEffect createPools
   -- Mostly a read API, so a read-only primary is logged as loudly as possible
   -- rather than made fatal: taking the whole API down would be the larger outage.

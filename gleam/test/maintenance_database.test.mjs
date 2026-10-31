@@ -79,7 +79,8 @@ test('Session expiry maintenance accepts sessions without an expiry claim',async
   db.exec('CREATE TABLE auth_session (key TEXT PRIMARY KEY, session TEXT NOT NULL, expiresAt TEXT)');
   db.prepare('INSERT INTO auth_session(key,session) VALUES (?,?)').run('without',JSON.stringify({tokenSet:{}}));
   db.prepare('INSERT INTO auth_session(key,session) VALUES (?,?)').run('with',JSON.stringify({tokenSet:{expires_at:'2026-12-01T00:00:00Z'}}));
-  const result=await update_expires_at({sqlite:{db}});assert.ok(result instanceof Ok,result instanceof Ok?'':describe(result[0]));
+  const {Sqlite}=await import('../build/dev/javascript/rocksky_api/rocksky_api/auth/store.mjs');
+  const result=await update_expires_at({sqlite:new Sqlite(db)});assert.ok(result instanceof Ok,result instanceof Ok?'':describe(result[0]));
   assert.equal(db.prepare("SELECT expiresAt FROM auth_session WHERE key='without'").get().expiresAt,null);
   assert.equal(db.prepare("SELECT expiresAt FROM auth_session WHERE key='with'").get().expiresAt,'2026-12-01T00:00:00Z');
  }finally{db.close();}

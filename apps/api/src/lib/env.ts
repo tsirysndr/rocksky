@@ -14,6 +14,8 @@ export const env = cleanEnv(process.env, {
   PUBLIC_URL: str({ default: "http://localhost:8000" }),
   DB_PATH: str({ devDefault: ":memory:" }),
   KV_DB_PATH: str({ devDefault: ":memory:" }),
+  // OAuth sessions in Postgres instead of DB_PATH, so hosts can share them.
+  AUTH_DATABASE_URL: str({ default: "" }),
   COOKIE_SECRET: str({ devDefault: "00000000000000000000000000000000" }),
   FRONTEND_URL: str({ devDefault: "http://localhost:5174" }),
   JWT_SECRET: str({ devDefault: "00000000000000000000000000000000" }),

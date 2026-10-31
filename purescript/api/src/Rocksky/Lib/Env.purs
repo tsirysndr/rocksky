@@ -18,6 +18,7 @@ type Env =
   , "PUBLIC_URL" :: String
   , "DB_PATH" :: String
   , "KV_DB_PATH" :: String
+  , "AUTH_DATABASE_URL" :: String
   , "COOKIE_SECRET" :: String
   , "FRONTEND_URL" :: String
   , "JWT_SECRET" :: String
@@ -93,6 +94,8 @@ env = unsafePerformEffect do
     , "PUBLIC_URL": str (withDefault "http://localhost:8000")
     , "DB_PATH": str (devDefault ":memory:")
     , "KV_DB_PATH": str (devDefault ":memory:")
+    -- OAuth sessions in Postgres instead of DB_PATH, so hosts can share them.
+    , "AUTH_DATABASE_URL": str (withDefault "")
     , "COOKIE_SECRET": str (devDefault "00000000000000000000000000000000")
     , "FRONTEND_URL": str (devDefault "http://localhost:5174")
     , "JWT_SECRET": str (devDefault "00000000000000000000000000000000")

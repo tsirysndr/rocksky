@@ -70,7 +70,13 @@ pub fn create(env: Env, metrics: Metrics) -> Task(Context) {
       )
   }
 
-  use sqlite <- task.then(task.from_result(store.open(env.db_path)))
+  use sqlite <- task.then(case env.raw("AUTH_DATABASE_URL") {
+    Some(url) -> {
+      log.info("[auth] OAuth sessions in Postgres")
+      store.open_postgres(url)
+    }
+    None -> task.from_result(store.open(env.db_path))
+  })
   use sqlite_kv <- task.then(task.from_result(kv.open(env.kv_db_path)))
   let pools = db.open(env)
   use _ <- task.then(
