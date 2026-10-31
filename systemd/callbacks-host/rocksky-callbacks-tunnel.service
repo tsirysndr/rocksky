@@ -1,0 +1,33 @@
+[Unit]
+Description=SSH tunnel to Rocksky production for an extra submission callbacks host
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=orangepi
+# Forwards production's loopback services to the same local ports, so the
+# callbacks process runs with production's URLs, and exposes this host's
+# callbacks to production's load balancer on 127.0.0.1:8100. Navidrome is
+# remapped to 14533 because this host runs its own on 4533. The key is
+# restricted on production to exactly these forwards.
+ExecStart=/usr/bin/ssh -N -i /home/orangepi/.ssh/rocksky_callbacks \
+  -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+  -o StrictHostKeyChecking=yes -o BatchMode=yes \
+  -L 127.0.0.1:4222:127.0.0.1:4222 \
+  -L 127.0.0.1:6379:127.0.0.1:6379 \
+  -L 127.0.0.1:8088:127.0.0.1:8088 \
+  -L 127.0.0.1:8090:127.0.0.1:8090 \
+  -L 127.0.0.1:8091:127.0.0.1:8091 \
+  -L 127.0.0.1:8093:127.0.0.1:8093 \
+  -L 127.0.0.1:8095:127.0.0.1:8095 \
+  -L 127.0.0.1:8097:127.0.0.1:8097 \
+  -L 127.0.0.1:8098:127.0.0.1:8098 \
+  -L 127.0.0.1:14533:127.0.0.1:4533 \
+  -R 127.0.0.1:8100:127.0.0.1:8099 \
+  root@161.97.141.205
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

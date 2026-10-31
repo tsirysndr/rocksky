@@ -13,6 +13,8 @@ dns.setDefaultResultOrder("ipv4first");
 const port = Number(process.env.SUBMISSIONS_CALLBACK_PORT) || 8099;
 
 const app = new Hono();
+// Load-balancer probe across callback hosts; unauthenticated, reveals nothing.
+app.get("/internal/submissions/health", (c) => c.text("ok"));
 app.route("/internal/submissions", submissionsApp);
 
 serve({ fetch: app.fetch, hostname: "127.0.0.1", port });

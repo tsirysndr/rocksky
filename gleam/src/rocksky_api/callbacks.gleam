@@ -32,6 +32,9 @@ pub fn main() {
     }
     Ok(ctx) -> {
       hono.new()
+      |> hono.get("/internal/submissions/health", fn(c) {
+        hono.respond(hono.text(c, "ok", 200))
+      })
       |> hono.route("/internal/submissions", submissions.app(ctx))
       |> hono.serve_on("127.0.0.1", port)
       log.info(

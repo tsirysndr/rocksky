@@ -1,0 +1,20 @@
+[Unit]
+Description=Rocksky submission callbacks (extra host behind production's load balancer)
+After=network-online.target rocksky-callbacks-tunnel.service
+Wants=network-online.target rocksky-callbacks-tunnel.service
+
+[Service]
+Type=simple
+User=orangepi
+WorkingDirectory=/home/orangepi/rocksky/gleam
+Environment=HOME=/home/orangepi
+ExecStartPre=/bin/bash -ic 'exec /bin/bash deploy/build-production.sh'
+# env after doppler: these must win over anything the prd config sets.
+ExecStart=/bin/bash -ic 'exec doppler run -- env NODE_ENV=production SUBMISSIONS_CALLBACK_PORT=8099 MATCHING_URL=http://127.0.0.1:8097 NAVIDROME_INTERNAL_URL=http://127.0.0.1:14533 node entry/callbacks.mjs'
+TimeoutStartSec=30min
+Restart=on-failure
+RestartSec=5
+SyslogIdentifier=rocksky-callbacks
+
+[Install]
+WantedBy=multi-user.target

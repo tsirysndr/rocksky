@@ -1,0 +1,18 @@
+# Production Caddy (/pds/caddy/etc/caddy/Caddyfile, host networking).
+# rocksky-submissions keeps SUBMISSIONS_API_URL at 127.0.0.1:8099; Caddy
+# spreads callbacks over production (8101) and tunnelled extra hosts (8100),
+# dropping any host whose health check fails.
+http://127.0.0.1:8099 {
+	bind 127.0.0.1
+	reverse_proxy 127.0.0.1:8101 127.0.0.1:8100 {
+		lb_policy least_conn
+		lb_try_duration 10s
+		lb_try_interval 250ms
+		health_uri /internal/submissions/health
+		health_interval 5s
+		health_timeout 3s
+		health_passes 2
+		health_fails 2
+		fail_duration 30s
+	}
+}

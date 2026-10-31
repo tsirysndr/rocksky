@@ -27,6 +27,7 @@ main = do
     ctx <- createContext
     liftEffect do
       a <- Hono.new
+      Hono.get a "/internal/submissions/health" \c -> liftEffect (Hono.text c "ok")
       Submissions.app ctx >>= Hono.route a "/internal/submissions"
       void (NodeServer.serveOn a "127.0.0.1" port)
       log ("Submission callbacks listening on 127.0.0.1:" <> show port)
