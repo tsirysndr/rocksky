@@ -15,12 +15,24 @@ if (!DB_PATH || !AUTH_DATABASE_URL) {
   process.exit(1);
 }
 
+// Services are stopped while this runs, so a stalled connection must fail
+// rather than wait: the caller falls back to SQLite on a non-zero exit.
+setTimeout(() => {
+  console.error("copy did not finish within 120s");
+  process.exit(1);
+}, 120_000).unref();
+
 const sqlite = new Database(DB_PATH, { readonly: true, fileMustExist: true });
 const sessions = sqlite.prepare("SELECT key, session, expiresAt FROM auth_session").all();
 const states = sqlite.prepare("SELECT key, state FROM auth_state").all();
 sqlite.close();
 
-const client = new pg.Client({ connectionString: AUTH_DATABASE_URL });
+const client = new pg.Client({
+  connectionString: AUTH_DATABASE_URL,
+  connectionTimeoutMillis: 10_000,
+  query_timeout: 60_000,
+  statement_timeout: 60_000,
+});
 await client.connect();
 try {
   await client.query("BEGIN");
@@ -31,26 +43,32 @@ try {
   await client.query(
     "CREATE TABLE IF NOT EXISTS atproto_auth.auth_state (key text PRIMARY KEY, state text NOT NULL)",
   );
-  for (const s of sessions) {
-    // apps/api's old default stored the string 'NULL' rather than NULL.
-    const expires = s.expiresAt === "NULL" ? null : s.expiresAt;
-    await client.query(
-      'INSERT INTO atproto_auth.auth_session (key, session, "expiresAt") VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET session = excluded.session, "expiresAt" = excluded."expiresAt"',
-      [s.key, s.session, expires],
-    );
-  }
-  for (const s of states) {
-    await client.query(
-      "INSERT INTO atproto_auth.auth_state (key, state) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET state = excluded.state",
-      [s.key, s.state],
-    );
-  }
+  // One statement per table: row-by-row inserts cost a round trip each to a
+  // remote database.
+  await client.query(
+    `INSERT INTO atproto_auth.auth_session (key, session, "expiresAt")
+     SELECT * FROM unnest($1::text[], $2::text[], $3::text[])
+     ON CONFLICT (key) DO UPDATE SET session = excluded.session, "expiresAt" = excluded."expiresAt"`,
+    [
+      sessions.map((s) => s.key),
+      sessions.map((s) => s.session),
+      // apps/api's old default stored the string 'NULL' rather than NULL.
+      sessions.map((s) => (s.expiresAt === "NULL" ? null : s.expiresAt)),
+    ],
+  );
+  await client.query(
+    `INSERT INTO atproto_auth.auth_state (key, state)
+     SELECT * FROM unnest($1::text[], $2::text[])
+     ON CONFLICT (key) DO UPDATE SET state = excluded.state`,
+    [states.map((s) => s.key), states.map((s) => s.state)],
+  );
   await client.query("COMMIT");
   const { rows } = await client.query("SELECT count(*)::int AS n FROM atproto_auth.auth_session");
   console.log(`copied ${sessions.length} sessions and ${states.length} states; postgres now holds ${rows[0].n} sessions`);
 } catch (e) {
-  await client.query("ROLLBACK");
+  await client.query("ROLLBACK").catch(() => {});
   throw e;
 } finally {
-  await client.end();
+  await client.end().catch(() => {});
 }
+process.exit(0);
