@@ -6,7 +6,7 @@ Wants=network-online.target rocksky-callbacks-tunnel.service
 [Service]
 Type=simple
 User=orangepi
-WorkingDirectory=/home/orangepi/rocksky/gleam
+WorkingDirectory=/home/orangepi/github/rocksky/gleam
 Environment=HOME=/home/orangepi
 ExecStartPre=/bin/bash -ic 'exec /bin/bash deploy/build-production.sh'
 # env after doppler: these must win over anything the prd config sets.
