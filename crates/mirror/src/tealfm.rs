@@ -12,13 +12,17 @@ use std::time::Duration;
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::env;
-use tokio::sync::RwLock;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::RwLock,
+    time::{interval, timeout, Interval, MissedTickBehavior},
+};
+use tokio_tungstenite::{connect_async, tungstenite::Message, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
@@ -33,6 +37,10 @@ use crate::{
 /// Set of DIDs currently mirroring Teal.fm — shared with the supervisor so it
 /// can add/remove members in response to NATS toggle events.
 pub type EnabledDids = Arc<RwLock<HashSet<String>>>;
+
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
+const RECEIVE_TIMEOUT: Duration = Duration::from_secs(90);
 
 pub async fn run(
     pool: Backend,
@@ -60,7 +68,10 @@ pub async fn run(
             Ok(_) => warn!("Teal.fm: subscriber returned cleanly, reconnecting"),
             Err(e) => error!(error = %e, "Teal.fm: subscriber error"),
         }
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::select! {
+            _ = cancel.cancelled() => return Ok(()),
+            _ = tokio::time::sleep(Duration::from_secs(2)) => {}
+        }
     }
 }
 
@@ -72,13 +83,19 @@ async fn run_once(
     url: &str,
     cancel: &CancellationToken,
 ) -> Result<(), Error> {
-    let (mut ws, _) = connect_async(url).await?;
+    let (mut ws, _) = tokio::select! {
+        _ = cancel.cancelled() => return Ok(()),
+        result = timeout(CONNECT_TIMEOUT, connect_async(url)) => result??,
+    };
     info!(url = %url, "Teal.fm: connected to Jetstream");
+    let mut heartbeat = interval(HEARTBEAT_INTERVAL);
+    heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
     loop {
         tokio::select! {
             _ = cancel.cancelled() => return Ok(()),
-            msg = ws.next() => {
+            msg = next_message(&mut ws, &mut heartbeat) => {
+                let msg = msg?;
                 let Some(msg) = msg else {
                     warn!("Teal.fm: stream ended");
                     return Ok(());
@@ -103,6 +120,28 @@ async fn run_once(
             }
         }
     }
+}
+
+/// A TCP connection can remain established after its peer stops responding.
+/// Probe it even on a quiet collection, and reconnect if no frame arrives.
+/// Keep the timeout outside the heartbeat loop so sending pings cannot extend it.
+async fn next_message<S>(
+    ws: &mut WebSocketStream<S>,
+    heartbeat: &mut Interval,
+) -> Result<Option<Result<Message, tokio_tungstenite::tungstenite::Error>>, Error>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    timeout(RECEIVE_TIMEOUT, async {
+        loop {
+            tokio::select! {
+                msg = ws.next() => return Ok(msg),
+                _ = heartbeat.tick() => ws.send(Message::Ping(Vec::new().into())).await?,
+            }
+        }
+    })
+    .await
+    .map_err(|_| anyhow::anyhow!("Teal.fm: no Jetstream frame for 90 seconds, reconnecting"))?
 }
 
 async fn handle_event(
@@ -272,4 +311,51 @@ struct PlayRecord {
 #[serde(rename_all = "camelCase")]
 struct PlayArtist {
     artist_name: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::duplex;
+    use tokio_tungstenite::tungstenite::protocol::Role;
+
+    #[tokio::test(start_paused = true)]
+    async fn silent_open_connection_times_out_despite_heartbeats() {
+        let (client, _silent_peer) = duplex(4096);
+        let mut ws = WebSocketStream::from_raw_socket(client, Role::Client, None).await;
+        let mut heartbeat = interval(HEARTBEAT_INTERVAL);
+        let started = tokio::time::Instant::now();
+
+        let error = next_message(&mut ws, &mut heartbeat).await.unwrap_err();
+
+        assert!(error.to_string().contains("no Jetstream frame"));
+        assert_eq!(started.elapsed(), RECEIVE_TIMEOUT);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn quiet_responsive_connection_survives_multiple_timeout_windows() {
+        let (client, peer) = duplex(4096);
+        let mut ws = WebSocketStream::from_raw_socket(client, Role::Client, None).await;
+        let mut server = WebSocketStream::from_raw_socket(peer, Role::Server, None).await;
+        let peer_task = tokio::spawn(async move {
+            while let Some(Ok(message)) = server.next().await {
+                assert!(matches!(message, Message::Ping(_)));
+                server.flush().await.unwrap();
+            }
+        });
+        let mut heartbeat = interval(HEARTBEAT_INTERVAL);
+        let started = tokio::time::Instant::now();
+
+        for _ in 0..8 {
+            let message = next_message(&mut ws, &mut heartbeat)
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap();
+            assert!(matches!(message, Message::Pong(_)));
+        }
+
+        assert!(started.elapsed() > RECEIVE_TIMEOUT * 2);
+        peer_task.abort();
+    }
 }

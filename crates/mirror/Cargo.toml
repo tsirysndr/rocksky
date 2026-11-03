@@ -51,6 +51,7 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 [dev-dependencies]
+tokio = { version = "1.43.0", features = ["test-util"] }
 # For asserting that the Postgres fragments bind every value they declare.
 sea-query-binder = { version = "0.7", features = [
   "sqlx-postgres",
