@@ -1,0 +1,63 @@
+# Default pipeline only runs checks. Publishing and deployment are explicit calls.
+[[steps]]
+name = "checks"
+command = "fluentci run main checks"
+
+[package]
+name = "rocksky"
+version = "0.1.0"
+
+[[modules]]
+name = "main"
+path = ".fluentci/main"
+sdk = "purescript"
+
+[[modules]]
+name = "go"
+path = ".fluentci/go"
+sdk = "purescript"
+
+[[modules]]
+name = "typescript"
+path = ".fluentci/typescript"
+sdk = "purescript"
+
+[[modules]]
+name = "rust"
+path = ".fluentci/rust"
+sdk = "purescript"
+
+[[modules]]
+name = "elixir"
+path = ".fluentci/elixir"
+sdk = "purescript"
+
+[[modules]]
+name = "ops"
+path = ".fluentci/ops"
+sdk = "purescript"
+
+[[modules]]
+name = "artifacts"
+path = ".fluentci/artifacts"
+sdk = "purescript"
+
+[[modules]]
+name = "github-release"
+path = ".fluentci/github-release"
+sdk = "purescript"
+
+[[modules]]
+name = "android-sdk"
+path = ".fluentci/android-sdk"
+sdk = "purescript"
+
+[[modules]]
+name = "eas"
+path = ".fluentci/eas"
+sdk = "purescript"
+
+[[modules]]
+name = "host"
+path = ".fluentci/host"
+sdk = "purescript"

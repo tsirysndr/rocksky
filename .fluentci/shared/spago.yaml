@@ -1,0 +1,18 @@
+package:
+  name: rocksky-ci
+  dependencies:
+    - argonaut-codecs
+    - argonaut-core
+    - arrays
+    - console
+    - effect
+    - either
+    - exceptions
+    - fluentci
+    - foldable-traversable
+    - foreign-object
+    - maybe
+    - prelude
+    - refs
+    - strings
+    - tuples

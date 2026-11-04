@@ -22,3 +22,6 @@ Package.resolved
 *.dylib
 *.so
 *.dll
+
+# Default outputs of the FluentCI artifact jobs.
+/dist/fluentci/
