@@ -13,6 +13,7 @@ import Foreign.Object (Object)
 import Foreign.Object as Object
 import Data.Argonaut.Core (Json)
 import Rocksky.CI.Host.CI as CI
+import Rocksky.CI.Test.Docker as DockerTest
 import Rocksky.CI.Host.Install as Install
 import Rocksky.CI.Host.Release as Release
 
@@ -69,3 +70,6 @@ nixBuild = CI.nixBuild
 
 flakehubPublish :: Effect Unit
 flakehubPublish = CI.flakehubPublish
+
+validateDocker :: Effect Unit
+validateDocker = DockerTest.main

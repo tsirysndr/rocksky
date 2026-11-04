@@ -179,8 +179,17 @@ perform client id = case _ of
           Nothing -> []
           Just patterns -> [ "--include=*/" ] <> map ("--include=" <> _) patterns <> [ "--exclude=*" ]
     void $ run ([ "rsync", "-a", "--prune-empty-dirs" ] <> exclusions <> inclusions <> [ "--", path <> "/", stage <> "/" ])
+    -- Docker's directory-copy API rejects links that leave the archive root.
+    -- Copy a regular archive instead, then extract without restoring host UIDs.
+    -- This preserves relative links and gives Git the container user's ownership.
+    archive <- fresh client (client.temporary <> "/source-")
+    containerArchive <- fresh client "/tmp/rocksky-ci-source-"
+    void $ run [ "env", "COPYFILE_DISABLE=1", "tar", "--no-xattrs", "-cf", archive, "-C", stage, "." ]
+    void $ run (docker client [ "cp", archive, id <> ":" <> containerArchive ])
     void $ run (docker client [ "exec", id, "mkdir", "-p", destination ])
-    void $ run (docker client [ "cp", stage <> "/.", id <> ":" <> destination ])
+    void $ run (docker client [ "exec", id, "tar", "--no-same-owner", "-xf", containerArchive, "-C", destination ])
+    void $ run (docker client [ "exec", id, "rm", "-f", "--", containerArchive ])
+    void $ run [ "rm", "-rf", "--", stage, archive ]
     pure ""
   CopyFile destination source mode -> do
     path <- exportFile client source

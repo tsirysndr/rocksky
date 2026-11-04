@@ -4,6 +4,7 @@ import Prelude
 import CI.Docker.Container as C
 import CI.Docker.Engine as E
 import CI.Docker.Query as Q
+import CI.Docker.Types (Directory(..))
 import CI.Effect (bracket)
 import Data.String (trim)
 import Data.Maybe as Data.Maybe
@@ -30,6 +31,36 @@ main = bracket E.createClient E.cleanup \client -> do
   assert "literal argv" (literal == "quotes ' \" and $PATH; data")
   stdin <- C.stdout (base # C.withExecWith ["cat"] (C.defaultWithExecOpts { stdin = Data.Maybe.Just "stdin\nvalue" }))
   assert "stdin transport" (stdin == "stdin\nvalue")
+  -- Reproduce narrow-checkout links and runner-owned Git input directories.
+  let checkout = client.temporary <> "/checkout"
+  void $ E.run ["mkdir", "-p", checkout <> "/nested", checkout <> "/dist", checkout <> "/node_modules"]
+  void $ E.shell ("printf '%s' fixture > " <> E.quote (checkout <> "/nested/data.txt"))
+  void $ E.shell ("printf '%s' executable > " <> E.quote (checkout <> "/dist/fixture"))
+  void $ E.shell ("printf '%s' excluded > " <> E.quote (checkout <> "/.env"))
+  void $ E.run ["chmod", "0755", checkout <> "/dist/fixture"]
+  void $ E.run ["ln", "-s", "../api/lexicons", checkout <> "/lexicons"]
+  void $ E.run ["ln", "-s", "nested/data.txt", checkout <> "/internal"]
+  let copied = base # C.withDirectoryWith "/copy" (HostDirectory checkout)
+        (C.defaultWithDirectoryOpts { exclude = Data.Maybe.Just ["node_modules", ".env"] })
+  link <- trim <$> C.stdout (copied # C.withExec ["readlink", "/copy/lexicons"])
+  assert "escaping relative symlink is preserved" (link == "../api/lexicons")
+  content <- C.stdout (copied # C.withExec ["cat", "/copy/internal"])
+  assert "internal relative symlink still resolves" (content == "fixture")
+  void $ C.sync (copied # C.withExec ["test", "-L", "/copy/lexicons"]
+    # C.withExec ["test", "!", "-e", "/copy/lexicons"]
+    # C.withExec ["test", "-x", "/copy/dist/fixture"]
+    # C.withExec ["test", "!", "-e", "/copy/.env"]
+    # C.withExec ["test", "!", "-e", "/copy/node_modules"])
+  owner <- trim <$> C.stdout (copied # C.withExec ["stat", "-c", "%u:%g", "/copy/nested/data.txt"])
+  currentUser <- trim <$> C.stdout (copied # C.withExec ["sh", "-c", "printf '%s:%s' \"$(id -u)\" \"$(id -g)\""])
+  assert "host UID is not restored inside the container" (owner == currentUser)
+  let git = copied # C.withExec ["apt-get", "update"]
+        # C.withExec ["apt-get", "install", "-y", "--no-install-recommends", "git"]
+        # C.withWorkdir "/copy"
+        # C.withExec ["git", "init", "--quiet"]
+        # C.withExec ["git", "add", "--force", "dist"]
+  tracked <- trim <$> C.stdout (git # C.withExec ["git", "ls-files", "dist"])
+  assert ("copied dashboard Git index must contain only the input fixture: " <> tracked) (tracked == "dist/fixture")
   let redis = Q.container client # C.from "redis:7-alpine" # C.asService
   pong <- C.stdout (base # C.withServiceBinding "redis" redis
     # C.withExec ["node", "-e", "const c=require('node:net').connect(6379,'redis',()=>c.write('PING\\r\\n'));c.setTimeout(5000,()=>process.exit(1));c.on('data',b=>{process.stdout.write(b);c.end()});c.on('error',()=>process.exit(1))"])

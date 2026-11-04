@@ -1,1 +1,1 @@
-export { installDagger, resolveTag, bindings, packageNative, upload, stampDesktop, buildDesktop, packageDesktop, validate, productionFilters, buildMcp, buildPlayerd, prepareDesktop, nixBuild, flakehubPublish } from "./output/Main/index.js";
+export { installDagger, resolveTag, bindings, packageNative, upload, stampDesktop, buildDesktop, packageDesktop, validate, productionFilters, buildMcp, buildPlayerd, prepareDesktop, nixBuild, flakehubPublish, validateDocker } from "./output/Main/index.js";

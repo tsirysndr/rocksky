@@ -17,7 +17,7 @@ nine portable Dagger CI modules are ported, along with the host release helpers.
 | `github-release` | `upload`, `ensure` |
 | `android-sdk` | `container` |
 | `eas` | `android`, `toolchain`, `aab`, `apk` |
-| `host` | `installDagger`, `resolveTag`, `bindings`, `packageNative`, `upload`, `stampDesktop`, `buildDesktop`, `packageDesktop`, `validate`, `productionFilters`, `buildMcp`, `buildPlayerd`, `prepareDesktop`, `nixBuild`, `flakehubPublish` |
+| `host` | `installDagger`, `resolveTag`, `bindings`, `packageNative`, `upload`, `stampDesktop`, `buildDesktop`, `packageDesktop`, `validate`, `validateDocker`, `productionFilters`, `buildMcp`, `buildPlayerd`, `prepareDesktop`, `nixBuild`, `flakehubPublish` |
 
 ## Run
 
@@ -94,7 +94,9 @@ tools download, source exclusions, and AAB/APK content verification.
 provides typed argument decoding, artifact exports, and a PureScript Docker
 executor built on `FluentCI.Plugin`. The guest uses synchronous `Effect` calls,
 with literal argv, explicit stdin, private service DNS/readiness checks, and
-immutable filesystem snapshots. It does not import Dagger's runtime or Node's
+immutable filesystem snapshots. Source directories are archived without host
+extended attributes and extracted with container ownership, preserving relative
+symlinks and executable modes. It does not import Dagger's runtime or Node's
 APIs. The host release utilities invoke native Node processes for portable OS
 primitives; their release policy remains PureScript. Command exit codes and
 stdout travel in a JSON envelope, preserving exact output and allowing
@@ -111,7 +113,7 @@ After `fluentci modules --json` builds the modules:
 
 ```sh
 node --test .fluentci/tests/port.test.mjs
-# Optional Docker integration checks: snapshots, argv/stdin, Redis, PostgreSQL.
+# Docker integration checks: snapshots, source links/ownership, Git, services.
 node .fluentci/tests/docker.mjs
 ```
 
@@ -121,7 +123,7 @@ Docker checks use temporary containers/networks and do not access production.
 Every GitHub Actions workflow now calls the FluentCI modules. The reusable
 `fluentci-modules.yml` job sets up the CLI with
 `fluentci-io/setup-fluentci@next`, compiles all Wasm modules
-once, validates orchestration, and uploads the portable plugins. Other jobs
+once, validates orchestration and Docker source transfer/services, and uploads the portable plugins. Other jobs
 install the same pinned CLI and download those plugins, so native and BSD runners
 do not need PureScript compilers. The original triggers, target architectures,
 artifact names, deployment gates, and disabled PostgreSQL publishing remain.

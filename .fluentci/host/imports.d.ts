@@ -1,5 +1,5 @@
 // Generated from schema/host.json. Guest import signatures.
-declare module "main" { export function validate(): I32; export function productionFilters(): I32; export function buildMcp(): I32; export function buildPlayerd(): I32; export function prepareDesktop(): I32; export function nixBuild(): I32; export function flakehubPublish(): I32;  export function installDagger(): I32; export function resolveTag(): I32; export function bindings(): I32; export function packageNative(): I32; export function upload(): I32; export function stampDesktop(): I32; export function buildDesktop(): I32; export function packageDesktop(): I32; }
+declare module "main" { export function validateDocker(): I32; export function validate(): I32; export function productionFilters(): I32; export function buildMcp(): I32; export function buildPlayerd(): I32; export function prepareDesktop(): I32; export function nixBuild(): I32; export function flakehubPublish(): I32;  export function installDagger(): I32; export function resolveTag(): I32; export function bindings(): I32; export function packageNative(): I32; export function upload(): I32; export function stampDesktop(): I32; export function buildDesktop(): I32; export function packageDesktop(): I32; }
 declare module "extism:host" { interface user {
   add_secretmanager(value: I64): I64;
   as_service(value: I64): I64;
