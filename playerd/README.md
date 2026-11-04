@@ -117,8 +117,8 @@ Or via npm — same binaries, fetched and checksum-verified at install time:
 npm install -g @rocksky/playerd
 ```
 
-Prebuilt targets: macOS arm64 (Apple Silicon), Linux x86_64 and Linux aarch64.
-Anything else (e.g. an Intel Mac) builds from source — see below. On Linux the
+Prebuilt targets: macOS arm64 (Apple Silicon), macOS x86_64 (Intel), Linux
+x86_64 and Linux aarch64. Anything else builds from source — see below. On Linux the
 binary needs ALSA at runtime (`sudo apt-get install libasound2` on
 Debian/Ubuntu).
 

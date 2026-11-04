@@ -21,7 +21,7 @@ to [Getting oriented](#getting-oriented). Otherwise set it up:
 **1. Install playerd** — one binary, no runtime:
 
 ```sh
-# macOS arm64, Linux x86_64/aarch64 — detects OS and CPU
+# macOS arm64/x86_64, Linux x86_64/aarch64 — detects OS and CPU
 curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh | sh
 
 # or via npm (same binaries, checksum-verified)

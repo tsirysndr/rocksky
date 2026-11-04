@@ -11,7 +11,8 @@
 #
 # Release assets are produced by .github/workflows/playerd-release.yml as
 # playerd-v<version>-<target>.tar.gz (+ .sha256), for:
-#   aarch64-apple-darwin, x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu
+#   aarch64-apple-darwin, x86_64-apple-darwin, x86_64-unknown-linux-gnu,
+#   aarch64-unknown-linux-gnu
 
 set -eu
 
@@ -32,7 +33,7 @@ case "$os" in
   Darwin)
     case "$arch" in
       arm64 | aarch64) target="aarch64-apple-darwin" ;;
-      x86_64) fail "no macOS Intel build is published — build from source: cargo install --git https://github.com/$REPO playerd" ;;
+      x86_64) target="x86_64-apple-darwin" ;;
       *) fail "unsupported macOS architecture: $arch" ;;
     esac
     ;;
@@ -44,7 +45,7 @@ case "$os" in
     esac
     ;;
   *)
-    fail "unsupported OS: $os (playerd releases cover macOS arm64 and Linux x86_64/aarch64)"
+    fail "unsupported OS: $os (playerd releases cover macOS arm64/x86_64 and Linux x86_64/aarch64)"
     ;;
 esac
 

@@ -25,13 +25,12 @@ function resolveTarget() {
   const platform = os.platform();
   const arch = os.arch();
   if (platform === "darwin" && arch === "arm64") return "aarch64-apple-darwin";
+  if (platform === "darwin" && arch === "x64") return "x86_64-apple-darwin";
   if (platform === "linux" && arch === "x64") return "x86_64-unknown-linux-gnu";
   if (platform === "linux" && arch === "arm64") return "aarch64-unknown-linux-gnu";
-  const hint =
-    platform === "darwin" && arch === "x64"
-      ? "no macOS Intel build is published — build from source: cargo install --git https://github.com/tsirysndr/rocksky playerd"
-      : `playerd releases cover macOS arm64 and Linux x64/arm64, not ${platform}/${arch}`;
-  throw new Error(`unsupported platform: ${hint}`);
+  throw new Error(
+    `unsupported platform: playerd releases cover macOS arm64/x64 and Linux x64/arm64, not ${platform}/${arch}`,
+  );
 }
 
 async function fetchBytes(url) {

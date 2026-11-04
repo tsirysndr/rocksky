@@ -29,7 +29,7 @@ Everything on this page is real output from a real library, not a mock-up.
 ## Setup in three commands
 
 ```sh
-# 1. install the daemon (macOS arm64, Linux x86_64/aarch64)
+# 1. install the daemon (macOS arm64/x86_64, Linux x86_64/aarch64)
 curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh | sh
 
 # 2. log in once

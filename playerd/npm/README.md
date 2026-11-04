@@ -13,8 +13,8 @@ playerd
 
 The install fetches the prebuilt binary for your platform from the matching
 [GitHub release](https://github.com/tsirysndr/rocksky/releases) and verifies
-its SHA-256. Supported: macOS arm64 (Apple Silicon), Linux x86_64 and Linux
-aarch64. On Linux the binary needs ALSA at runtime
+its SHA-256. Supported: macOS arm64 (Apple Silicon), macOS x86_64 (Intel), Linux
+x86_64 and Linux aarch64. On Linux the binary needs ALSA at runtime
 (`sudo apt-get install libasound2` on Debian/Ubuntu).
 
 If install scripts were skipped (`--ignore-scripts`), the binary is downloaded
