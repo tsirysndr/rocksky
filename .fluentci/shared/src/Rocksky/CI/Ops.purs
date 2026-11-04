@@ -152,14 +152,8 @@ nixBuild client args = do
   let
     image = Query.container client # Container.from "nixos/nix:2.28.5"
     store = Query.cacheVolume "rocksky-nix-store" client
-    -- Seed a fresh cache before mounting it over the image's own Nix binaries.
-    seed = Query.container client
-      # Container.from "node:24-bookworm-slim"
-      # Container.withDirectory "/seed" (Container.directory "/nix" image)
-      # Container.withMountedCache "/nix" store
-      # Container.withEnvVariable "NIX_RUN" args.runId
-      # Container.withExec [ "cp", "-an", "/seed/.", "/nix/" ]
-  void $ Container.sync seed
+    -- Docker populates an empty named volume from the image's /nix directory.
+    -- Mount it directly so the read-only store never passes through the runner.
   Ops.nix args.cachixToken $ image
     # Container.withMountedCache "/nix" store
     # Container.withEnvVariable "NIX_REMOTE" "local"

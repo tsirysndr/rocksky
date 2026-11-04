@@ -60,6 +60,9 @@ to `output`, or `dist/fluentci/<function>` when omitted. Each invocation owns an
 isolated Docker network and temporary directory. Its containers, temporary
 images, network, registry credentials, and staging files are cleaned up on normal
 success or failure. Named Docker cache volumes persist across invocations.
+Nix mounts its store cache directly on the Nix image. Docker initializes an
+empty volume from the image's existing store and retains populated caches;
+read-only store directories are never exported to the runner for seeding.
 
 Release, registry, SSH, and EAS secrets use environment references, for example
 `"token":"env://GH_TOKEN"`, `"privateKey":"env://SSH_KEY"`, or
