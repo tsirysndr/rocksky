@@ -1,71 +1,76 @@
 name: build
-on:
+'on':
   push:
     tags-ignore:
-      - "bindings-v*"
-      - "erlang-v*"
-      - "gleam-v*"
-      - "playerd-v*"
-      - "playerd-[0-9]*"
-      - "desktop-v*"
-
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
+    - bindings-v*
+    - erlang-v*
+    - gleam-v*
+    - playerd-v*
+    - playerd-[0-9]*
+    - desktop-v*
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   changes:
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.filter.outputs.changes }}
       rockskyd: ${{ steps.filter.outputs.rockskyd }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - name: Compile PureScript deployment logic
-        working-directory: .dagger/ops
-        run: |
-          cp -R ../sdk/purescript dagger-sdk
-          npm install --no-save purescript@0.15.16 spago@1.0.5
-          npm run build
-      - name: Test deployment without SSH or Dagger
-        working-directory: .dagger/ops
-        run: node --input-type=module -e 'import { main } from "./output/Test.Deploy/index.js"; main();'
-      - name: Read PureScript production filters
-        id: inventory
-        working-directory: .dagger/ops
-        run: node --input-type=module -e 'import { filters } from "./output/Production/index.js"; console.log("filters=" + filters);' >> "$GITHUB_OUTPUT"
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: ${{ steps.inventory.outputs.filters }}
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Validate deployment orchestration
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: validate
+        arguments: '{}'
+    - name: Read production change filters
+      id: inventory
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: productionFilters
+        arguments: '{}'
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: ${{ steps.inventory.outputs.filters }}
+    needs:
+    - fluentci-modules
   rockskyd:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.rockskyd == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Build production Rust executables (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m rust production-binaries --source .. export --path ../target/release
-      - name: Upload production Rust executables
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-rust
-          path: |
-            target/release/rockskyd
-            target/release/rocksky-submissions
-          if-no-files-found: error
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Build production Rust executables (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: productionBinaries
+        arguments: '{"source":".","output":"target/release"}'
+    - name: Upload production Rust executables
+      uses: actions/upload-artifact@v4
+      with:
+        name: production-rust
+        path: |
+          target/release/rockskyd
+          target/release/rocksky-submissions
+        if-no-files-found: error
   deploy:
-    needs: [changes, rockskyd]
+    needs:
+    - fluentci-modules
+    - changes
+    - rockskyd
     if: |
       always() && !cancelled() &&
       github.ref == 'refs/heads/main' &&
@@ -79,27 +84,25 @@ jobs:
       group: rocksky-production-deploy
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - name: Download production Rust executables
-        if: needs.changes.outputs.rockskyd == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: production-rust
-          path: target/release
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Deploy selected active production services (PureScript Dagger)
-        working-directory: .dagger
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          DEPLOY_HOST: ${{ vars.ROCKSKY_DEPLOY_HOST }}
-          DEPLOY_KNOWN_HOSTS: ${{ vars.ROCKSKY_DEPLOY_KNOWN_HOSTS }}
-          DEPLOY_SERVICES: ${{ needs.changes.outputs.services }}
-          DEPLOY_COMMIT: ${{ github.sha }}
-          DEPLOY_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          mkdir -p ../target/release
-          dagger --progress logs -v api call -m ops deploy --artifacts ../target/release \
-            --private-key env://SSH_PRIVATE_KEY \
-            --services "$DEPLOY_SERVICES" --commit "$DEPLOY_COMMIT" --run-id "$DEPLOY_RUN" \
-            --host "$DEPLOY_HOST" --known-hosts "$DEPLOY_KNOWN_HOSTS"
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Download production Rust executables
+      if: needs.changes.outputs.rockskyd == 'true'
+      uses: actions/download-artifact@v4
+      with:
+        name: production-rust
+        path: target/release
+    - name: Deploy selected active production services (PureScript FluentCI)
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        DEPLOY_HOST: ${{ vars.ROCKSKY_DEPLOY_HOST }}
+        DEPLOY_KNOWN_HOSTS: ${{ vars.ROCKSKY_DEPLOY_KNOWN_HOSTS }}
+        DEPLOY_SERVICES: ${{ needs.changes.outputs.services }}
+        DEPLOY_COMMIT: ${{ github.sha }}
+        DEPLOY_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: ops
+        function: deploy
+        arguments: '{"artifacts":"target/release","privateKey":"env://SSH_PRIVATE_KEY","services":"$DEPLOY_SERVICES","commit":"$DEPLOY_COMMIT","runId":"$DEPLOY_RUN","host":"$DEPLOY_HOST","knownHosts":"$DEPLOY_KNOWN_HOSTS"}'

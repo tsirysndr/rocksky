@@ -1,152 +1,154 @@
 name: desktop-release
-
-on:
+'on':
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (default desktop-v<version> from desktop/src-tauri/tauri.conf.json)"
+        description: Release tag (default desktop-v<version> from desktop/src-tauri/tauri.conf.json)
         type: string
         required: false
       linux_only:
-        description: "Rebuild only Linux assets (preserve published macOS checksums)"
+        description: Rebuild only Linux assets (preserve published macOS checksums)
         type: boolean
         default: false
   push:
     tags:
-      - "desktop-v*"
-
+    - desktop-v*
 permissions:
   contents: write
-
 concurrency:
   group: desktop-release-${{ github.ref }}
   cancel-in-progress: false
-
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   prepare-release:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
       version: ${{ steps.tag.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-dagger
-        with:
-          install-dagger: ${{ runner.os == 'Linux' }}
-      - name: Resolve release tag
-        id: tag
-        working-directory: .
-        env:
-          RELEASE_INPUT_TAG: ${{ inputs.tag }}
-        run: node .dagger/host/run.mjs resolve-tag desktop
-
-      - name: Ensure release exists (PureScript Dagger)
-        working-directory: .dagger
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
-          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress logs -v api call -m ops ensure-release --project desktop --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Resolve release tag
+      id: tag
+      env:
+        RELEASE_INPUT_TAG: ${{ inputs.tag }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: resolveTag
+        arguments: '{"project":"desktop"}'
+    - name: Ensure release exists (PureScript FluentCI)
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: ops
+        function: ensureRelease
+        arguments: '{"project":"desktop","tag":"$RELEASE_TAG","commit":"$GITHUB_SHA","token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'
+    needs:
+    - fluentci-modules
   build:
-    needs: prepare-release
+    needs:
+    - fluentci-modules
+    - prepare-release
     name: build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # Manual Linux repairs must not replace the DMGs referenced by Homebrew.
-        include: ${{ fromJSON(inputs.linux_only && '[{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-22.04","bundles":"deb,rpm,appimage"}]' || '[{"target":"aarch64-apple-darwin","os":"macos-latest","bundles":"app"},{"target":"x86_64-apple-darwin","os":"macos-latest","bundles":"app"},{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-22.04","bundles":"deb,rpm,appimage"}]') }}
-    defaults:
-      run:
-        working-directory: desktop
+        include: ${{ fromJSON(inputs.linux_only && '[{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-24.04","bundles":"deb,rpm,appimage"}]'
+          || '[{"target":"aarch64-apple-darwin","os":"macos-latest","bundles":"app"},{"target":"x86_64-apple-darwin","os":"macos-latest","bundles":"app"},{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-24.04","bundles":"deb,rpm,appimage"}]')
+          }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-dagger
-        with:
-          install-dagger: ${{ runner.os == 'Linux' }}
-
-      - uses: oven-sh/setup-bun@v2
-        if: runner.os != 'Linux'
-        with:
-          bun-version: 1.4.3
-
-      - uses: dtolnay/rust-toolchain@stable
-        if: runner.os != 'Linux'
-        with:
-          targets: ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
-        if: runner.os != 'Linux'
-        with:
-          workspaces: desktop/src-tauri
-          shared-key: desktop-${{ matrix.target }}
-          cache-on-failure: true
-
-      - name: Install workspace dependencies
-        if: runner.os != 'Linux'
-        working-directory: .
-        run: bun install --frozen-lockfile
-
-      # The desktop app resolves @rocksky/sdk through sdk/typescript/dist, which
-      # is gitignored — without this the frontend's `tsc -b` cannot find the
-      # module and every SDK-derived type collapses to an error.
-      - name: Build @rocksky/sdk
-        if: runner.os != 'Linux'
-        working-directory: sdk/typescript
-        run: bun run build
-
-      - name: Stamp version from tag
-        if: runner.os != 'Linux'
-        working-directory: .
-        env:
-          VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: node .dagger/host/run.mjs stamp-desktop
-
-      - name: tauri build
-        if: runner.os != 'Linux'
-        working-directory: .
-        env:
-          APPLE_SIGNING_IDENTITY: '-'
-          KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
-          RELEASE_TARGET: ${{ matrix.target }}
-          RELEASE_BUNDLES: ${{ matrix.bundles }}
-        run: node .dagger/host/run.mjs build-desktop
-
-      - name: Package macOS bundle (ad-hoc signed)
-        if: runner.os == 'macOS'
-        working-directory: .
-        env:
-          VERSION: ${{ needs.prepare-release.outputs.version }}
-          RELEASE_TARGET: ${{ matrix.target }}
-        run: node .dagger/host/run.mjs package-desktop
-
-      - name: Build and verify Linux desktop bundles (PureScript Dagger)
-        if: runner.os == 'Linux'
-        env:
-          VERSION: ${{ needs.prepare-release.outputs.version }}
-          KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m ops desktop-release --source .. --version "$VERSION" --klipy-key env://KLIPY_API_KEY --output "$RUNNER_TEMP/desktop-assets"
-
-      - name: Upload to release
-        if: runner.os != 'Linux'
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-        run: node .dagger/host/run.mjs upload desktop Rocksky_
-
-      - name: Upload Linux desktop bundles (PureScript Dagger)
-        if: runner.os == 'Linux'
-        working-directory: .dagger
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress logs -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets "$RUNNER_TEMP/desktop-assets" --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - uses: oven-sh/setup-bun@v2
+      if: runner.os != 'Linux'
+      with:
+        bun-version: 1.4.3
+    - uses: dtolnay/rust-toolchain@stable
+      if: runner.os != 'Linux'
+      with:
+        targets: ${{ matrix.target }}
+    - uses: Swatinem/rust-cache@v2
+      if: runner.os != 'Linux'
+      with:
+        workspaces: desktop/src-tauri
+        shared-key: desktop-${{ matrix.target }}
+        cache-on-failure: true
+    - name: Prepare desktop workspace with FluentCI
+      if: runner.os != 'Linux'
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: prepareDesktop
+        arguments: '{}'
+    - name: Stamp version from tag
+      if: runner.os != 'Linux'
+      env:
+        VERSION: ${{ needs.prepare-release.outputs.version }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: stampDesktop
+        arguments: '{}'
+    - name: tauri build
+      if: runner.os != 'Linux'
+      env:
+        APPLE_SIGNING_IDENTITY: '-'
+        KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
+        RELEASE_TARGET: ${{ matrix.target }}
+        RELEASE_BUNDLES: ${{ matrix.bundles }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: buildDesktop
+        arguments: '{}'
+    - name: Package macOS bundle (ad-hoc signed)
+      if: runner.os == 'macOS'
+      env:
+        VERSION: ${{ needs.prepare-release.outputs.version }}
+        RELEASE_TARGET: ${{ matrix.target }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: packageDesktop
+        arguments: '{}'
+    - name: Build and verify Linux desktop bundles (PureScript FluentCI)
+      if: runner.os == 'Linux'
+      env:
+        VERSION: ${{ needs.prepare-release.outputs.version }}
+        KLIPY_API_KEY: ${{ secrets.VITE_KLIPY_API_KEY }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: ops
+        function: desktopRelease
+        arguments: '{"source":".","version":"$VERSION","klipyKey":"env://KLIPY_API_KEY","output":"$RUNNER_TEMP/desktop-assets"}'
+    - name: Upload to release
+      if: runner.os != 'Linux'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: upload
+        arguments: '{"directory":"desktop","prefix":"Rocksky_"}'
+    - name: Upload Linux desktop bundles (PureScript FluentCI)
+      if: runner.os == 'Linux'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: github-release
+        function: upload
+        arguments: '{"repository":"$GITHUB_REPOSITORY","clobber":true,"assets":"$RUNNER_TEMP/desktop-assets","tag":"$RELEASE_TAG","token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'

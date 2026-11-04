@@ -12,6 +12,7 @@ import FluentCI.Plugin as P
 import Foreign.Object (Object)
 import Foreign.Object as Object
 import Data.Argonaut.Core (Json)
+import Rocksky.CI.Host.CI as CI
 import Rocksky.CI.Host.Install as Install
 import Rocksky.CI.Host.Release as Release
 
@@ -47,3 +48,24 @@ buildDesktop :: Effect Unit
 buildDesktop = Release.buildDesktop
 packageDesktop :: Effect Unit
 packageDesktop = Release.packageDesktop
+
+validate :: Effect Unit
+validate = CI.validate
+
+productionFilters :: Effect Unit
+productionFilters = CI.productionFilters
+
+buildMcp :: Effect Unit
+buildMcp = input >>= field "target" >>= CI.buildMcp
+
+buildPlayerd :: Effect Unit
+buildPlayerd = CI.buildPlayerd
+
+prepareDesktop :: Effect Unit
+prepareDesktop = CI.prepareDesktop
+
+nixBuild :: Effect Unit
+nixBuild = CI.nixBuild
+
+flakehubPublish :: Effect Unit
+flakehubPublish = CI.flakehubPublish

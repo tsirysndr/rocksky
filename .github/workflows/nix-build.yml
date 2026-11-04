@@ -1,96 +1,56 @@
 name: nix-build
-
-on:
+'on':
   push:
     branches:
-      - main
+    - main
   pull_request:
     branches:
-      - main
-
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
+    - main
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   nix-build:
     name: nix build (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
-          - ubuntu-24.04-arm
-          - macos-latest
+        - ubuntu-latest
+        - ubuntu-24.04-arm
+        - macos-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        if: runner.os != 'Linux'
-        uses: DeterminateSystems/nix-installer-action@main
-
-      - name: Set up Cachix
-        if: runner.os != 'Linux'
-        uses: cachix/cachix-action@v17
-        with:
-          name: rocksky
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - name: nix build (apps/cli)
-        if: runner.os != 'Linux'
-        run: nix build ./apps/cli --print-build-logs -o result-cli
-
-      - name: nix build (playerd)
-        if: runner.os != 'Linux'
-        run: nix build .#playerd --print-build-logs -o result-playerd
-
-      - name: nix build (rockskyd)
-        if: runner.os != 'Linux'
-        run: nix build .#rockskyd --print-build-logs -o result-rockskyd
-
-      - name: nix build (drift)
-        if: runner.os != 'Linux'
-        run: nix build .#drift --print-build-logs -o result-drift
-
-      - name: nix build (riff)
-        if: runner.os != 'Linux'
-        run: nix build .#riff --print-build-logs -o result-riff
-
-      - name: nix build (deezer)
-        if: runner.os != 'Linux'
-        run: nix build .#deezer --print-build-logs -o result-deezer
-
-      - name: nix build (spotify)
-        if: runner.os != 'Linux'
-        run: nix build .#spotify --print-build-logs -o result-spotify
-
-      - name: nix build (musicbrainz)
-        if: runner.os != 'Linux'
-        run: nix build .#musicbrainz --print-build-logs -o result-musicbrainz
-
-      # The bun node_modules fixed-output hash is only pinned for
-      # aarch64-darwin so far; on Linux this fails with a hash mismatch —
-      # copy the "got:" hash from the log into bunNodeModulesHash in
-      # flake.nix to pin that platform, then drop the continue-on-error.
-      - name: nix build (rocksky-desktop)
-        if: runner.os != 'Linux'
-        continue-on-error: ${{ !startsWith(matrix.os, 'macos') }}
-        run: nix build .#rocksky-desktop --print-build-logs -o result-rocksky-desktop
-
-      - name: List result directories
-        if: runner.os != 'Linux'
-        run: ls -la result-*/
-
-      - name: Install pinned Dagger CLI
-        if: runner.os == 'Linux'
-        uses: ./.github/actions/setup-dagger
-      - name: Build Linux Nix packages (PureScript Dagger)
-        if: runner.os == 'Linux'
-        env:
-          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          NIX_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m ops nix-build --source .. --cachix-token env://CACHIX_AUTH_TOKEN --run-id "$NIX_RUN"
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Install Nix
+      if: runner.os != 'Linux'
+      uses: DeterminateSystems/nix-installer-action@main
+    - name: Set up Cachix
+      if: runner.os != 'Linux'
+      uses: cachix/cachix-action@v17
+      with:
+        name: rocksky
+        authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+    - name: Build native Nix packages with FluentCI
+      if: runner.os != 'Linux'
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: nixBuild
+        arguments: '{}'
+    - name: Build Linux Nix packages (PureScript FluentCI)
+      if: runner.os == 'Linux'
+      env:
+        CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        NIX_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: ops
+        function: nixBuild
+        arguments: '{"source":".","cachixToken":"env://CACHIX_AUTH_TOKEN","runId":"$NIX_RUN"}'
+    needs:
+    - fluentci-modules

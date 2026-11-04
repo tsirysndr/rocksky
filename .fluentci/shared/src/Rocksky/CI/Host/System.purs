@@ -4,6 +4,7 @@ module Rocksky.CI.Host.System where
 
 import Prelude
 import CI.Docker.Engine as E
+import CI.Docker.Types as CI.Docker.Types
 import CI.Module as M
 import Data.Array as Data.Array
 import Data.Argonaut.Parser (jsonParser)
@@ -24,7 +25,14 @@ overrides :: Ref.Ref (Object String)
 overrides = unsafePerformEffect (Ref.new Object.empty)
 
 native :: String -> Array String -> Effect String
-native code args = E.run (["node", "-e", code, "--"] <> args)
+native code args = do
+  executable <- nodeExecutable
+  E.run ([executable, "-e", code, "--"] <> args)
+
+nodeExecutable :: Effect String
+nodeExecutable = do
+  configured <- E.unwrap (P.getEnv "ROCKSKY_NODE")
+  pure (if configured == "" then "node" else configured)
 
 env :: String -> Effect String
 env name = do
@@ -37,11 +45,11 @@ setEnv :: String -> String -> Effect Unit
 setEnv name value = Ref.modify_ (Object.insert name value) overrides
 
 platform :: Effect String
-platform = native "process.stdout.write(process.platform)" []
+platform = trim <$> native "process.stdout.write(process.platform)" []
 arch :: Effect String
-arch = native "process.stdout.write(process.arch)" []
+arch = trim <$> native "process.stdout.write(process.arch)" []
 cwd :: Effect String
-cwd = native "process.stdout.write(process.cwd())" []
+cwd = trim <$> native "process.stdout.write(process.cwd())" []
 read :: String -> Effect String
 read path = native "process.stdout.write(require('node:fs').readFileSync(process.argv[1],'utf8'))" [path]
 write :: String -> String -> Effect Unit
@@ -51,7 +59,7 @@ append path text = void $ native "require('node:fs').appendFileSync(process.argv
 mkdir :: String -> Effect Unit
 mkdir path = void $ native "require('node:fs').mkdirSync(process.argv[1],{recursive:true})" [path]
 temporary :: Effect String
-temporary = native "process.stdout.write(require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(),'rocksky-ci-')))" []
+temporary = trim <$> native "process.stdout.write(require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(),'rocksky-ci-')))" []
 remove :: String -> Effect Unit
 remove path = void $ native "require('node:fs').rmSync(process.argv[1],{recursive:true,force:true})" [path]
 exists :: String -> Effect Boolean
@@ -65,14 +73,15 @@ entries path = do
 copy :: String -> String -> Effect Unit
 copy source destination = void $ native "require('node:fs').cpSync(process.argv[1],process.argv[2],{recursive:true,verbatimSymlinks:true,preserveTimestamps:true})" [source,destination]
 sha256 :: String -> Effect String
-sha256 path = native "process.stdout.write(require('node:crypto').createHash('sha256').update(require('node:fs').readFileSync(process.argv[1])).digest('hex'))" [path]
+sha256 path = trim <$> native "process.stdout.write(require('node:crypto').createHash('sha256').update(require('node:fs').readFileSync(process.argv[1])).digest('hex'))" [path]
 
 execute :: Boolean -> String -> String -> Array String -> Effect { code :: Int, output :: String }
 execute capture dir program args = do
   values <- Ref.read overrides
-  let script = "const {spawnSync}=require('node:child_process');const [cwd,program,args,capture]=process.argv.slice(1).map(JSON.parse);const r=spawnSync(program,args,{cwd,encoding:'utf8',stdio:['inherit',capture?'pipe':2,'inherit'],maxBuffer:64*1024*1024});if(r.error)throw r.error;process.stdout.write(JSON.stringify({code:r.status??1,output:r.stdout??''}));"
-  let pipeline = Object.fold (\p key value -> P.withSecret key (P.secret key value) p) (P.pipeline "host-command") values
-  raw <- E.unwrap $ P.stdout $ pipeline # P.exec ["node", "-e", script, "--", stringify (encodeJson dir), stringify (encodeJson program), stringify (encodeJson args), stringify (encodeJson capture)]
+  executable <- nodeExecutable
+  let script = "const {spawnSync}=require('node:child_process');const [cwd,program,args,capture]=process.argv.slice(1).map(JSON.parse);const env={...process.env};if(env.ROCKSKY_WINDOWS_PATH){delete env.Path;env.PATH=env.ROCKSKY_WINDOWS_PATH;}const r=spawnSync(program,args,{cwd,env,encoding:'utf8',stdio:['inherit',capture?'pipe':2,'inherit'],maxBuffer:64*1024*1024});if(r.error)console.error(r.error.message);process.stdout.write(JSON.stringify({code:r.status??127,output:r.stdout??''}));"
+  let secrets = Object.mapWithKey (\name value -> CI.Docker.Types.Secret { name, value }) values
+  raw <- E.capture secrets [executable, "-e", script, "--", stringify (encodeJson dir), stringify (encodeJson program), stringify (encodeJson args), stringify (encodeJson capture)]
   case jsonParser raw of
     Left problem -> throw problem
     Right value -> M.json value
@@ -88,7 +97,8 @@ run capture dir argv = case Data.Array.uncons argv of
 root :: Effect String
 root = do
   workspace <- env "GITHUB_WORKSPACE"
-  if workspace /= "" then pure workspace else do
+  windows <- env "ROCKSKY_NATIVE_WINDOWS"
+  if windows == "1" then cwd else if workspace /= "" then pure workspace else do
     directory <- cwd
     trim <$> run true directory ["git", "rev-parse", "--show-toplevel"]
 

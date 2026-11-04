@@ -1,27 +1,28 @@
 name: ci
-on:
+'on':
   push:
     branches:
-      - main
+    - main
   pull_request:
     branches:
-      - main
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
+    - main
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Rust formatting and tracklist tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m rust tracklist --source ..
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Rust formatting and tracklist tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: tracklist
+        arguments: '{"source":"."}'
+    needs:
+    - fluentci-modules

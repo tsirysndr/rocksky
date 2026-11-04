@@ -1,22 +1,32 @@
-name: "Publish every Git push to main to FlakeHub"
-on:
+name: Publish every Git push to main to FlakeHub
+'on':
   push:
     branches:
-      - "main"
+    - main
 jobs:
-  flakehub-publish:
-    runs-on: "ubuntu-latest"
+  fluentci-modules:
     permissions:
-      id-token: "write"
-      contents: "read"
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
+  flakehub-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - uses: "actions/checkout@v6"
-        with:
-          persist-credentials: false
-      - uses: "DeterminateSystems/determinate-nix-action@v3"
-      - uses: "DeterminateSystems/flakehub-push@main"
-        with:
-          name: "tsirysndr/rocksky"
-          rolling: true
-          visibility: "public"
-          include-output-paths: true
+    - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - uses: DeterminateSystems/determinate-nix-action@v3
+    - name: Publish rolling flake through FluentCI
+      env:
+        GH_TOKEN: ${{ github.token }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: flakehubPublish
+        arguments: '{}'
+    needs:
+    - fluentci-modules

@@ -1,7 +1,7 @@
 module Rocksky.CI.Ops where
 
 import Prelude
-import CI.Docker.Types (Client, Directory, File, Platform(..), Secret)
+import CI.Docker.Types (Client, Directory(..), File, Platform(..), Secret)
 import CI.Docker.Engine as Engine
 import Rocksky.CI.Operations as Ops
 import Rocksky.CI.Desktop as Desktop
@@ -129,6 +129,9 @@ deploy :: Client -> DeployArgs -> Aff String
 deploy client args = case Deploy.validate args.commit args.services of
   Left problem -> throwError (error problem)
   Right selected -> do
+    case args.artifacts of
+      HostDirectory path -> void $ Engine.run ["mkdir", "-p", path]
+      _ -> pure unit
     connection <- case SSH.settings args.host args.knownHosts of
       Left problem -> throwError (error problem)
       Right value -> pure value

@@ -1,0 +1,53 @@
+name: Invoke FluentCI module
+description: Run a compiled PureScript module with literal JSON arguments.
+inputs:
+  module:
+    required: true
+    description: Declared FluentCI module name.
+  function:
+    required: true
+    description: Exported module function.
+  arguments:
+    default: '{}'
+    description: JSON arguments; dollar-prefixed environment references are expanded as data.
+outputs:
+  tag:
+    description: Resolved release tag.
+    value: ${{ steps.native.outputs.tag }}
+  version:
+    description: Resolved desktop version.
+    value: ${{ steps.native.outputs.version }}
+  filters:
+    description: Production change filters.
+    value: ${{ steps.native.outputs.filters }}
+runs:
+  using: composite
+  steps:
+    - name: Invoke module
+      if: runner.os != 'Windows'
+      id: native
+      shell: bash
+      working-directory: .
+      env:
+        FLUENTCI_MODULE: ${{ inputs.module }}
+        FLUENTCI_FUNCTION: ${{ inputs.function }}
+        FLUENTCI_ARGUMENTS: ${{ inputs.arguments }}
+      run: node .github/scripts/fluentci-run.mjs
+    - name: Preserve the native Windows tool search path
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: '"ROCKSKY_WINDOWS_PATH=$env:PATH" >> $env:GITHUB_ENV'
+    - name: Invoke module in WSL with Windows native tools
+      if: runner.os == 'Windows'
+      shell: wsl-bash {0}
+      working-directory: .
+      env:
+        FLUENTCI_MODULE: ${{ inputs.module }}
+        FLUENTCI_FUNCTION: ${{ inputs.function }}
+        FLUENTCI_ARGUMENTS: ${{ inputs.arguments }}
+        WSLENV: ROCKSKY_WINDOWS_PATH:FLUENTCI_MODULE:FLUENTCI_FUNCTION:FLUENTCI_ARGUMENTS:GH_TOKEN:RELEASE_TAG:RELEASE_TARGET:CARGO_PROFILE_RELEASE_STRIP:GITHUB_REPOSITORY:GITHUB_SHA
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        export ROCKSKY_NODE="$(command -v node.exe)"
+        export ROCKSKY_NATIVE_WINDOWS=1
+        node .github/scripts/fluentci-run.mjs

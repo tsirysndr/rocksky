@@ -1,0 +1,23 @@
+name: Compile FluentCI modules
+'on':
+  workflow_call: null
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/setup-fluentci
+      with:
+        build-tools: 'true'
+    - name: Compile and inspect all PureScript modules
+      run: fluentci modules --json --check-update false
+    - name: Test CI orchestration
+      run: fluentci run --wasm .fluentci/host/dist/plugin.wasm validate
+    - uses: actions/upload-artifact@v4
+      with:
+        name: fluentci-modules
+        path: .fluentci/*/dist/plugin.wasm
+        include-hidden-files: true
+        if-no-files-found: error
+        retention-days: 1

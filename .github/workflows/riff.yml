@@ -1,40 +1,38 @@
 name: riff
-
-on:
+'on':
   push:
     paths:
-      - "riff/**"
-      - ".dagger/**"
-      - ".github/actions/dagger/**"
-      - "dagger.toml"
-      - "dagger.lock"
-      - ".github/workflows/riff.yml"
+    - riff/**
+    - .fluentci/**
+    - .github/actions/**
+    - fluentci.toml
+    - .github/workflows/fluentci-modules.yml
+    - .github/workflows/riff.yml
   pull_request:
     paths:
-      - "riff/**"
-      - ".dagger/**"
-      - ".github/actions/dagger/**"
-      - "dagger.toml"
-      - "dagger.lock"
-      - ".github/workflows/riff.yml"
-
-defaults:
-  run:
-    working-directory: .dagger
-
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
+    - riff/**
+    - .fluentci/**
+    - .github/actions/**
+    - fluentci.toml
+    - .github/workflows/fluentci-modules.yml
+    - .github/workflows/riff.yml
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Riff lint, tests, and HTTP smoke checks (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m rust riff --source ../riff
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Riff lint, tests, and HTTP smoke checks (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: riff
+        arguments: '{"source":"riff"}'
+    needs:
+    - fluentci-modules

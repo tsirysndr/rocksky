@@ -1,116 +1,118 @@
-# Builds the native binding libraries for every supported platform and uploads
-# them to a per-version GitHub release:
-#   - librocksky_uniffi-<triple>.{so,dylib}  → Python (UniFFI), Ruby, Clojure, Kotlin
-#   - rocksky_nif-<triple>.so                → Erlang/Elixir/Gleam (Rustler NIF)
-#
-# Each artifact is built on a NATIVE runner (the triple only names the output; we
-# don't cross-compile). The Erlang loader / language packages download the
-# matching library from this release on first load (or bundle it), verifying it
-# against a checksum manifest. See .dagger/host/src/Host/Release.purs.
-#
-# Platforms: linux, macOS (x86_64 + arm64), plus best-effort BSDs.
 name: bindings-release
-
-on:
+'on':
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (default bindings-v<vsn> from sdk/erlang/src/rocksky_erl.app.src)"
+        description: Release tag (default bindings-v<vsn> from sdk/erlang/src/rocksky_erl.app.src)
         type: string
         required: false
   push:
     tags:
-      - "erlang-v*"
-      - "bindings-v*"
-
+    - erlang-v*
+    - bindings-v*
 permissions:
   contents: write
-
 env:
   WORKDIR: sdk/scripts
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   prepare-release:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-dagger
-        with:
-          install-dagger: ${{ runner.os == 'Linux' }}
-      - name: Resolve release tag
-        id: tag
-        working-directory: .
-        env:
-          RELEASE_INPUT_TAG: ${{ inputs.tag }}
-        run: node .dagger/host/run.mjs resolve-tag bindings
-
-      - name: Ensure release exists (PureScript Dagger)
-        working-directory: .dagger
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
-          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress logs -v api call -m ops ensure-release --project bindings --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Resolve release tag
+      id: tag
+      env:
+        RELEASE_INPUT_TAG: ${{ inputs.tag }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: resolveTag
+        arguments: '{"project":"bindings"}'
+    - name: Ensure release exists (PureScript FluentCI)
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: ops
+        function: ensureRelease
+        arguments: '{"project":"bindings","tag":"$RELEASE_TAG","commit":"$GITHUB_SHA","token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'
+    needs:
+    - fluentci-modules
   build:
-    needs: prepare-release
+    needs:
+    - fluentci-modules
+    - prepare-release
     name: build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: aarch64-apple-darwin
-            os: macos-latest
-          - target: x86_64-apple-darwin
-            os: macos-15-intel
-          - target: x86_64-linux-gnu
-            os: ubuntu-latest
-          - target: aarch64-linux-gnu
-            os: ubuntu-24.04-arm
+        - target: aarch64-apple-darwin
+          os: macos-latest
+        - target: x86_64-apple-darwin
+          os: macos-15-intel
+        - target: x86_64-linux-gnu
+          os: ubuntu-latest
+        - target: aarch64-linux-gnu
+          os: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-dagger
-        with:
-          install-dagger: ${{ runner.os == 'Linux' }}
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        if: runner.os != 'Linux'
-      - name: Build native libs (${{ matrix.target }})
-        if: runner.os != 'Linux'
-        run: node .dagger/host/run.mjs bindings "${{ matrix.target }}"
-
-      - name: Build Linux binding libraries (PureScript Dagger)
-        if: runner.os == 'Linux'
-        env:
-          RELEASE_TARGET: ${{ matrix.target }}
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m rust bindings-release --source .. --target "$RELEASE_TARGET" --output ../sdk/scripts/dist
-
-      - name: Upload to release
-        if: runner.os != 'Linux'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-        run: node .dagger/host/run.mjs upload sdk/scripts/dist ""
-
-      - name: Upload binding libraries (PureScript Dagger)
-        if: runner.os == 'Linux'
-        working-directory: .dagger
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress logs -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
-
-  # BSDs — best-effort, built inside a cross-platform-actions VM. No system deps:
-  # the SDK crates use rustls (no OpenSSL). RocksDB (dedup feature) is not built here.
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      if: runner.os != 'Linux'
+    - name: Build native libs (${{ matrix.target }})
+      if: runner.os != 'Linux'
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: bindings
+        arguments: '{"target":"${{ matrix.target }}"}'
+    - name: Build Linux binding libraries (PureScript FluentCI)
+      if: runner.os == 'Linux'
+      env:
+        RELEASE_TARGET: ${{ matrix.target }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: bindingsRelease
+        arguments: '{"source":".","target":"$RELEASE_TARGET","output":"sdk/scripts/dist"}'
+    - name: Upload to release
+      if: runner.os != 'Linux'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: upload
+        arguments: '{"directory":"sdk/scripts/dist","prefix":""}'
+    - name: Upload binding libraries (PureScript FluentCI)
+      if: runner.os == 'Linux'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: github-release
+        function: upload
+        arguments: '{"repository":"$GITHUB_REPOSITORY","clobber":true,"assets":"sdk/scripts/dist","tag":"$RELEASE_TAG","token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'
   build-bsd:
-    needs: prepare-release
+    needs:
+    - fluentci-modules
+    - prepare-release
     name: build (${{ matrix.target }})
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -118,36 +120,40 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-unknown-freebsd
-            os: freebsd
-            version: "14.2"
-            pkg: sudo pkg install -y rust node24
-          - target: x86_64-unknown-netbsd
-            os: netbsd
-            version: "10.1"
-            pkg: sudo pkgin -y install rust nodejs
+        - target: x86_64-unknown-freebsd
+          os: freebsd
+          version: '14.3'
+          pkg: sudo pkg install -y rust node24 curl
+        - target: x86_64-unknown-netbsd
+          os: netbsd
+          version: '10.1'
+          pkg: sudo pkgin -y install rust nodejs curl
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-dagger
-        with:
-          install-dagger: ${{ runner.os == 'Linux' }}
-      - name: Build native libs in ${{ matrix.os }} VM
-        uses: cross-platform-actions/action@v1.3.0
-        with:
-          operating_system: ${{ matrix.os }}
-          version: ${{ matrix.version }}
-          architecture: x86_64
-          shell: sh
-          run: |
-            ${{ matrix.pkg }}
-            export CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_PROFILE_RELEASE_STRIP=symbols
-            node .dagger/host/run.mjs bindings ${{ matrix.target }}
-            ls -l sdk/scripts/dist
-      - name: Upload binding libraries (PureScript Dagger)
-        if: runner.os == 'Linux'
-        working-directory: .dagger
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress logs -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets ../sdk/scripts/dist --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Build native libs in ${{ matrix.os }} VM
+      uses: cross-platform-actions/action@v1.3.0
+      with:
+        operating_system: ${{ matrix.os }}
+        version: ${{ matrix.version }}
+        architecture: x86_64
+        shell: sh
+        run: |
+          ${{ matrix.pkg }}
+          FLUENTCI_VERSION=2026.11.04 sh .github/scripts/install-fluentci.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          export GITHUB_WORKSPACE="$PWD"
+          export CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_PROFILE_RELEASE_STRIP=symbols
+          fluentci run --wasm .fluentci/host/dist/plugin.wasm bindings '{"target":"${{ matrix.target }}"}'
+    - name: Upload binding libraries (PureScript FluentCI)
+      if: runner.os == 'Linux'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: github-release
+        function: upload
+        arguments: '{"repository":"$GITHUB_REPOSITORY","clobber":true,"assets":"sdk/scripts/dist","tag":"$RELEASE_TAG","token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'

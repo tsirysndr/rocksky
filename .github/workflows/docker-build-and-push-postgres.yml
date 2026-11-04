@@ -1,42 +1,41 @@
 name: Build and Push Postgres Docker Image
-
-on:
+'on':
   push:
     branches:
-      - main
+    - main
     paths:
-      - "crates/xataid-extension/**"
-      - ".dagger/**"
-      - "dagger.toml"
-      - "dagger.lock"
-      - ".github/workflows/docker-build-and-push-postgres.yml"
-
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
+    - crates/xataid-extension/**
+    - .fluentci/**
+    - fluentci.toml
+    - .github/workflows/fluentci-modules.yml
+    - .github/workflows/docker-build-and-push-postgres.yml
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   build-and-push:
-    # Publishing is disabled until explicitly re-enabled.
     if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Build and publish both PostgreSQL architectures (PureScript Dagger)
-        env:
-          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-          GH_USER: ${{ github.actor }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          dagger --progress logs -v api call -m ops publish-postgres --source ../crates/xataid-extension \
-            --docker-user "$DOCKER_USER" --docker-password env://DOCKER_PASSWORD \
-            --github-user "$GH_USER" --github-token env://GH_TOKEN
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - uses: docker/setup-qemu-action@v3
+    - uses: docker/setup-buildx-action@v3
+    - name: Build and publish both PostgreSQL architectures (PureScript FluentCI)
+      env:
+        DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+        GH_USER: ${{ github.actor }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: ops
+        function: publishPostgres
+        arguments: '{"source":"crates/xataid-extension","dockerUser":"$DOCKER_USER","dockerPassword":"env://DOCKER_PASSWORD","githubUser":"$GH_USER","githubToken":"env://GH_TOKEN"}'
+    needs:
+    - fluentci-modules

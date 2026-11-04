@@ -1,24 +1,19 @@
 name: tests
-
-on:
+'on':
   push:
     branches:
-      - main
+    - main
   pull_request:
     branches:
-      - main
-
-# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+    - main
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
 jobs:
-  # Detect which areas changed so each suite only runs when its files (or this
-  # workflow) changed.
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -33,273 +28,265 @@ jobs:
       matching: ${{ steps.filter.outputs.matching }}
       musicbrainz: ${{ steps.filter.outputs.musicbrainz }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            api_contracts:
-              - 'package.json'
-              - '**/package.json'
-              - 'patches/**'
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - 'apps/api/**'
-              - 'crates/appview/tests/fixtures/**'
-              - 'bun.lock'
-              - '.github/workflows/tests.yml'
-            cli:
-              - 'apps/cli/**'
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - '.github/workflows/tests.yml'
-            ts_sdk:
-              - 'sdk/typescript/**'
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - '.github/workflows/tests.yml'
-            go_sdk:
-              - 'sdk/go/**'
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - '.github/workflows/tests.yml'
-            rust_sdk:
-              - 'sdk/rust/**'
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - '.github/workflows/tests.yml'
-            deezer:
-              - 'deezer/**'
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - 'otel/**'
-              - '.github/workflows/tests.yml'
-            remote_ws:
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - 'remote-ws/**'
-              - '.github/workflows/tests.yml'
-            submissions:
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - 'crates/submissions/**'
-              - 'crates/jetstream/**'
-              - 'crates/db/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
-              - '.github/workflows/tests.yml'
-            musicbrainz:
-              - 'musicbrainz/**'
-              - 'otel/**'
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - '.github/workflows/tests.yml'
-            matching:
-              - '.dagger/**'
-              - '.github/actions/dagger/**'
-              - 'dagger.toml'
-              - 'dagger.lock'
-              - 'crates/matching/**'
-              - 'crates/core/**'
-              - 'crates/db/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
-              - '.github/workflows/tests.yml'
-
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          api_contracts:
+            - 'package.json'
+            - '**/package.json'
+            - 'patches/**'
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - 'apps/api/**'
+            - 'crates/appview/tests/fixtures/**'
+            - 'bun.lock'
+            - '.github/workflows/tests.yml'
+          cli:
+            - 'apps/cli/**'
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - '.github/workflows/tests.yml'
+          ts_sdk:
+            - 'sdk/typescript/**'
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - '.github/workflows/tests.yml'
+          go_sdk:
+            - 'sdk/go/**'
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - '.github/workflows/tests.yml'
+          rust_sdk:
+            - 'sdk/rust/**'
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - '.github/workflows/tests.yml'
+          deezer:
+            - 'deezer/**'
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - 'otel/**'
+            - '.github/workflows/tests.yml'
+          remote_ws:
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - 'remote-ws/**'
+            - '.github/workflows/tests.yml'
+          submissions:
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - 'crates/submissions/**'
+            - 'crates/jetstream/**'
+            - 'crates/db/**'
+            - 'Cargo.toml'
+            - 'Cargo.lock'
+            - '.github/workflows/tests.yml'
+          musicbrainz:
+            - 'musicbrainz/**'
+            - 'otel/**'
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - '.github/workflows/tests.yml'
+          matching:
+            - '.fluentci/**'
+            - '.github/actions/**'
+            - 'fluentci.toml'
+            - '.github/workflows/fluentci-modules.yml'
+            - 'crates/matching/**'
+            - 'crates/core/**'
+            - 'crates/db/**'
+            - 'Cargo.toml'
+            - 'Cargo.lock'
+            - '.github/workflows/tests.yml'
+    needs:
+    - fluentci-modules
   api-contracts:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.api_contracts == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: API contracts and regression tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m typescript api-contracts --source ..
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: API contracts and regression tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: typescript
+        function: apiContracts
+        arguments: '{"source":"."}'
   submissions:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.submissions == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Submissions dashboard and worker checks (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m rust submissions --source ..
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Submissions dashboard and worker checks (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: submissions
+        arguments: '{"source":"."}'
   matching:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.matching == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Matching regression suite (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m rust matching --source ..
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Matching regression suite (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: matching
+        arguments: '{"source":"."}'
   cli:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: CLI smoke tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m typescript cli --source ../apps/cli
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: CLI smoke tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: typescript
+        function: cli
+        arguments: '{"source":"apps/cli"}'
   typescript-sdk:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.ts_sdk == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: TypeScript SDK tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m typescript sdk --source ../sdk/typescript
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: TypeScript SDK tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: typescript
+        function: sdk
+        arguments: '{"source":"sdk/typescript"}'
   go-sdk:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.go_sdk == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Go SDK tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m go sdk --source ../sdk/go
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Go SDK tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: go
+        function: sdk
+        arguments: '{"source":"sdk/go"}'
   rust-sdk:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.rust_sdk == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Rust SDK tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m rust sdk --source ../sdk/rust
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Rust SDK tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: sdk
+        arguments: '{"source":"sdk/rust"}'
   deezer:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.deezer == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Deezer tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m go deezer --source ../deezer --otel ../otel
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Deezer tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: go
+        function: deezer
+        arguments: '{"source":"deezer","otel":"otel"}'
   remote-ws:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.remote_ws == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: Remote WebSocket relay tests (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m elixir remote-ws --source ../remote-ws
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Remote WebSocket relay tests (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: elixir
+        function: remoteWs
+        arguments: '{"source":"remote-ws"}'
   musicbrainz:
-    needs: changes
+    needs:
+    - fluentci-modules
+    - changes
     if: needs.changes.outputs.musicbrainz == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: .dagger
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Dagger CLI
-        uses: ./.github/actions/setup-dagger
-      - name: MusicBrainz race tests and build (PureScript Dagger)
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            dagger --progress logs -v api call -m go musicbrainz --source ../musicbrainz --otel ../otel
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: MusicBrainz race tests and build (PureScript FluentCI)
+      uses: ./.github/actions/fluentci
+      with:
+        module: go
+        function: musicbrainz
+        arguments: '{"source":"musicbrainz","otel":"otel"}'

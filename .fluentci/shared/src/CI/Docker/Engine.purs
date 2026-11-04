@@ -5,6 +5,8 @@ module CI.Docker.Engine where
 import Prelude
 import CI.Docker.Types
 import Data.Argonaut.Core (stringify)
+import Data.Argonaut.Parser (jsonParser)
+import Data.Argonaut.Decode (decodeJson, printJsonDecodeError)
 import Data.Argonaut.Encode (encodeJson)
 import Data.Array as Data.Array
 import Data.Array (null)
@@ -33,17 +35,29 @@ quote value = "'" <> replaceAll (Pattern "'") (Replacement "'\"'\"'") value <> "
 command :: Array String -> String
 command = joinWith " " <<< map quote
 
+-- Host-call failures may trap the Wasm guest before PureScript can recover.
+-- Keep the host call successful and decode the process exit status in the guest.
+-- JSON also preserves exact stdout across engines that normalize log lines.
+capture :: Object Secret -> Array String -> Effect String
+capture secrets args = do
+  let script = "const {spawnSync}=require('node:child_process');const args=JSON.parse(process.argv[1]);const r=spawnSync(args[0],args.slice(1),{encoding:'utf8',stdio:['inherit','pipe','inherit'],maxBuffer:64*1024*1024});if(r.error)console.error(r.error.message);process.stdout.write(JSON.stringify({code:r.status??127,output:r.stdout??''}));"
+  let pipeline = Object.fold (\p key (Secret secret) -> P.withSecret key (P.secret secret.name secret.value) p) (P.pipeline "rocksky-ci") secrets
+  raw <- unwrap $ P.stdout $ pipeline # P.exec ["node", "-e", script, stringify (encodeJson args)]
+  value <- case jsonParser raw of
+    Left problem -> throw ("Invalid process response: " <> problem)
+    Right json -> case decodeJson json of
+      Left problem -> throw (printJsonDecodeError problem)
+      Right result -> pure (result :: { code :: Int, output :: String })
+  if value.code == 0 then pure value.output else throw ("CI command failed with exit status " <> show value.code)
+
 run :: Array String -> Effect String
-run args = unwrap $ P.stdout (P.pipeline "rocksky-ci" # P.exec args)
+run = capture Object.empty
 
 shell :: String -> Effect String
-shell script = unwrap $ P.stdout (P.pipeline "rocksky-ci" # P.shell script)
+shell script = capture Object.empty ["/bin/sh", "-c", script]
 
 secretShell :: Object Secret -> String -> Effect String
-secretShell secrets script = unwrap $ P.stdout $ foldlSecret (P.pipeline "rocksky-ci")
-  # P.shell script
-  where
-  foldlSecret pipeline = Object.fold (\p key (Secret s) -> P.withSecret key (P.secret s.name s.value) p) pipeline secrets
+secretShell secrets script = capture secrets ["/bin/sh", "-c", script]
 
 absolute :: Client -> String -> String
 absolute client path = if path == "" then client.root else

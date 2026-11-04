@@ -1,125 +1,138 @@
 name: playerd-release
-
-on:
+'on':
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (default playerd-<version> from playerd/Cargo.toml)"
+        description: Release tag (default playerd-<version> from playerd/Cargo.toml)
         type: string
         required: false
   push:
     tags:
-      - "playerd-v*"
-      - "playerd-[0-9]*"
-
+    - playerd-v*
+    - playerd-[0-9]*
 permissions:
   contents: write
-
-defaults:
-  run:
-    working-directory: playerd
-
-env:
-  DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
 jobs:
+  fluentci-modules:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/fluentci-modules.yml
   prepare-release:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-dagger
-        with:
-          install-dagger: ${{ runner.os == 'Linux' }}
-      - name: Resolve release tag
-        id: tag
-        working-directory: .
-        env:
-          RELEASE_INPUT_TAG: ${{ inputs.tag }}
-        run: node .dagger/host/run.mjs resolve-tag playerd
-
-      - name: Ensure release exists (PureScript Dagger)
-        working-directory: .dagger
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
-          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: dagger --progress logs -v api call -m ops ensure-release --project playerd --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
-
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - name: Resolve release tag
+      id: tag
+      env:
+        RELEASE_INPUT_TAG: ${{ inputs.tag }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: resolveTag
+        arguments: '{"project":"playerd"}'
+    - name: Ensure release exists (PureScript FluentCI)
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: ops
+        function: ensureRelease
+        arguments: '{"project":"playerd","tag":"$RELEASE_TAG","commit":"$GITHUB_SHA","token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'
+    needs:
+    - fluentci-modules
   build:
-    needs: prepare-release
+    needs:
+    - fluentci-modules
+    - prepare-release
     name: build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: aarch64-apple-darwin
-            os: macos-latest
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-24.04-arm
+        - target: aarch64-apple-darwin
+          os: macos-latest
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+        - target: aarch64-unknown-linux-gnu
+          os: ubuntu-24.04-arm
     env:
       CARGO_PROFILE_RELEASE_STRIP: symbols
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-dagger
-        with:
-          install-dagger: ${{ runner.os == 'Linux' }}
-      - uses: dtolnay/rust-toolchain@stable
-        if: runner.os != 'Linux'
-      - uses: Swatinem/rust-cache@v2
-        if: runner.os != 'Linux'
-        with:
-          workspaces: playerd
-          shared-key: playerd-${{ matrix.target }}
-          cache-on-failure: true
-      - name: cargo build --release
-        if: runner.os != 'Linux'
-        run: cargo build --release --locked
-      - name: Test playerd and playback engine
-        if: runner.os != 'Linux'
-        run: |
-          cargo test --release --locked --bin playerd
-          cargo test --release --locked -p rockbox-playback --lib
-      - name: Build and test Linux playerd (PureScript Dagger)
-        if: runner.os == 'Linux'
-        env:
-          RELEASE_TARGET: ${{ matrix.target }}
-        uses: ./.github/actions/dagger
-        with:
-          command: |
-            mkdir -p ../playerd/target/release
-            dagger --progress logs -v api call -m rust playerd-release --source .. --target "$RELEASE_TARGET" --output ../playerd/target/release/playerd
-
-      - name: Package tarball
-        if: runner.os != 'Linux'
-        working-directory: .
-        env:
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-          RELEASE_TARGET: ${{ matrix.target }}
-        run: node .dagger/host/run.mjs package-native playerd
-
-      - name: Upload to release
-        if: runner.os != 'Linux'
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-        run: node .dagger/host/run.mjs upload playerd playerd-
-
-      - name: Package and upload Linux release (PureScript Dagger)
-        if: runner.os == 'Linux'
-        working-directory: .dagger
-        env:
-          RELEASE_TARGET: ${{ matrix.target }}
-          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          dagger --progress logs -v api call -m artifacts binary --binary "../playerd/target/release/playerd" \
-            --executable-name playerd --name "$RELEASE_TAG-$RELEASE_TARGET" --output "$RUNNER_TEMP/release-assets"
-          dagger --progress logs -v api call -m github-release upload --repository "$GITHUB_REPOSITORY" --clobber --assets "$RUNNER_TEMP/release-assets" \
-            --tag "$RELEASE_TAG" --token env://GH_TOKEN --run-id "$RELEASE_RUN"
+    - uses: actions/checkout@v4
+    - name: Set up FluentCI
+      uses: ./.github/actions/setup-fluentci
+    - uses: dtolnay/rust-toolchain@stable
+      if: runner.os != 'Linux'
+    - uses: Swatinem/rust-cache@v2
+      if: runner.os != 'Linux'
+      with:
+        workspaces: playerd
+        shared-key: playerd-${{ matrix.target }}
+        cache-on-failure: true
+    - name: Build native release with FluentCI
+      if: runner.os != 'Linux'
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: buildPlayerd
+        arguments: '{}'
+    - name: Build and test Linux playerd (PureScript FluentCI)
+      if: runner.os == 'Linux'
+      env:
+        RELEASE_TARGET: ${{ matrix.target }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: rust
+        function: playerdRelease
+        arguments: '{"source":".","target":"$RELEASE_TARGET","output":"playerd/target/release/playerd"}'
+    - name: Package tarball
+      if: runner.os != 'Linux'
+      env:
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        RELEASE_TARGET: ${{ matrix.target }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: packageNative
+        arguments: '{"project":"playerd"}'
+    - name: Upload to release
+      if: runner.os != 'Linux'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: host
+        function: upload
+        arguments: '{"directory":"playerd","prefix":"playerd-"}'
+    - name: Package and upload Linux release (PureScript FluentCI) — binary
+      if: runner.os == 'Linux'
+      env:
+        RELEASE_TARGET: ${{ matrix.target }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: artifacts
+        function: binary
+        arguments: '{"binary":"playerd/target/release/playerd","executableName":"playerd","name":"$RELEASE_TAG-$RELEASE_TARGET","output":"$RUNNER_TEMP/release-assets"}'
+    - name: Package and upload Linux release (PureScript FluentCI) — upload
+      if: runner.os == 'Linux'
+      env:
+        RELEASE_TARGET: ${{ matrix.target }}
+        RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+      uses: ./.github/actions/fluentci
+      with:
+        module: github-release
+        function: upload
+        arguments: '{"repository":"$GITHUB_REPOSITORY","clobber":true,"assets":"$RUNNER_TEMP/release-assets","tag":"$RELEASE_TAG","token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'

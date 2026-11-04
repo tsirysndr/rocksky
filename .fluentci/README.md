@@ -17,7 +17,7 @@ nine portable Dagger CI modules are ported, along with the host release helpers.
 | `github-release` | `upload`, `ensure` |
 | `android-sdk` | `container` |
 | `eas` | `android`, `toolchain`, `aab`, `apk` |
-| `host` | `installDagger`, `resolveTag`, `bindings`, `packageNative`, `upload`, `stampDesktop`, `buildDesktop`, `packageDesktop` |
+| `host` | `installDagger`, `resolveTag`, `bindings`, `packageNative`, `upload`, `stampDesktop`, `buildDesktop`, `packageDesktop`, `validate`, `productionFilters`, `buildMcp`, `buildPlayerd`, `prepareDesktop`, `nixBuild`, `flakehubPublish` |
 
 ## Run
 
@@ -96,7 +96,9 @@ executor built on `FluentCI.Plugin`. The guest uses synchronous `Effect` calls,
 with literal argv, explicit stdin, private service DNS/readiness checks, and
 immutable filesystem snapshots. It does not import Dagger's runtime or Node's
 APIs. The host release utilities invoke native Node processes for portable OS
-primitives; their release policy remains PureScript. `host.installDagger` is
+primitives; their release policy remains PureScript. Command exit codes and
+stdout travel in a JSON envelope, preserving exact output and allowing
+PureScript rollback to catch failures instead of a host-call trap. `host.installDagger` is
 retained solely as the original optional bootstrap utility; no FluentCI CI job
 calls it or requires Dagger.
 
@@ -116,5 +118,38 @@ node .fluentci/tests/docker.mjs
 The behavioral tests cover deployment failures and rollback, native release tags,
 archive contents and checksums, export parity, and the default pipeline. The
 Docker checks use temporary containers/networks and do not access production.
-Existing Dagger modules and GitHub Actions remain available; this port registers
-FluentCI jobs without changing workflow triggers or runner scheduling.
+Every GitHub Actions workflow now calls the FluentCI modules. The reusable
+`fluentci-modules.yml` job sets up the CLI with
+`fluentci-io/setup-fluentci@next`, compiles all Wasm modules
+once, validates orchestration, and uploads the portable plugins. Other jobs
+install the same pinned CLI and download those plugins, so native and BSD runners
+do not need PureScript compilers. The original triggers, target architectures,
+artifact names, deployment gates, and disabled PostgreSQL publishing remain.
+The desktop job uses an Ubuntu 24.04 host for the released CLI; its actual Linux
+bundles still build in the existing Ubuntu 22.04 container. The FreeBSD VM uses
+14.3, matching the CLI release baseline.
+
+`.github/actions/fluentci` invokes compiled modules with JSON arguments. Its
+argument expansion resolves environment references as data, without shell
+interpolation. The shared setup uses the official
+`fluentci-io/setup-fluentci@next` action in install-only mode, with
+`version: '2026.11.04'`, before installing source-build tools. The
+checksum-verifying `.github/scripts/install-fluentci.sh` is retained for WSL
+and BSD VM guests, where a GitHub JavaScript action cannot install the guest CLI.
+
+Windows MCP releases run the Linux CLI under WSL and use native Windows Node,
+Cargo, tar, and GitHub CLI through the host module. The native Windows search
+path is forwarded explicitly. BSD builds install the CLI with curl inside their
+VM and use the same compiled host module. Native macOS builds, desktop
+preparation and signing, and Nix builds also enter through host module exports.
+The FlakeHub export runs the pinned official publisher to preserve its OIDC,
+rolling-version, and output-path behavior.
+
+Run the workflow regression checks with:
+
+```sh
+node --test .fluentci/tests/workflows.test.mjs
+```
+
+Legacy Dagger sources remain available for reference; workflows no longer use
+them.

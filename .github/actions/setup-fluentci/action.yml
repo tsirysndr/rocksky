@@ -1,0 +1,48 @@
+name: Set up FluentCI
+description: Set up FluentCI with the official action and download or build the PureScript Wasm modules.
+inputs:
+  build-tools:
+    description: Install the PureScript compiler toolchain instead of downloading compiled modules.
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Set up FluentCI
+      if: runner.os != 'Windows'
+      uses: fluentci-io/setup-fluentci@next
+      with:
+        version: '2026.11.04'
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+    - name: Set up WSL for the Windows native build
+      if: runner.os == 'Windows'
+      uses: Vampire/setup-wsl@v7
+      with:
+        distribution: Ubuntu-24.04
+        additional-packages: curl ca-certificates nodejs
+    - name: Install FluentCI with curl in WSL
+      if: runner.os == 'Windows'
+      shell: wsl-bash {0}
+      run: |
+        FLUENTCI_VERSION=2026.11.04 sh .github/scripts/install-fluentci.sh
+        "$HOME/.local/bin/fluentci" --version
+    - name: Install pinned PureScript build tools
+      if: inputs.build-tools == 'true'
+      shell: bash
+      working-directory: .
+      run: npm install --global purescript@0.15.16 spago@1.0.5
+    - name: Install Extism JavaScript compiler
+      if: inputs.build-tools == 'true'
+      shell: bash
+      working-directory: ${{ runner.temp }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        curl -fsSL https://raw.githubusercontent.com/extism/js-pdk/v1.7.0/install.sh | bash -s -- v1.7.0
+        extism-js --version
+    - name: Download compiled FluentCI modules
+      if: inputs.build-tools != 'true'
+      uses: actions/download-artifact@v4
+      with:
+        name: fluentci-modules
+        path: .fluentci
