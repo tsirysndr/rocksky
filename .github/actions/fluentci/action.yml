@@ -47,7 +47,7 @@ runs:
         FLUENTCI_ARGUMENTS: ${{ inputs.arguments }}
         WSLENV: ROCKSKY_WINDOWS_PATH:FLUENTCI_MODULE:FLUENTCI_FUNCTION:FLUENTCI_ARGUMENTS:GH_TOKEN:RELEASE_TAG:RELEASE_TARGET:CARGO_PROFILE_RELEASE_STRIP:GITHUB_REPOSITORY:GITHUB_SHA
       run: |
-        export PATH="$HOME/.local/bin:$PATH"
+        export PATH="$HOME/.local/share/fluentci/node/24.22.2/bin:$HOME/.local/bin:$PATH"
         export ROCKSKY_NODE="$(command -v node.exe)"
         export ROCKSKY_NATIVE_WINDOWS=1
         node .github/scripts/fluentci-run.mjs

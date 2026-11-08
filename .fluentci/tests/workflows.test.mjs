@@ -32,7 +32,7 @@ test("workflow invocations resolve to exported module functions with valid JSON 
 test("the official setup action runs before SDK setup and WSL preserves Windows builds", () => {
   const setup = read(".github/actions/setup-fluentci/action.yml");
   assert.match(setup, /uses: fluentci-io\/setup-fluentci@next/);
-  assert.ok(setup.indexOf("uses: fluentci-io/setup-fluentci@next") < setup.indexOf("uses: actions/setup-node"));
+  assert.ok(setup.indexOf("uses: fluentci-io/setup-fluentci@next") < setup.indexOf("fluentci run setup-node@"));
   assert.doesNotMatch(setup, /version: '\d{4}\.\d{2}\.\d{2}'/);
   assert.doesNotMatch(setup, /FLUENTCI_VERSION=/);
   assert.match(read(".github/scripts/install-fluentci.sh"), /releases\/latest/);
@@ -43,6 +43,23 @@ test("the official setup action runs before SDK setup and WSL preserves Windows 
   assert.match(read(".github/workflows/rocksky-mcp-release.yml"), /x86_64-pc-windows-msvc\n\s+os: windows-latest/);
   assert.match(read(".github/actions/fluentci/action.yml"), /ROCKSKY_NODE=.*node\.exe/);
   assert.match(read(".github/actions/fluentci/action.yml"), /ROCKSKY_WINDOWS_PATH/);
+  assert.match(setup, /fluentci.*run setup-node@v0\.2\.0 setup --version 24\.22\.2/);
+  assert.match(read(".github/actions/fluentci/action.yml"), /\.local\/share\/fluentci\/node\/24\.22\.2\/bin/);
+});
+
+test("Node, Bun, and PureScript setup uses FluentCI components instead of setup actions", () => {
+  const actions = readdirSync(resolve(root, ".github/actions"));
+  const sources = [
+    ...workflows.map(name => read(`.github/workflows/${name}`)),
+    ...actions.map(name => read(`.github/actions/${name}/action.yml`)),
+  ];
+  for (const source of sources) {
+    assert.doesNotMatch(source, /uses:.*\/(?:setup-node|setup-bun|setup-purescript)@/);
+    assert.doesNotMatch(source, /npm install --global purescript/);
+  }
+  const setup = read(".github/actions/setup-fluentci/action.yml");
+  assert.match(setup, /fluentci run setup-purescript@v0\.2\.0 setup --version 0\.15\.16 --spago-version 1\.0\.5 --node-version 24\.22\.2 --bun-version 1\.4\.3 \| python3 \.github\/scripts\/export-setup-env\.py/);
+  assert.match(read(".github/workflows/desktop-release.yml"), /fluentci run setup-bun@v0\.2\.0 setup --version 1\.4\.3 \| python3 \.github\/scripts\/export-setup-env\.py/);
 });
 
 test("argument expansion preserves quotes, newlines, and shell syntax as literal data", () => {

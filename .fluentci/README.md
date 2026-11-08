@@ -138,12 +138,18 @@ bundles still build in the existing Ubuntu 22.04 container. The FreeBSD VM uses
 argument expansion resolves environment references as data, without shell
 interpolation. The shared setup uses the official
 `fluentci-io/setup-fluentci@next` action in install-only mode, at the latest
-release, before installing source-build tools. The checksum-verifying
+release, before installing source-build tools. Node.js 24.22.2, Bun 1.4.3, and
+PureScript 0.15.16 with Spago 1.0.5 are installed through the pinned
+`setup-node@v0.2.0`, `setup-bun@v0.2.0`, and `setup-purescript@v0.2.0`
+registry components using `fluentci run`. The setup environment bridge persists
+their returned paths and environment variables for later Actions steps.
+The checksum-verifying
 `.github/scripts/install-fluentci.sh` is retained for WSL and BSD VM guests,
 where a GitHub JavaScript action cannot install the guest CLI; it resolves the
 latest release unless `FLUENTCI_VERSION` pins one.
 
-Windows MCP releases run the Linux CLI under WSL and use native Windows Node,
+Windows MCP releases install Node.js through FluentCI inside WSL, run the Linux
+CLI there, and use the runner's preinstalled native Windows Node,
 Cargo, tar, and GitHub CLI through the host module. The native Windows search
 path is forwarded explicitly. BSD builds install the CLI with curl inside their
 VM and use the same compiled host module. Native macOS builds, desktop
@@ -155,6 +161,7 @@ Run the workflow regression checks with:
 
 ```sh
 node --test .fluentci/tests/workflows.test.mjs
+python3 .github/scripts/test-setup-env.py
 ```
 
 Legacy Dagger sources remain available for reference; workflows no longer use

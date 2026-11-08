@@ -10,26 +10,37 @@ runs:
     - name: Set up FluentCI
       if: runner.os != 'Windows'
       uses: fluentci-io/setup-fluentci@next
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '24'
+    - name: Set up Node.js through FluentCI
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        set -euo pipefail
+        fluentci run setup-node@v0.2.0 setup --version 24.22.2 | python3 .github/scripts/export-setup-env.py
     - name: Set up WSL for the Windows native build
       if: runner.os == 'Windows'
       uses: Vampire/setup-wsl@v7
       with:
         distribution: Ubuntu-24.04
-        additional-packages: curl ca-certificates nodejs
+        additional-packages: curl ca-certificates
     - name: Install FluentCI with curl in WSL
       if: runner.os == 'Windows'
       shell: wsl-bash {0}
       run: |
         sh .github/scripts/install-fluentci.sh
         "$HOME/.local/bin/fluentci" --version
+    - name: Set up Node.js through FluentCI in WSL
+      if: runner.os == 'Windows'
+      shell: wsl-bash {0}
+      run: |
+        set -eu
+        "$HOME/.local/bin/fluentci" run setup-node@v0.2.0 setup --version 24.22.2
     - name: Install pinned PureScript build tools
       if: inputs.build-tools == 'true'
       shell: bash
       working-directory: .
-      run: npm install --global purescript@0.15.16 spago@1.0.5
+      run: |
+        set -euo pipefail
+        fluentci run setup-purescript@v0.2.0 setup --version 0.15.16 --spago-version 1.0.5 --node-version 24.22.2 --bun-version 1.4.3 | python3 .github/scripts/export-setup-env.py
     - name: Install Extism JavaScript compiler
       if: inputs.build-tools == 'true'
       shell: bash

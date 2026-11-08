@@ -7,9 +7,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '24'
+    - name: Set up FluentCI
+      uses: fluentci-io/setup-fluentci@next
+    - name: Set up Node.js through FluentCI
+      shell: bash
+      run: |
+        set -euo pipefail
+        fluentci run setup-node@v0.2.0 setup --version 24.22.2 | python3 .github/scripts/export-setup-env.py
     - name: Compile runner-side PureScript
       shell: bash
       working-directory: .dagger/host

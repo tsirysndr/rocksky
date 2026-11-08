@@ -69,10 +69,12 @@ jobs:
     - uses: actions/checkout@v4
     - name: Set up FluentCI
       uses: ./.github/actions/setup-fluentci
-    - uses: oven-sh/setup-bun@v2
+    - name: Set up Bun through FluentCI
       if: runner.os != 'Linux'
-      with:
-        bun-version: 1.4.3
+      shell: bash
+      run: |
+        set -euo pipefail
+        fluentci run setup-bun@v0.2.0 setup --version 1.4.3 | python3 .github/scripts/export-setup-env.py
     - uses: dtolnay/rust-toolchain@stable
       if: runner.os != 'Linux'
       with:
