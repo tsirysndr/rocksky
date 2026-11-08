@@ -85,6 +85,11 @@ pub fn method(c: Context) -> String
 @external(javascript, "./hono_ffi.mjs", "path")
 pub fn path(c: Context) -> String
 
+/// Matched route pattern rather than the concrete path. Only valid after
+/// `next()` has resolved; never put `path(c)` on a metric label instead.
+@external(javascript, "./hono_ffi.mjs", "routePath")
+pub fn route_path(c: Context) -> String
+
 @external(javascript, "./hono_ffi.mjs", "url")
 pub fn url(c: Context) -> String
 

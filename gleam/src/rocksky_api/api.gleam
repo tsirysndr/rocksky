@@ -96,16 +96,17 @@ pub fn app(ctx: Context) -> App {
   |> hono.route("/internal/submissions", submissions.app(ctx))
   |> hono.use_("*", ratelimiter.middleware(ctx, 1000, 30))
   |> hono.use_("*", fn(c, next) {
-    otel.update_active_span(hono.method(c) <> " " <> hono.path(c), hono.path(c))
-    use _ <- promise.map(next())
-    None
-  })
-  |> hono.use_("*", fn(c, next) {
     let start = js.now_ms()
     use _ <- promise.map(next())
+    // The route pattern is only known once the handler has run. Labelling
+    // with the concrete path made every user/album/track URL its own time
+    // series; after a week the 10s metrics export blocked the event loop for
+    // seconds at a time and the API stopped answering.
+    let route = hono.route_path(c)
+    otel.update_active_span(hono.method(c) <> " " <> route, route)
     let seconds = int.to_float(js.now_ms() - start) /. 1000.0
     otel.histogram_record(ctx.metrics.request_duration, seconds, [
-      #("route", hono.path(c)),
+      #("route", route),
       #("method", hono.method(c)),
     ])
     None

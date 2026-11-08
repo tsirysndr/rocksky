@@ -75,6 +75,10 @@ export const start = (defaultServiceName, version) => {
       exporter: new OTLPMetricExporter({ url: metricsUrl }),
       exportIntervalMillis: 10_000,
     }),
+    // Safety net against a high-cardinality label: once an instrument exceeds
+    // this many attribute sets, extra ones collapse into one overflow series
+    // instead of growing collection/serialization time without bound.
+    views: [{ instrumentName: "*", aggregationCardinalityLimit: 2000 }],
     logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter({ url: logsUrl }))],
     instrumentations: [
       getNodeAutoInstrumentations({

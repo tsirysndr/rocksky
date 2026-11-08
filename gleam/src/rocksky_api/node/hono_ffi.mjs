@@ -42,6 +42,10 @@ export const queries = (c) => toList(Object.entries(c.req.query()));
 export const header = (c, name) => opt(c.req.header(name));
 export const method = (c) => c.req.method;
 export const path = (c) => c.req.path;
+// Pattern of the handler that last ran (`/users/:did/scrobbles`), so it is
+// only meaningful after `await next()` in a middleware. Hono sets routeIndex
+// before each handler and never resets it; unmatched requests yield "*".
+export const routePath = (c) => c.req.routePath;
 export const url = (c) => c.req.url;
 export const jsonBody = (c) => wrap(c.req.json());
 export const textBody = (c) => wrap(c.req.text());
