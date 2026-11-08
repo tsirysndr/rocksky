@@ -141,7 +141,7 @@ jobs:
         shell: sh
         run: |
           ${{ matrix.pkg }}
-          FLUENTCI_VERSION=2026.11.04 sh .github/scripts/install-fluentci.sh
+          sh .github/scripts/install-fluentci.sh
           export PATH="$HOME/.local/bin:$PATH"
           export GITHUB_WORKSPACE="$PWD"
           export CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_PROFILE_RELEASE_STRIP=symbols

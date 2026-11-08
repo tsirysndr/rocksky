@@ -27,7 +27,18 @@ case "$fluentci_target" in
     *) echo "No release binary is available for $fluentci_target" >&2; exit 1 ;;
 esac
 
-fluentci_version="${FLUENTCI_VERSION:-2026.11.04}"
+fluentci_version="${FLUENTCI_VERSION:-}"
+if [ -z "$fluentci_version" ]; then
+    # Release assets embed the tag, so resolve it from the /releases/latest redirect.
+    fluentci_latest_url=$(curl --fail --show-error --silent --location --head \
+        --output /dev/null --write-out '%{url_effective}' \
+        https://github.com/tsirysndr/fluentci/releases/latest)
+    fluentci_version="${fluentci_latest_url##*/}"
+    [ -n "$fluentci_version" ] && [ "$fluentci_version" != latest ] || {
+        echo "Error: could not resolve the latest FluentCI release" >&2
+        exit 1
+    }
+fi
 case "$fluentci_version" in
     *[!A-Za-z0-9._+-]*) echo "Invalid FLUENTCI_VERSION: $fluentci_version" >&2; exit 1 ;;
 esac

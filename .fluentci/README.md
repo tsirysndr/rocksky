@@ -137,10 +137,11 @@ bundles still build in the existing Ubuntu 22.04 container. The FreeBSD VM uses
 `.github/actions/fluentci` invokes compiled modules with JSON arguments. Its
 argument expansion resolves environment references as data, without shell
 interpolation. The shared setup uses the official
-`fluentci-io/setup-fluentci@next` action in install-only mode, with
-`version: '2026.11.04'`, before installing source-build tools. The
-checksum-verifying `.github/scripts/install-fluentci.sh` is retained for WSL
-and BSD VM guests, where a GitHub JavaScript action cannot install the guest CLI.
+`fluentci-io/setup-fluentci@next` action in install-only mode, at the latest
+release, before installing source-build tools. The checksum-verifying
+`.github/scripts/install-fluentci.sh` is retained for WSL and BSD VM guests,
+where a GitHub JavaScript action cannot install the guest CLI; it resolves the
+latest release unless `FLUENTCI_VERSION` pins one.
 
 Windows MCP releases run the Linux CLI under WSL and use native Windows Node,
 Cargo, tar, and GitHub CLI through the host module. The native Windows search
