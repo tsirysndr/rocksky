@@ -61,12 +61,35 @@ pub async fn did_to_profile(did: &str) -> Result<Profile, Error> {
     }
 
     let client = reqwest::Client::new();
-    let mut response = client.get(format!("{}/xrpc/com.atproto.repo.getRecord?repo={}&collection=app.bsky.actor.profile&rkey=self", service_endpoint, did))
+    let response = client.get(format!("{}/xrpc/com.atproto.repo.getRecord?repo={}&collection=app.bsky.actor.profile&rkey=self", service_endpoint, did))
     .header("Accept", "application/json")
     .send()
-    .await?
-    .json::<ProfileResponse>()
     .await?;
+
+    // A Rocksky-only account (typically on a self-hosted PDS) may never have
+    // written a Bluesky profile; the PDS answers 400 RecordNotFound. Index it
+    // from the DID document alone instead of failing every commit it makes.
+    if response.status() == reqwest::StatusCode::BAD_REQUEST {
+        let body: serde_json::Value = response.json().await.unwrap_or_default();
+        if body["error"] == "RecordNotFound" {
+            return Ok(Profile {
+                r#type: "app.bsky.actor.profile".to_string(),
+                avatar: None,
+                banner: None,
+                created_at: None,
+                pinned_post: None,
+                description: None,
+                display_name: None,
+                handle: Some(handle.to_string()),
+            });
+        }
+        return Err(Error::msg(format!("profile lookup failed: {body}")));
+    }
+
+    let mut response = response
+        .error_for_status()?
+        .json::<ProfileResponse>()
+        .await?;
 
     response.value.handle = Some(handle.to_string());
     Ok(response.value)
@@ -109,6 +132,19 @@ mod tests {
             .map(|s| s.starts_with("jb"))
             .unwrap_or(false));
         assert!(profile.handle.map(|s| s == "jbc.lol").unwrap_or(false));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_did_to_profile_without_bluesky_profile_record() -> Result<()> {
+        // Rocksky-only account on a self-hosted PDS: no app.bsky.actor.profile.
+        let profile = did_to_profile("did:plc:s7faxbdxp6rzyf6tpmrbcbzf").await?;
+
+        assert_eq!(profile.r#type, "app.bsky.actor.profile");
+        assert_eq!(profile.handle.as_deref(), Some("section.rocksky.social"));
+        assert!(profile.display_name.is_none());
+        assert!(profile.avatar.is_none());
 
         Ok(())
     }
