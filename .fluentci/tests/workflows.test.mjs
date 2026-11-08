@@ -33,8 +33,10 @@ test("the official setup action runs before SDK setup and WSL preserves Windows 
   const setup = read(".github/actions/setup-fluentci/action.yml");
   assert.match(setup, /uses: fluentci-io\/setup-fluentci@next/);
   assert.ok(setup.indexOf("uses: fluentci-io/setup-fluentci@next") < setup.indexOf("uses: actions/setup-node"));
-  assert.match(setup, /version: '2026\.11\.04'/);
-  assert.match(setup, /FLUENTCI_VERSION=2026\.11\.04/);
+  assert.doesNotMatch(setup, /version: '\d{4}\.\d{2}\.\d{2}'/);
+  assert.doesNotMatch(setup, /FLUENTCI_VERSION=/);
+  assert.match(read(".github/scripts/install-fluentci.sh"), /releases\/latest/);
+  assert.doesNotMatch(read(".github/scripts/install-fluentci.sh"), /FLUENTCI_VERSION:-\d/);
   assert.match(read(".github/scripts/install-fluentci.sh"), /curl --fail --show-error --location --retry 3/);
   assert.match(read(".github/scripts/install-fluentci.sh"), /SHA-256 checksum mismatch/);
   assert.match(setup, /Vampire\/setup-wsl@v7/);
