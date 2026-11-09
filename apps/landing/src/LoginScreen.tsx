@@ -16,7 +16,13 @@ import {
   LoaderCircle,
   ShieldCheck,
 } from "lucide-react";
-import { authUrl, handleError, normalizeHandle, passwordSignIn } from "./auth";
+import {
+  authGateway,
+  authUrl,
+  handleError,
+  normalizeHandle,
+  passwordSignIn,
+} from "./auth";
 import { storeSessionToken } from "../../shared/browser-session";
 import { appUrl } from "./data";
 import {
@@ -26,8 +32,10 @@ import {
 } from "./atpassport";
 import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
 
-const gateway =
-  import.meta.env.VITE_ROCKSKY_AUTH_URL || "https://rocksky.pages.dev/loading";
+const gateway = authGateway(
+  import.meta.env.VITE_ROCKSKY_API_URL,
+  import.meta.env.VITE_ROCKSKY_AUTH_URL,
+);
 
 export default function LoginScreen() {
   const [passwordLogin, setPasswordLogin] = useState(

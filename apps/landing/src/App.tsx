@@ -55,15 +55,19 @@ import {
 import SearchModal, { searchOpenAtom } from "./SearchModal";
 import LoginScreen from "./LoginScreen";
 import DiscordIcon from "./DiscordIcon";
-import { authUrl } from "./auth";
+import { authGateway, authUrl } from "./auth";
 import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
 
-const googlePlayUrl = "https://play.google.com/store/apps/details?id=app.rocksky";
+const googlePlayUrl =
+  "https://play.google.com/store/apps/details?id=app.rocksky";
 
 const discordUrl = "https://discord.gg/EVcBy2fVa3";
 
 const createAccountUrl = authUrl(
-  import.meta.env.VITE_ROCKSKY_AUTH_URL || "https://rocksky.pages.dev/loading",
+  authGateway(
+    import.meta.env.VITE_ROCKSKY_API_URL,
+    import.meta.env.VITE_ROCKSKY_AUTH_URL,
+  ),
 );
 
 function Reveal({

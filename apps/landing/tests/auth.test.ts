@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { authUrl, handleError, normalizeHandle } from "../src/auth";
+import {
+  authGateway,
+  authUrl,
+  handleError,
+  normalizeHandle,
+} from "../src/auth";
 
 describe("Atmosphere sign-in handoff", () => {
   test("accepts a full handle or custom domain and removes the optional @", () => {
@@ -29,20 +34,18 @@ describe("Atmosphere sign-in handoff", () => {
     }
   });
 
-  test("matches the hosted web app login URL without creating a local session", () => {
-    const url = new URL(
-      authUrl("https://rocksky.pages.dev/loading", " @Listener.Bsky.Social "),
-    );
-    expect(url.origin).toBe("https://rocksky.pages.dev");
-    expect(url.pathname).toBe("/loading");
+  test("starts sign-in at the API without the intermediate loading page", () => {
+    const url = new URL(authUrl(authGateway(), " @Listener.Bsky.Social "));
+    expect(url.origin).toBe("https://api.rocksky.app");
+    expect(url.pathname).toBe("/login");
     expect(url.searchParams.get("handle")).toBe("listener.bsky.social");
     expect(url.searchParams.has("prompt")).toBe(false);
   });
 
   test("uses the existing account-creation prompt and configurable gateway", () => {
-    const create = new URL(
-      authUrl("https://rocksky.pages.dev/loading?handle=old.test"),
-    );
+    const create = new URL(authUrl(`${authGateway()}?handle=old.test`));
+    expect(create.origin).toBe("https://api.rocksky.app");
+    expect(create.pathname).toBe("/login");
     expect(create.searchParams.get("prompt")).toBe("create");
     expect(create.searchParams.has("handle")).toBe(false);
     const custom = new URL(
@@ -53,10 +56,21 @@ describe("Atmosphere sign-in handoff", () => {
     expect(custom.searchParams.has("prompt")).toBe(false);
   });
 
-  test("encodes query parameters rather than injecting extra auth options", () => {
-    const url = new URL(
-      authUrl("https://rocksky.pages.dev/loading", "name.test&prompt=create"),
+  test("uses the configured API base and preserves an explicit gateway override", () => {
+    expect(authGateway("https://api.example/")).toBe(
+      "https://api.example/login",
     );
+    expect(authGateway("https://example/api")).toBe(
+      "https://example/api/login",
+    );
+    expect(authGateway("", "")).toBe("https://api.rocksky.app/login");
+    expect(
+      authGateway("https://api.example", "https://auth.example/start"),
+    ).toBe("https://auth.example/start");
+  });
+
+  test("encodes query parameters rather than injecting extra auth options", () => {
+    const url = new URL(authUrl(authGateway(), "name.test&prompt=create"));
     expect(url.searchParams.has("prompt")).toBe(false);
     expect(url.searchParams.get("handle")).toBe("name.test&prompt=create");
   });

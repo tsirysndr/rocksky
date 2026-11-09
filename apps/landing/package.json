@@ -12,6 +12,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@atcute/client": "^5.1.2",
     "@atpassport/client": "^0.2.3",
     "@heroui/react": "^3.2.6",
     "@heroui/styles": "^3.2.6",

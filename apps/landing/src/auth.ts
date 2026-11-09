@@ -19,8 +19,15 @@ export function handleError(value: string): string | undefined {
   return undefined;
 }
 
-// Use the web app's hosted OAuth gateway; the existing application owns the
-// callback/session. Never store a token on the separate landing-page origin.
+// Start OAuth at the API directly, skipping the web app's /loading page.
+// The API still owns authorization and the existing callback/session flow.
+export function authGateway(apiUrl?: string, override?: string): string {
+  return (
+    override ||
+    `${(apiUrl || "https://api.rocksky.app").replace(/\/$/, "")}/login`
+  );
+}
+
 export function authUrl(gateway: string, handle?: string): string {
   const url = new URL(gateway);
   if (handle === undefined) {
