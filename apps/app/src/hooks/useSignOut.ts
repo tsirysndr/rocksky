@@ -34,7 +34,9 @@ export function useSignOut() {
   const setActive = useSetAtom(localEngineActiveAtom);
   const setProgress = useSetAtom(progressAtom);
   return async () => {
-    await removePushToken(storage.getToken() ?? undefined);
+    // Remote deregistration may fail precisely because the session expired.
+    // Local sign-out must still complete immediately.
+    void removePushToken(storage.getToken() ?? undefined).catch(console.warn);
     // Hide authenticated playback UI before native or asynchronous cleanup.
     setToken(null);
     const clearingStorage = storage.clear();

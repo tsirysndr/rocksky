@@ -50,6 +50,7 @@ import tracks from "./schema/tracks";
 import users from "./schema/users";
 import spotify from "./spotify/app";
 import usersApp from "./users/app";
+import { sessionApp } from "./session/app";
 import webscrobbler from "./webscrobbler/app";
 
 dns.setDefaultResultOrder("ipv4first");
@@ -87,6 +88,20 @@ app.use("*", async (c, next) => {
 });
 
 app.use(cors());
+
+app.route(
+  "/session",
+  sessionApp({
+    verifyToken,
+    hasSession: async (did) =>
+      !!(await ctx.sqliteDb
+        .selectFrom("auth_session")
+        .select("key")
+        .where("key", "in", [did, `atp:${did}`])
+        .executeTakeFirst()),
+    restoreSession: (did) => createAgent(ctx.oauthClient, did),
+  }),
+);
 
 app.route("/", bsky);
 

@@ -8,13 +8,14 @@ import rocksky_api/opengraph/app as opengraph
 import rocksky_api/uploads/app as uploads
 
 import rocksky_api/bsky/app as bsky
+import rocksky_api/session/app as session
 import rocksky_api/storage/app as storage
 import rocksky_api/webscrobbler/app as webscrobbler
 
 import rocksky_api/access_tokens/app as access_tokens
 import rocksky_api/apikeys/app as apikeys
-import rocksky_api/notifications/sse
 import rocksky_api/notifications/push
+import rocksky_api/notifications/sse
 import rocksky_api/subscribers/index as subscribers
 
 import rocksky_api/submissions/app as submissions
@@ -112,6 +113,7 @@ pub fn app(ctx: Context) -> App {
     None
   })
   |> hono.cors()
+  |> hono.route("/session", session.app(ctx))
   |> hono.route("/", bsky.app(ctx))
   |> hono.route("/apikeys", apikeys.app(ctx))
   |> hono.route("/access-tokens", access_tokens.app(ctx))

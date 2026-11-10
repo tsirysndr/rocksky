@@ -10,6 +10,7 @@ package:
     - avar
     - bifunctors
     - control
+    - console
     - datetime
     - effect
     - either

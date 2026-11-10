@@ -687,6 +687,7 @@
             "bifunctors",
             "chalk",
             "consola",
+            "console",
             "control",
             "datetime",
             "dayjs",

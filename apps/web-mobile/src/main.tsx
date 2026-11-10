@@ -1,4 +1,6 @@
 import { syncHomepageSession } from "../../shared/browser-session";
+import { monitorBrowserSession } from "../../shared/browser-session-monitor";
+import { API_URL } from "./consts";
 import {
   MutationCache,
   QueryCache,
@@ -31,6 +33,7 @@ const primitives = { primaryFontFamily: "RockfordSansRegular" };
 const theme = createLightTheme(primitives);
 const engine = new Styletron();
 installSessionGuard(client);
+monitorBrowserSession(API_URL, handleSessionExpired);
 installAlbumArtFallback();
 
 // The SDK throws instead of going through axios, so react-query's caches are

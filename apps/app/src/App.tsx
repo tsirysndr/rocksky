@@ -11,6 +11,7 @@ import { authTokenAtom } from "./atoms/auth";
 import StarrySplash from "./components/StarrySplash";
 import { useNotificationAccess } from "./hooks/useNotificationAccess";
 import { useCurrentUserProfile } from "./hooks/useProfile";
+import { useSessionMonitor } from "./hooks/useSessionMonitor";
 import { linking } from "./lib/linking";
 import { queryClient } from "./lib/queryClient";
 import { RootStack } from "./Navigation";
@@ -41,6 +42,7 @@ function AppInner({ fontsLoaded }: { fontsLoaded: boolean }) {
   const token = useAtomValue(authTokenAtom);
 
   useCurrentUserProfile(token);
+  useSessionMonitor();
 
   useEffect(() => {
     // The native splash hands off to the animated StarrySplash right away.

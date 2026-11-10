@@ -19,6 +19,7 @@ import Rocksky.Lib.Process (setDnsIpv4First)
 import Rocksky.Metrics as Metrics
 import Rocksky.Otel as Otel
 import Rocksky.Profiling as Profiling
+import Rocksky.Session.App as Session
 import Rocksky.Ratelimiter (rateLimiter)
 import Rocksky.Rest.Reads as Reads
 import Rocksky.Rest.Mutations as Mutations
@@ -58,6 +59,7 @@ app ctx = do
       (Metrics.labels [Tuple "route" (Hono.reqPath c), Tuple "method" (Hono.reqMethod c)]))
     pure Nothing
   Cors.cors a
+  Session.app ctx >>= Hono.route a "/session"
   Bsky.app ctx >>= Hono.route a "/"
   Spotify.app ctx >>= Hono.route a "/spotify"
   Storage.app ctx >>= Hono.route a "/storage"

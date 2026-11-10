@@ -12,6 +12,7 @@ import Foreign (Foreign)
 import Rocksky.Lib.Aff (sleep, timeoutMs)
 import Rocksky.Lib.Foreign (toForeign)
 import Rocksky.Typesense.Retry (isTransient, withTypesenseRetry)
+import Rocksky.Session.Status as Session
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
@@ -19,6 +20,17 @@ import Test.Spec.Runner.Node (runSpecAndExitProcess)
 
 main :: Effect Unit
 main = runSpecAndExitProcess [ consoleReporter ] do
+  describe "Session status" do
+    it "rejects a missing session without restoring it" do
+      Session.check (pure false) (throwError (error "must not restore")) >>= (_ `shouldEqual` 401)
+    it "accepts a restored session" do
+      Session.check (pure true) (pure true) >>= (_ `shouldEqual` 200)
+    it "preserves the login after a transient restore failure" do
+      Session.check (pure true) (pure false) >>= (_ `shouldEqual` 503)
+    it "detects a session deleted during refresh" do
+      exists <- liftEffect (Ref.new true)
+      Session.check (liftEffect (Ref.read exists)) (liftEffect (Ref.write false exists) $> false) >>= (_ `shouldEqual` 401)
+
   describe "Typesense retry policy" do
     it "recognizes network failures, server errors and nested causes" do
       for_ [ "ETIMEDOUT", "ECONNREFUSED", "ECONNRESET", "EAI_AGAIN", "ENOTFOUND", "EPIPE", "ENETUNREACH", "EHOSTUNREACH" ] \code ->

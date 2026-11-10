@@ -71,11 +71,12 @@ export default defineConfig({
         directoryIndex: null,
         runtimeCaching: [
           {
-            // Exclude auth-sensitive endpoints (/token, /login, /oauth) from caching.
+            // Session checks must always reach the server, including offline.
+            // Exclude auth-sensitive endpoints from caching.
             // Cache key is URL-only so caching /token would ignore the session-did header.
             urlPattern: ({ url, request }) =>
               request.mode !== "navigate" &&
-              /^https:\/\/api\.rocksky\.app\/(?!token|login|oauth).*/i.test(url.href),
+              /^https:\/\/api\.rocksky\.app\/(?!token|login|oauth|session).*/i.test(url.href),
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
