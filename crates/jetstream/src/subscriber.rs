@@ -345,6 +345,12 @@ async fn index_event(
         message: "missing Jetstream commit".into(),
         permanent: true,
     })?;
+    if commit.operation == "create" && commit.record.is_none() {
+        return Err(Failure {
+            message: "missing Jetstream record".into(),
+            permanent: true,
+        });
+    }
     let started = std::time::Instant::now();
     let span = tracing::info_span!("jetstream.commit", otel.kind = "consumer",
         submission.id = %job.id, jetstream.source = %job.source,
@@ -358,9 +364,26 @@ async fn index_event(
         if result.is_ok() { "ok" } else { "error" },
         started.elapsed().as_secs_f64(),
     );
-    result?;
+    result.map_err(index_failure)?;
     queue.checkpoint(&job, "index.v1", "{}").await?;
     Ok(())
+}
+
+fn index_failure(error: anyhow::Error) -> Failure {
+    // Persisted input cannot repair itself on retry. Keep the failed job for
+    // inspection/replay, while leaving database/network failures retryable.
+    if error.chain().any(|cause| {
+        cause
+            .downcast_ref::<serde_json::Error>()
+            .is_some_and(|e| e.is_data() || e.is_syntax() || e.is_eof())
+            || cause.downcast_ref::<chrono::ParseError>().is_some()
+    }) {
+        return Failure {
+            message: format!("{error:#}"),
+            permanent: true,
+        };
+    }
+    error.into()
 }
 
 fn worker_capacity(total: usize, reserved: Option<usize>) -> anyhow::Result<(usize, usize)> {
@@ -387,6 +410,18 @@ fn initial_cursor() -> i64 {
 mod tests {
     use super::*;
     use crate::source::tests::commit_v2;
+
+    #[test]
+    fn invalid_records_fail_permanently_but_transient_errors_retry() {
+        for value in [serde_json::json!({}), serde_json::json!({"title": 123})] {
+            let error = serde_json::from_value::<crate::types::ScrobbleRecord>(value).unwrap_err();
+            assert!(index_failure(anyhow::Error::new(error).context("invalid record")).permanent);
+        }
+        let error = chrono::DateTime::parse_from_rfc3339("invalid").unwrap_err();
+        assert!(index_failure(error.into()).permanent);
+        assert!(!index_failure(sqlx::Error::PoolTimedOut.into()).permanent);
+        assert!(!index_failure(anyhow::anyhow!("upstream unavailable")).permanent);
+    }
 
     #[test]
     fn priority_capacity_preserves_total_and_both_lanes() {

@@ -17,6 +17,9 @@ SyslogIdentifier=rocksky-jetstream
 # Environment
 Environment=HOME=/root
 Environment=USER=root
+# Bound bulk imports so other actors retain database capacity.
+Environment=JETSTREAM_FAIR_BORROW_IDLE=false
+Environment=JETSTREAM_MAX_INFLIGHT_PER_DID=4
 
 [Install]
 WantedBy=multi-user.target
