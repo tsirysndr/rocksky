@@ -8,7 +8,8 @@ Conflicts=rocksky-xrpc.service
 Type=simple
 User=root
 WorkingDirectory=/root/github/rocksky/gleam
-ExecStartPre=/bin/bash -ic 'exec /bin/bash deploy/build-production.sh'
+# Build with gleam/deploy/build-production.sh before restarting this unit.
+# Health-check restarts must not wait for a compiler or a shared Cargo lock.
 ExecStart=/bin/bash -ic 'exec doppler run -c prd -- env NODE_ENV=production node entry/server.mjs'
 TimeoutStartSec=15min
 Restart=on-failure
