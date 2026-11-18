@@ -251,7 +251,7 @@
           };
           modRoot = "spotify";
 
-          vendorHash = "sha256-waGx/C2yn7xKGOEHFRCMZd4IdoZd3CahuX0EApbdjyE=";
+          vendorHash = "sha256-0FLTe/9RlZURIpiZDjvjMBzXjj6SQKanR3Lm5SpPWQU=";
 
           doCheck = false;
 
@@ -278,7 +278,7 @@
           };
           modRoot = "musicbrainz";
 
-          vendorHash = "sha256-pkW0F384+tVmb3AyFXu37+odU+ylr6NxrOrdSvYVVWQ=";
+          vendorHash = "sha256-dtYHxR4tnhQ6y5FRlG/0MhqRj9+4D3zxaUSZkaBh9Ug=";
 
           doCheck = false;
 
