@@ -153,6 +153,35 @@ Linux `.deb`, `.rpm` and `.AppImage` bundles are attached to each
 [`desktop-v*` release](https://github.com/tsirysndr/rocksky/releases). See
 [`desktop/README.md`](desktop/README.md) for details.
 
+### Nix installation
+
+Rocksky's Linux and macOS packages use the public [FluentCI binary cache](https://docs.fluentci.io/guides/build-cache/).
+Add these settings to `~/.config/nix/nix.conf` (or your system Nix configuration)
+to download available signed builds instead of compiling them locally:
+
+```ini
+experimental-features = nix-command flakes
+extra-substituters = https://cache.fluentci.io/tsiry-sandratraina.com/nix
+extra-trusted-public-keys = rocksky-1:BbtT/uvfxSmInjFyhn9lD5bcR0MNEyso3hyqV4T6eo4=
+```
+
+For a multi-user installation, configure these settings for the Nix daemon and
+restart it after changing the configuration. Public downloads require no token.
+
+```sh
+# Desktop app
+nix profile install github:tsirysndr/rocksky#rocksky-desktop
+
+# Remote music player daemon
+nix profile install github:tsirysndr/rocksky#playerd
+
+# Rocksky CLI (its own flake)
+nix profile install 'github:tsirysndr/rocksky?dir=apps/cli'
+```
+
+The same cache settings apply to `nix build` and `nix develop`. Nix compiles a
+package locally when its exact build is not available in the cache.
+
 ## 🚀 Self-Hosting / Development
 
 ### Prerequisites

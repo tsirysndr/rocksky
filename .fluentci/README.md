@@ -60,9 +60,23 @@ to `output`, or `dist/fluentci/<function>` when omitted. Each invocation owns an
 isolated Docker network and temporary directory. Its containers, temporary
 images, network, registry credentials, and staging files are cleaned up on normal
 success or failure. Named Docker cache volumes persist across invocations.
-Nix mounts its store cache directly on the Nix image. Docker initializes an
-empty volume from the image's existing store and retains populated caches;
-read-only store directories are never exported to the runner for seeding.
+Nix builds run natively on all three runners (`ubuntu-latest`, `ubuntu-24.04-arm`,
+and `macos-latest`). `host.nixBuild` invokes the published
+`@fluentci.io/cache@0.1.0` module's `nix-build` function for each package. It watches
+build outputs, signs them, skips existing artifacts, and drains background uploads
+before returning. The Linux desktop build remains best-effort.
+
+Configure repository variables `FLUENTCI_CACHE_URL` (the account base URL, without
+`/nix`) and `FLUENTCI_NIX_PUBLIC_KEY`, plus secrets `FLUENTCI_CACHE_TOKEN` and
+`FLUENTCI_NIX_SIGNING_KEY`. Credentials stay in the process environment. On fork
+pull requests where both secrets are absent, builds use the public FluentCI
+substituter and trusted public key without uploading. Supplying only one secret
+is an error. Nix and Node.js 24+ must be installed; CI installs the latest FluentCI
+CLI with the existing setup action.
+
+The compatibility `ops.nixBuild` entry accepts `source` (a host checkout) and
+`runId` and delegates to the same native build implementation. It reads the same
+cache environment variables; it no longer accepts a Cachix token.
 
 Release, registry, SSH, and EAS secrets use environment references, for example
 `"token":"env://GH_TOKEN"`, `"privateKey":"env://SSH_KEY"`, or

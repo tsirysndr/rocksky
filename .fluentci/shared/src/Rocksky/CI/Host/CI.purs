@@ -2,11 +2,12 @@ module Rocksky.CI.Host.CI where
 
 import Prelude
 import CI.Docker.Engine as E
-import Data.Array (filter)
 import Data.Either (Either(..))
 import Data.Foldable (traverse_)
-import Data.String (Pattern(..), contains)
+import Data.String (Pattern(..), stripSuffix)
+import Data.Maybe (fromMaybe)
 import Effect (Effect)
+import Effect.Console (log)
 import Effect.Exception (throw, try)
 import FluentCI.Plugin as P
 import Rocksky.CI.Host.System as S
@@ -57,10 +58,32 @@ prepareDesktop = do
 nixBuild :: Effect Unit
 nixBuild = do
   root <- S.root
-  traverse_ (\project -> void $ S.run false root ["nix", "build", if project == "cli" then "./apps/cli" else ".#" <> project, "--print-build-logs", "-o", "result-" <> project])
-    ["cli", "playerd", "rockskyd", "drift", "riff", "deezer", "spotify", "musicbrainz", "rocksky-desktop"]
-  entries <- filter (contains (Pattern "result-")) <$> S.entries root
-  void $ S.run false root (["ls", "-la"] <> entries)
+  platform <- S.platform
+  configuredUrl <- S.required "FLUENTCI_CACHE_URL"
+  let url = fromMaybe configuredUrl (stripSuffix (Pattern "/") configuredUrl)
+  publicKey <- S.required "FLUENTCI_NIX_PUBLIC_KEY"
+  token <- S.env "FLUENTCI_CACHE_TOKEN"
+  signingKey <- S.env "FLUENTCI_NIX_SIGNING_KEY"
+  unless ((token == "") == (signingKey == "")) $
+    throw "FLUENTCI_CACHE_TOKEN and FLUENTCI_NIX_SIGNING_KEY must be supplied together"
+  config <- S.env "NIX_CONFIG"
+  -- Both authenticated builds and fork PRs read the public binary cache.
+  -- The published module normalizes the account URL for watched uploads.
+  S.setEnv "NIX_CONFIG" (config <> "\nextra-substituters = " <> url <> "/nix\nextra-trusted-public-keys = " <> publicKey <> "\n")
+  let build project = do
+        let flake = if project == "cli" then "./apps/cli" else ".#" <> project
+        if token == "" then
+          void $ S.run false root ["nix", "build", flake, "--print-build-logs", "--no-link"]
+        else
+          void $ S.run false root
+            [ "fluentci", "--check-update=false", "run", "@fluentci.io/cache@0.1.0", "nix-build", "--flake", flake ]
+  traverse_ build ["cli", "playerd", "rockskyd", "drift", "riff", "deezer", "spotify", "musicbrainz"]
+  if platform == "linux" then do
+    desktop <- try (build "rocksky-desktop")
+    case desktop of
+      Left _ -> log "::warning::The optional Linux desktop Nix build or cache upload failed"
+      Right _ -> pure unit
+  else build "rocksky-desktop"
 
 flakehubPublish :: Effect Unit
 flakehubPublish = do

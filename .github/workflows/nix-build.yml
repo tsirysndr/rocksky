@@ -27,30 +27,17 @@ jobs:
     - name: Set up FluentCI
       uses: ./.github/actions/setup-fluentci
     - name: Install Nix
-      if: runner.os != 'Linux'
       uses: DeterminateSystems/nix-installer-action@main
-    - name: Set up Cachix
-      if: runner.os != 'Linux'
-      uses: cachix/cachix-action@v17
-      with:
-        name: rocksky
-        authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-    - name: Build native Nix packages with FluentCI
-      if: runner.os != 'Linux'
+    - name: Build Nix packages with FluentCI binary cache
+      env:
+        FLUENTCI_CACHE_URL: ${{ vars.FLUENTCI_CACHE_URL }}
+        FLUENTCI_NIX_PUBLIC_KEY: ${{ vars.FLUENTCI_NIX_PUBLIC_KEY }}
+        FLUENTCI_CACHE_TOKEN: ${{ secrets.FLUENTCI_CACHE_TOKEN }}
+        FLUENTCI_NIX_SIGNING_KEY: ${{ secrets.FLUENTCI_NIX_SIGNING_KEY }}
       uses: ./.github/actions/fluentci
       with:
         module: host
         function: nixBuild
         arguments: '{}'
-    - name: Build Linux Nix packages (PureScript FluentCI)
-      if: runner.os == 'Linux'
-      env:
-        CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
-        NIX_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
-      uses: ./.github/actions/fluentci
-      with:
-        module: ops
-        function: nixBuild
-        arguments: '{"source":".","cachixToken":"env://CACHIX_AUTH_TOKEN","runId":"$NIX_RUN"}'
     needs:
     - fluentci-modules

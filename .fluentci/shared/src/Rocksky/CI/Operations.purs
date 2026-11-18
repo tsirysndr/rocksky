@@ -3,12 +3,10 @@ module Rocksky.CI.Operations where
 import Prelude
 import CI.Docker.Container as C
 import CI.Docker.Directory as D
-import CI.Docker.Secret as Secret
-import CI.Docker.Types (Container, Secret, ReturnType(..))
-import Data.Array (filter, head)
-import Data.Foldable (foldM)
+import CI.Docker.Types (Container)
+import Data.Array (filter)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.String (Pattern(..), contains, split, stripPrefix, trim)
+import Data.String (Pattern(..), contains, stripPrefix)
 import CI.Effect (Aff, throwError)
 import Effect.Exception (error)
 
@@ -67,36 +65,3 @@ Grab the `.deb`, `.rpm`, or `.AppImage` below.
 
 Managed by `.github/workflows/desktop-release.yml`.
 """
-
--- Unsandboxed builders can leave Nix's dummy HOME in the container filesystem.
--- Nix requires it to be absent when starting the next build. Clear it at every
--- build boundary, not just once when initializing the shared container.
-prepareNixBuild :: Container -> Container
-prepareNixBuild = C.withoutDirectory "/homeless-shelter"
-
-nix :: Secret -> Container -> Aff Unit
-nix token environment = do
-  let resolved = environment # C.withWorkdir "/src"
-        # prepareNixBuild
-        # C.withExec [ "nix", "build", "--inputs-from", ".", "nixpkgs#cachix", "--no-link", "--print-out-paths" ]
-  output <- C.stdout resolved
-  path <- case head (filter (_ /= "") (split (Pattern "\n") (trim output))) of
-    Just value -> pure value
-    Nothing -> throwError (error "Nix did not return the Cachix store path")
-  let base = resolved # C.withExec [ path <> "/bin/cachix", "use", "rocksky" ]
-  built <- foldM (\container project -> pure $ container
-    # prepareNixBuild
-    # C.withExec [ "nix", "build", if project == "cli" then "./apps/cli" else ".#" <> project, "--print-build-logs", "-o", "result-" <> project ]) base
-    [ "cli", "playerd", "rockskyd", "drift", "riff", "deezer", "spotify", "musicbrainz" ]
-  let desktop = built # prepareNixBuild
-        # C.withExecWith [ "nix", "build", ".#rocksky-desktop", "--print-build-logs", "-o", "result-rocksky-desktop" ]
-        (C.defaultWithExecOpts { expect = Just ReturnTypeAny })
-  void $ C.sync desktop -- Preserve the existing best-effort Linux desktop policy.
-  credential <- Secret.plaintext token
-  when (credential /= "") do
-    entries <- D.entries (C.directory "/src" desktop)
-    pushed <- foldM (\container result -> do
-      exists <- C.exists ("/src/" <> result) container
-      pure $ if exists then container # C.withExec [ path <> "/bin/cachix", "push", "rocksky", result ] else container)
-      desktop (filter (contains (Pattern "result-")) entries)
-    void $ C.sync pushed

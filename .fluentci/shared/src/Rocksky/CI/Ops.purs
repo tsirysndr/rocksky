@@ -4,6 +4,8 @@ import Prelude
 import CI.Docker.Types (Client, Directory(..), File, Platform(..), Secret)
 import CI.Docker.Engine as Engine
 import Rocksky.CI.Operations as Ops
+import Rocksky.CI.Host.CI as HostCI
+import Rocksky.CI.Host.System as HostSystem
 import Rocksky.CI.Desktop as Desktop
 import Data.Array (elem)
 import Rocksky.CI.ReleaseClients as Release
@@ -138,32 +140,23 @@ deploy client args = case Deploy.validate args.commit args.services of
     transport <- SSH.connect client args.artifacts args.privateKey args.runId connection.host connection.knownHosts
     Deploy.deploy transport args.commit selected
 
-type NixArgs = { source :: Directory, cachixToken :: Secret, runId :: String }
+type NixArgs = { source :: Directory, runId :: String }
 
 nixArgs :: Module.Arguments NixArgs
 nixArgs = ado
   source <- Module.argument "source"
-  cachixToken <- Module.argument "cachixToken"
   runId <- Module.argument "runId"
-  in { source, cachixToken, runId }
+  in { source, runId }
 
 nixBuild :: Client -> NixArgs -> Aff String
-nixBuild client args = do
-  let
-    image = Query.container client # Container.from "nixos/nix:2.28.5"
-    store = Query.cacheVolume "rocksky-nix-store" client
-    -- Docker populates an empty named volume from the image's /nix directory.
-    -- Mount it directly so the read-only store never passes through the runner.
-  Ops.nix args.cachixToken $ image
-    # Container.withMountedCache "/nix" store
-    # Container.withEnvVariable "NIX_REMOTE" "local"
-    # Container.withEnvVariable "NIX_CONFIG" "experimental-features = nix-command flakes\nsandbox = false\nbuild-users-group =\n"
-    # Container.withDirectoryWith "/src" args.source
-        (Container.defaultWithDirectoryOpts
-          { exclude = Just [ ".git", ".dagger", "**/target", "**/node_modules", "**/.env", "**/.env.*", "result-*" ] })
-    # Container.withSecretVariable "CACHIX_AUTH_TOKEN" args.cachixToken
-    # Container.withEnvVariable "NIX_RUN" args.runId
-  pure "Linux Nix builds and configured Cachix uploads completed"
+nixBuild client args = case args.source of
+  HostDirectory path -> do
+    workspace <- HostSystem.env "GITHUB_WORKSPACE"
+    HostSystem.finally (HostSystem.setEnv "GITHUB_WORKSPACE" workspace) do
+      HostSystem.setEnv "GITHUB_WORKSPACE" (Engine.absolute client path)
+      HostCI.nixBuild
+    pure "Nix builds using FluentCI binary cache completed"
+  _ -> throwError (error "Nix builds require a host checkout with Nix installed")
 
 type PackageArgs = { binary :: File, project :: String, tag :: String, target :: String }
 
@@ -220,7 +213,7 @@ definitions =
       , Module.function "packageRelease" "Package a Linux release executable and its checksum." packageArgs packageRelease
       , Module.function "desktopRelease" "Build and verify Ubuntu-compatible Linux desktop bundles." desktopArgs desktopRelease
       , Module.function "deploy" "Deploy selected Rocksky services over SSH." deployArgs deploy
-      , Module.function "nixBuild" "Build Linux flake packages and publish closures when Cachix credentials are present." nixArgs nixBuild
+      , Module.function "nixBuild" "Build native flake packages with watched FluentCI binary cache uploads." nixArgs nixBuild
       ]
   ]
 
