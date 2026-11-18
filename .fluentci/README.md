@@ -72,7 +72,11 @@ Configure repository variables `FLUENTCI_CACHE_URL` (the account base URL, witho
 pull requests where both secrets are absent, builds use the public FluentCI
 substituter and trusted public key without uploading. Supplying only one secret
 is an error. Nix and Node.js 24+ must be installed; CI installs the latest FluentCI
-CLI with the existing setup action.
+CLI with the existing setup action. Nix is installed through the published
+`setup-determinate-nix@0.2.2 setup --sudo` module, trusting the current runner user
+so cache substituters and signing keys can be configured. Its typed setup result
+is exported with `.github/scripts/export-setup-env.py` to persist Nix's PATH and
+environment for the build step.
 
 The compatibility `ops.nixBuild` entry accepts `source` (a host checkout) and
 `runId` and delegates to the same native build implementation. It reads the same

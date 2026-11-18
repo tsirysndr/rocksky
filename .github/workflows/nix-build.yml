@@ -26,8 +26,12 @@ jobs:
       uses: actions/checkout@v4
     - name: Set up FluentCI
       uses: ./.github/actions/setup-fluentci
-    - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@main
+    - name: Set up Determinate Nix through FluentCI
+      shell: bash
+      run: |
+        set -euo pipefail
+        trusted_users=$(id -un)
+        fluentci --check-update=false run setup-determinate-nix@0.2.2 setup --sudo --trusted-users "$trusted_users" | python3 .github/scripts/export-setup-env.py
     - name: Build Nix packages with FluentCI binary cache
       env:
         FLUENTCI_CACHE_URL: ${{ vars.FLUENTCI_CACHE_URL }}
