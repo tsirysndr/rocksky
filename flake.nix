@@ -228,7 +228,7 @@
           };
           modRoot = "deezer";
 
-          vendorHash = "sha256-kXvtrj31GqekXjfG0ySbC/GP2E0lJJ+IOMrecEw/mD0=";
+          vendorHash = "sha256-+UcIt0wBTMvTAzD/krE8ePnhTOCqR+T+R2Z+79BDkkE=";
 
           doCheck = false;
 
