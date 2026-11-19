@@ -58,6 +58,7 @@ import rocksky_api/node/otel
 import rocksky_api/node/process
 import rocksky_api/node/pyroscope
 import rocksky_api/node/redis
+import rocksky_api/nowplaying/submitted
 import rocksky_api/rest/ratelimiter
 import rocksky_api/rest/upstream
 import rocksky_api/schema/albums
@@ -286,7 +287,7 @@ fn root_routes(app: App, ctx: Context) -> App {
         |> task.require_task("Unauthorized")
         |> unauthorized,
       )
-      use #(now_playing, status) <- task.map(task.all2(
+      use #(now_playing, status) <- task.then(task.all2(
         task.attempt_result(redis.get(ctx.redis, "nowplaying:" <> user.did)),
         task.attempt_result(redis.get(
           ctx.redis,
@@ -294,9 +295,9 @@ fn root_routes(app: App, ctx: Context) -> App {
         )),
       ))
       case now_playing {
-        None -> json.object([])
+        None -> submitted.get(ctx, user.did)
         Some(raw) ->
-          case js.parse_json(raw) {
+          task.ok(case js.parse_json(raw) {
             Error(_) -> json.object([])
             Ok(track) -> {
               // The track frame carries the device's own transport state; only
@@ -309,7 +310,7 @@ fn root_routes(app: App, ctx: Context) -> App {
               }
               js.set(track, "is_playing", js.coerce(is_playing)) |> js.coerce
             }
-          }
+          })
       }
     }
     respond.json(c, work)

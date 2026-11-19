@@ -7,7 +7,10 @@ import Control.Parallel (parallel, sequential)
 import Data.Array as A
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Nullable (Nullable)
+import Data.Nullable (Nullable, toNullable)
+import Data.DateTime.Instant (unInstant)
+import Data.Newtype (unwrap)
+import Effect.Now (now)
 import Data.String (Pattern(..), contains, split)
 import Data.Traversable (for_)
 import Data.Tuple (Tuple(..))
@@ -38,6 +41,31 @@ field :: String -> Foreign -> Foreign
 field key value = fromMaybe F.undefined (foldM (\v k -> F.asObject v >>= Object.lookup k) value (split (Pattern ".") key))
 nonempty :: Maybe String -> Maybe String
 nonempty value = value >>= \v -> if v == "" then Nothing else Just v
+
+-- ListenBrainz playing_now submissions are cached by the scrobbler service.
+submittedNowPlaying :: Context -> String -> Aff Foreign
+submittedNowPlaying ctx did = do
+  raw <- Redis.get ctx.redis ("listenbrainz:playing_now:" <> did)
+  case nonempty raw of
+    Nothing -> pure (F.toForeign {})
+    Just encoded -> case F.parseJson encoded of
+      Left err -> throwError (error err)
+      Right listen -> do
+        current <- liftEffect now
+        let length = fromMaybe 0.0 (F.readNumberAt "track_metadata.additional_info.duration_ms" listen)
+        let startedAt = fromMaybe 0.0 (F.readNumberAt "inserted_at" listen) * 1000.0
+        let elapsed = if length == 0.0 then 0.0 else min (max (unwrap (unInstant current) - startedAt) 0.0) length
+        let device = case F.readStringAt "track_metadata.additional_info.music_service_name" listen of
+              Just name -> Just name
+              Nothing -> F.readStringAt "track_metadata.additional_info.submission_client" listen
+        pure (F.toForeign
+          { title: field "track_metadata.track_name" listen
+          , artist: field "track_metadata.artist_name" listen
+          , length
+          , elapsed
+          , is_playing: true
+          , device_name: toNullable device
+          })
 
 register :: Context -> Hono.App -> Effect Unit
 register ctx app = do
@@ -72,7 +100,7 @@ register ctx app = do
           Just user -> do
             values <- sequential $ { track: _, status: _ } <$> parallel (Redis.get ctx.redis ("nowplaying:" <> user.did)) <*> parallel (Redis.get ctx.redis ("nowplaying:" <> user.did <> ":status"))
             case nonempty values.track of
-              Nothing -> Rest.json c 200 (F.toForeign {})
+              Nothing -> submittedNowPlaying ctx user.did >>= Rest.json c 200
               Just encoded -> case F.parseJson encoded of
                 Left err -> throwError (error err)
                 Right track -> Rest.json c 200 (F.mergeForeign track (F.toForeign { is_playing: fromMaybe (values.status == Just "1") (F.readBooleanAt "is_playing" track) }))
