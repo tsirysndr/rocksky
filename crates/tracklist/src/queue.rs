@@ -40,24 +40,26 @@ pub async fn insert_track_at(
 ) -> Result<Vec<String>, Error> {
     let mut conn = client.get_multiplexed_async_connection().await?;
 
-    let queue: Vec<String> = conn.lrange(format!("user:{}:queue", did), 0, -1).await?;
+    // Keep the read and replacement together so concurrent adds cannot be lost.
+    let queue = redis::Script::new(
+        r#"
+        local queue = redis.call('LRANGE', KEYS[1], 0, -1)
+        local position = math.min(tonumber(ARGV[1]), #queue) + 1
+        table.insert(queue, position, ARGV[2])
+        redis.call('DEL', KEYS[1])
+        for _, track in ipairs(queue) do
+            redis.call('RPUSH', KEYS[1], track)
+        end
+        return queue
+        "#,
+    )
+    .key(format!("user:{}:queue", did))
+    .arg(position)
+    .arg(track_id)
+    .invoke_async(&mut conn)
+    .await?;
 
-    let mut new_queue = queue.clone();
-    if position >= new_queue.len() {
-        new_queue.push(track_id.to_string());
-    } else {
-        new_queue.insert(position, track_id.to_string());
-    }
-
-    let mut pipeline = redis::pipe();
-    pipeline
-        .atomic()
-        .del(format!("user:{}:queue", did))
-        .rpush(format!("user:{}:queue", did), new_queue.clone())
-        .query_async::<()>(&mut conn)
-        .await?;
-
-    Ok(new_queue)
+    Ok(queue)
 }
 
 pub async fn remove_track_at(
@@ -67,15 +69,25 @@ pub async fn remove_track_at(
 ) -> Result<Vec<String>, Error> {
     let mut conn = client.get_multiplexed_async_connection().await?;
 
-    let queue: Vec<String> = conn.lrange(format!("user:{}:queue", did), 0, -1).await?;
-    if position < queue.len() {
-        let _: i32 = conn
-            .lrem::<_, _, i32>(format!("user:{}:queue", did), 1, &queue[position])
-            .await?;
-    }
-
-    let new_queue: Vec<String> = conn.lrange(format!("user:{}:queue", did), 0, -1).await?;
-    Ok(new_queue)
+    let queue = redis::Script::new(
+        r#"
+        local queue = redis.call('LRANGE', KEYS[1], 0, -1)
+        local position = tonumber(ARGV[1]) + 1
+        if position <= #queue then
+            table.remove(queue, position)
+            redis.call('DEL', KEYS[1])
+            for _, track in ipairs(queue) do
+                redis.call('RPUSH', KEYS[1], track)
+            end
+        end
+        return queue
+        "#,
+    )
+    .key(format!("user:{}:queue", did))
+    .arg(position)
+    .invoke_async(&mut conn)
+    .await?;
+    Ok(queue)
 }
 
 pub async fn shuffle_queue(client: &redis::Client, did: &str) -> Result<Vec<String>, Error> {
@@ -389,6 +401,16 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_remove_track_at_with_duplicates() -> Result<(), Error> {
+        let client = setup_redis().await;
+        let did = Uuid::new_v4().to_string();
+        add_tracks(&client, &did, vec!["a".into(), "b".into(), "a".into()]).await?;
+        assert_eq!(remove_track_at(&client, &did, 2).await?, vec!["a", "b"]);
+        cleanup(&client, &did).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_shuffle_queue() -> Result<(), Error> {
         let client = setup_redis().await;
         let did = Uuid::new_v4().to_string();
@@ -629,16 +651,19 @@ mod tests {
     async fn test_concurrent_operations() -> Result<(), Error> {
         let client = setup_redis().await;
         let did = Uuid::new_v4().to_string();
-        let track_ids = vec!["track:67890", "track:67891", "track:67892"];
+        let track_ids = ["track:67890", "track:67891"];
 
-        let add_task = add_track(&client, &did, track_ids[0]);
-        let insert_task = insert_track_at(&client, &did, 0, track_ids[1]);
-        let remove_task = remove_track_at(&client, &did, 0);
-        tokio::try_join!(add_task, insert_task, remove_task)?;
+        for _ in 0..100 {
+            clear_queue(&client, &did).await?;
+            let add_task = add_track(&client, &did, track_ids[0]);
+            let insert_task = insert_track_at(&client, &did, 0, track_ids[1]);
+            let remove_task = remove_track_at(&client, &did, 0);
+            tokio::try_join!(add_task, insert_task, remove_task)?;
 
-        let queue = get_queue(&client, &did).await?;
-        assert!(queue.len() <= 2);
-        assert!(track_ids.iter().any(|id| queue.contains(&id.to_string())));
+            let queue = get_queue(&client, &did).await?;
+            assert!((1..=2).contains(&queue.len()));
+            assert!(queue.iter().all(|id| track_ids.contains(&id.as_str())));
+        }
 
         cleanup(&client, &did).await?;
         Ok(())
