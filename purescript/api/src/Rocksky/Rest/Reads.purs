@@ -7,11 +7,14 @@ import Control.Parallel (parallel, sequential)
 import Data.Array as A
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Nullable (Nullable, toNullable)
+import Data.Nullable (Nullable, toNullable, toMaybe)
 import Data.DateTime.Instant (unInstant)
 import Data.Newtype (unwrap)
 import Effect.Now (now)
-import Data.String (Pattern(..), contains, split)
+import Data.String (Pattern(..), contains, split, toLower)
+import Node.Crypto (sha256Hex)
+import Rocksky.Lib.Matching as Matching
+import Rocksky.Lib.QueryCache (queryCache)
 import Data.Traversable (for_)
 import Data.Tuple (Tuple(..))
 import Drizzle.Builder (innerJoin, limit, limitNumber, offsetNumber, orderBy, run, selectFieldsFrom, selectFrom)
@@ -43,32 +46,81 @@ nonempty :: Maybe String -> Maybe String
 nonempty value = value >>= \v -> if v == "" then Nothing else Just v
 
 -- ListenBrainz playing_now submissions are cached by the scrobbler service.
-submittedNowPlaying :: Context -> String -> Aff Foreign
-submittedNowPlaying ctx did = do
+submittedNowPlaying :: Context -> (String -> Aff Foreign) -> String -> Aff Foreign
+submittedNowPlaying ctx lookup did = do
   raw <- Redis.get ctx.redis ("listenbrainz:playing_now:" <> did)
   case nonempty raw of
     Nothing -> pure (F.toForeign {})
     Just encoded -> case F.parseJson encoded of
       Left err -> throwError (error err)
       Right listen -> do
+        enriched <- attempt (lookup encoded)
+        let metadata = case enriched of
+              Left _ -> F.toForeign {}
+              Right value -> value
         current <- liftEffect now
-        let length = fromMaybe 0.0 (F.readNumberAt "track_metadata.additional_info.duration_ms" listen)
+        let submittedLength = fromMaybe 0.0 (F.readNumberAt "track_metadata.additional_info.duration_ms" listen)
+        let length = if submittedLength > 0.0 then submittedLength else fromMaybe 0.0 (F.readNumberAt "duration_ms" metadata)
         let startedAt = fromMaybe 0.0 (F.readNumberAt "inserted_at" listen) * 1000.0
         let elapsed = if length == 0.0 then 0.0 else min (max (unwrap (unInstant current) - startedAt) 0.0) length
         let device = case F.readStringAt "track_metadata.additional_info.music_service_name" listen of
               Just name -> Just name
               Nothing -> F.readStringAt "track_metadata.additional_info.submission_client" listen
-        pure (F.toForeign
-          { title: field "track_metadata.track_name" listen
+        pure (F.mergeForeign (F.toForeign
+          { album: toNullable (F.readStringAt "track_metadata.release_name" listen)
+          , title: field "track_metadata.track_name" listen
           , artist: field "track_metadata.artist_name" listen
           , length
           , elapsed
           , is_playing: true
           , device_name: toNullable device
-          })
+          }) metadata)
+
+submittedMetadata :: Context -> String -> Aff Foreign
+submittedMetadata ctx encoded = do
+  listen <- case F.parseJson encoded of
+    Left err -> throwError (error err)
+    Right value -> pure value
+  let title = fromMaybe "" (F.readStringAt "track_metadata.track_name" listen)
+  let artist = fromMaybe "" (F.readStringAt "track_metadata.artist_name" listen)
+  let album = fromMaybe "" (F.readStringAt "track_metadata.release_name" listen)
+  let hash = sha256Hex (toLower (title <> " - " <> artist <> " - " <> album))
+  rows <- run ctx.db (selectFrom T.tracks # where_ (SQL.eq (toSQL T.tracksC.sha256) (SQL.string hash)) # limit 1) :: Aff (Array { albumArt :: Nullable String, albumArtist :: String, duration :: Number, uri :: Nullable String, albumUri :: Nullable String, artistUri :: Nullable String })
+  let row = A.head rows
+  let art = row >>= \r -> nonempty (toMaybe r.albumArt)
+  candidate <- case art of
+    Just _ -> pure Nothing
+    Nothing -> do
+      result <- attempt do
+        request <- Matching.matchingRequest (F.toForeign { title, artist, album, duration: fromMaybe 0.0 (F.readNumberAt "track_metadata.additional_info.duration_ms" listen) })
+        signal <- liftEffect (Fetch.timeoutSignal 2000)
+        Matching.matchTrack ctx request (toNullable (Just (F.unsafeFromForeign (F.toForeign signal))))
+      pure case result of
+        Left _ -> Nothing
+        Right value -> toMaybe value
+  let albumArt = case art of
+        Just value -> Just value
+        Nothing -> candidate >>= \c -> toMaybe c.albumArt
+  let albumArtist = case row of
+        Just r -> r.albumArtist
+        Nothing -> fromMaybe artist (candidate >>= \c -> toMaybe c.albumArtist)
+  let resolvedAlbum = if album /= "" then album else fromMaybe "" (candidate >>= \c -> toMaybe c.album)
+  let duration = case row of
+        Just r | r.duration > 0.0 -> r.duration
+        _ -> fromMaybe 0.0 (candidate >>= \c -> toMaybe c.durationMs)
+  pure (F.toForeign
+    { album: resolvedAlbum
+    , album_artist: albumArtist
+    , album_art: toNullable albumArt
+    , duration_ms: duration
+    , song_uri: toNullable (row >>= \r -> toMaybe r.uri)
+    , album_uri: toNullable (row >>= \r -> toMaybe r.albumUri)
+    , artist_uri: toNullable (row >>= \r -> toMaybe r.artistUri)
+    })
 
 register :: Context -> Hono.App -> Effect Unit
 register ctx app = do
+  submittedLookup <- queryCache (submittedMetadata ctx) 60000 200
   Hono.get app "/" \c -> Rest.text c 200 "\n    ____             __        __            ___              _    ___\n   / __ \\____  _____/ /_______/ /____  __   /   |  ____  ____| |  / (_)__ _      __\n  / /_/ / __ \\/ ___/ //_/ ___/ //_/ / / /  / /| | / __ \\/ __ \\ | / / / _ \\ | /| / /\n / _, _/ /_/ / /__/ ,< (__  ) ,< / /_/ /  / ___ |/ /_/ / /_/ / |/ / /  __/ |/ |/ /\n/_/ |_|\\____/\\___/_/|_/____/_/|_|\\__, /  /_/  |_/ .___/ .___/|___/_/\\___/|__/|__/\n                                /____/         /_/   /_/\n\nRocksky AppView\n\nDocs: https://docs.rocksky.app\nSource: https://tangled.org/rocksky.app/rocksky\n"
   Hono.get app "/proxy-image" \c -> case nonempty (Hono.reqQuery c "url") of
     Nothing -> Rest.text c 400 "Missing url"
@@ -100,7 +152,7 @@ register ctx app = do
           Just user -> do
             values <- sequential $ { track: _, status: _ } <$> parallel (Redis.get ctx.redis ("nowplaying:" <> user.did)) <*> parallel (Redis.get ctx.redis ("nowplaying:" <> user.did <> ":status"))
             case nonempty values.track of
-              Nothing -> submittedNowPlaying ctx user.did >>= Rest.json c 200
+              Nothing -> submittedNowPlaying ctx submittedLookup user.did >>= Rest.json c 200
               Just encoded -> case F.parseJson encoded of
                 Left err -> throwError (error err)
                 Right track -> Rest.json c 200 (F.mergeForeign track (F.toForeign { is_playing: fromMaybe (values.status == Just "1") (F.readBooleanAt "is_playing" track) }))

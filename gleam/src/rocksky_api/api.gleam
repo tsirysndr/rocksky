@@ -146,6 +146,7 @@ fn int_query(c: hono.Context, name: String, default: Int) -> Int {
 }
 
 fn root_routes(app: App, ctx: Context) -> App {
+  let submitted_now_playing = submitted.reader(ctx)
   let scrobbles_table = sc.table()
   let tracks_table = t.table()
   let users_table = u.table()
@@ -295,7 +296,7 @@ fn root_routes(app: App, ctx: Context) -> App {
         )),
       ))
       case now_playing {
-        None -> submitted.get(ctx, user.did)
+        None -> submitted_now_playing(user.did)
         Some(raw) ->
           task.ok(case js.parse_json(raw) {
             Error(_) -> json.object([])
