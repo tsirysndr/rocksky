@@ -285,23 +285,14 @@
           meta.mainProgram = "musicbrainz";
         };
 
-        # Keep in sync with "workspaces" in the root package.json: bun needs
-        # every member manifest to validate the frozen lockfile.
-        workspaceManifests = fs.unions [
-          ./package.json
-          ./bun.lock
-          ./apps/api/package.json
-          ./apps/app-proxy/package.json
-          ./apps/doc/package.json
-          ./apps/spotify-proxy/package.json
-          ./apps/uploads/package.json
-          ./apps/web/package.json
-          ./apps/web-mobile/package.json
-          ./apps/xata-proxy/package.json
-          ./crates/analysis-node/package.json
-          ./desktop/package.json
-          ./sdk/typescript/package.json
-        ];
+        # Bun validates every workspace and declared patch, even when building
+        # only the desktop. Derive the input list from the root manifest.
+        rootPackage = builtins.fromJSON (builtins.readFile ./package.json);
+        workspaceManifests = fs.unions (
+          [ ./package.json ./bun.lock ]
+          ++ map (workspace: ./. + "/${workspace}/package.json") rootPackage.workspaces
+          ++ map (patch: ./. + "/${patch}") (builtins.attrValues (rootPackage.patchedDependencies or {}))
+        );
 
         # NAR hash of the tree `bun install` leaves behind. Tied to bun.lock
         # AND the nixpkgs bun version (hoisting may change across releases);
