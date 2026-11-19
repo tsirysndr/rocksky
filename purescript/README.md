@@ -1,4 +1,4 @@
-# Rocksky AppView - PyreScript
+# Rocksky AppView - PureScript
 
 For production OAuth, set `JWKS_JSON` to a JSON object containing a `keys` array
 of public JWKs matching `PRIVATE_KEY_1`, `PRIVATE_KEY_2`, and `PRIVATE_KEY_3`.
