@@ -70,20 +70,20 @@ nixBuild = do
   -- Both authenticated builds and fork PRs read the public binary cache.
   -- The published module normalizes the account URL for watched uploads.
   S.setEnv "NIX_CONFIG" (config <> "\nextra-substituters = " <> url <> "/nix\nextra-trusted-public-keys = " <> publicKey <> "\n")
-  let build project = do
-        let flake = if project == "cli" then "./apps/cli" else ".#" <> project
+  let build flake = do
         if token == "" then
           void $ S.run false root ["nix", "build", flake, "--print-build-logs", "--no-link"]
         else
           void $ S.run false root
             [ "fluentci", "--check-update=false", "run", "@fluentci.io/cache@0.1.0", "nix-build", "--flake", flake ]
-  traverse_ build ["cli", "playerd", "rockskyd", "drift", "riff", "deezer", "spotify", "musicbrainz"]
-  if platform == "linux" then do
-    desktop <- try (build "rocksky-desktop")
+  -- The aggregate retains every required output as a store reference, so its
+  -- signed cache closure includes every package, even on a fully cached run.
+  build ".#ci"
+  when (platform == "linux") do
+    desktop <- try (build ".#rocksky-desktop")
     case desktop of
       Left _ -> log "::warning::The optional Linux desktop Nix build or cache upload failed"
       Right _ -> pure unit
-  else build "rocksky-desktop"
 
 flakehubPublish :: Effect Unit
 flakehubPublish = do

@@ -472,9 +472,20 @@
             done
           '';
         };
+        # One installable lets the cache module watch all required builds with
+        # a shared Nix evaluation, store scan, signature check and publisher.
+        # Linux desktop remains a separate best-effort build in host.nixBuild.
+        ciPackages = {
+          cli = rocksky-cli.packages.${system}.default;
+          inherit playerd rockskyd drift riff deezer spotify musicbrainz;
+        } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+          inherit rocksky-desktop;
+        };
+        ci = pkgs.linkFarm "rocksky-ci" (lib.mapAttrsToList
+          (name: path: { inherit name path; }) ciPackages);
       in {
         packages = {
-          inherit playerd rocksky-desktop rockskyd drift riff deezer spotify musicbrainz;
+          inherit ci playerd rocksky-desktop rockskyd drift riff deezer spotify musicbrainz;
           rocksky-desktop-frontend = desktopFrontend;
           rocksky-desktop-node-modules = desktopNodeModules;
         };

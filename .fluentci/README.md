@@ -62,9 +62,15 @@ images, network, registry credentials, and staging files are cleaned up on norma
 success or failure. Named Docker cache volumes persist across invocations.
 Nix builds run natively on all three runners (`ubuntu-latest`, `ubuntu-24.04-arm`,
 and `macos-latest`). `host.nixBuild` invokes the published
-`@fluentci.io/cache@0.1.0` module's `nix-build` function for each package. It watches
-build outputs, signs them, skips existing artifacts, and drains background uploads
-before returning. The Linux desktop build remains best-effort.
+`@fluentci.io/cache@0.1.0` module's `nix-build` function once with `--flake .#ci`.
+The aggregate Nix target retains the CLI, playerd, rockskyd, drift, riff, Deezer,
+Spotify, and MusicBrainz outputs; macOS also includes the desktop. Nix builds them
+in one dependency graph, with one cache-module startup, store watcher and publisher.
+The aggregate's closure retains all required outputs for signed cache publication.
+The module watches build outputs, signs them, skips existing artifacts, and drains
+background uploads before returning. Linux then builds the desktop in a second,
+best-effort invocation, preserving its existing failure policy. Fork PRs use the
+same aggregate with public cache reads and no publisher.
 
 Configure repository variables `FLUENTCI_CACHE_URL` (the account base URL, without
 `/nix`) and `FLUENTCI_NIX_PUBLIC_KEY`, plus secrets `FLUENTCI_CACHE_TOKEN` and
