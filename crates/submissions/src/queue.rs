@@ -226,6 +226,14 @@ impl Queue {
             sqlx::query(statement).execute(&mut *tx).await?;
         }
         crate::fairness::migrate(&mut tx, postgres).await?;
+        if postgres {
+            // Claims probe partial indexes whose dead entries for completed jobs
+            // only vacuum removes. The default 20% churn trigger lets them bloat
+            // until a claim exceeds the statement timeout.
+            sqlx::query("ALTER TABLE rocksky_durable_jobs SET (autovacuum_vacuum_scale_factor=0.01, autovacuum_vacuum_threshold=5000, autovacuum_analyze_scale_factor=0.01, autovacuum_analyze_threshold=5000, autovacuum_vacuum_cost_delay=0)")
+                .execute(&mut *tx)
+                .await?;
+        }
         tx.commit().await?;
         Ok(queue)
     }
