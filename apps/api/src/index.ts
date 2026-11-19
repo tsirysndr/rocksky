@@ -242,6 +242,34 @@ app.post("/now-playing", async (c) => {
   return c.json({ status: "ok" });
 });
 
+// Pano and other ListenBrainz clients send `playing_now` to the audioscrobbler
+// API, which caches it under `listenbrainz:playing_now:{did}` (see
+// crates/scrobbler/src/listenbrainz/core/playing_now.rs). Reshape it into the
+// player blob the profile now-playing reads, so the web app shows it.
+async function submittedNowPlaying(did: string) {
+  const raw = await ctx.redis.get(`listenbrainz:playing_now:${did}`);
+  if (!raw) return {};
+
+  const listen = JSON.parse(raw);
+  const meta = listen.track_metadata;
+  const info = meta.additional_info ?? {};
+  const length: number = info.duration_ms ?? 0;
+  // inserted_at is unix seconds, stamped when the playing_now was submitted.
+  const startedAt = (listen.inserted_at ?? 0) * 1000;
+  const elapsed = length
+    ? Math.min(Math.max(Date.now() - startedAt, 0), length)
+    : 0;
+
+  return {
+    title: meta.track_name,
+    artist: meta.artist_name,
+    length,
+    elapsed,
+    is_playing: true,
+    device_name: info.music_service_name ?? info.submission_client ?? null,
+  };
+}
+
 app.get("/now-playing", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/now-playing" });
 
@@ -272,7 +300,7 @@ app.get("/now-playing", async (c) => {
     ctx.redis.get(`nowplaying:${user.did}:status`),
   ]);
   if (!nowPlaying) {
-    return c.json({});
+    return c.json(await submittedNowPlaying(user.did));
   }
 
   // Every `track` frame carries the device's own transport state, and remote-ws
