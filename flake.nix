@@ -302,7 +302,9 @@
         # and copy the hash from the mismatch error.
         bunNodeModulesHash =
           {
-            aarch64-darwin = "sha256-vROy9gGovfiRIEKESvx2Hk4DgGkvcoZCF10we1X0HZw=";
+            aarch64-darwin = "sha256-oYfDSrbf2c3q2NiEllxTnyCQn4IuVRDW7wkheIH5540=";
+            x86_64-linux = "sha256-sJKEblHNfSHHTgCLQdCBYC6NlUqV3Rq5yL2Oljzz5J0=";
+            aarch64-linux = "sha256-fMv2FInNGp5jvIci0iaa9R3e0RIBbdLxkqh3ifq3Msk=";
           }
           .${system} or lib.fakeHash;
 
