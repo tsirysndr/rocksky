@@ -382,6 +382,10 @@
               if [ -e ${desktopNodeModules}/$dir ]; then
                 cp -R ${desktopNodeModules}/$dir $dir
                 find $dir -type d -exec chmod u+w {} +
+                # Dependency bundles keep portable shebangs for a stable hash.
+                # Resolve node/bun/sh against nativeBuildInputs before running
+                # tsc, vite or any other executable in this sandbox.
+                patchShebangs --build "$dir"
               fi
             done
             runHook postConfigure
