@@ -15,7 +15,7 @@ pub type CommandSpec {
   )
 }
 
-pub const version = "0.11.3"
+pub const version = "0.11.4"
 
 pub fn specification() -> CommandSpec {
   CommandSpec(

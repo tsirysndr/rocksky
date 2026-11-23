@@ -57,7 +57,7 @@ test("standalone CLI exposes every source command and nested option without init
     ["mcp", "--help"],
   ])
     assert.equal(run(args).status, 0, args.join(" "));
-  assert.equal(run(["--version"]).stdout.trim(), "0.11.3");
+  assert.equal(run(["--version"]).stdout.trim(), "0.11.4");
   assert.notEqual(run(["unknown-command"]).status, 0);
 });
 test("default and explicit TUI require a TTY and exit cleanly before remote or native startup", () => {

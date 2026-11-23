@@ -1,5 +1,5 @@
 name = "rocksky_cli"
-version = "0.11.3"
+version = "0.11.4"
 target = "javascript"
 description = "Rocksky command-line client and terminal player"
 licences = ["Apache-2.0"]

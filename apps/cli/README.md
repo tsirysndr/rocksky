@@ -67,7 +67,7 @@ Use `NO_COLOR=1` to disable the pink installer banner.
 ```sh
 # Pin a release, choose the PureScript variant, or change the destination:
 curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/install.sh | \
-  sh -s -- --version 0.11.3 --variant purescript --bin-dir "$HOME/.local/bin"
+  sh -s -- --version 0.11.4 --variant purescript --bin-dir "$HOME/.local/bin"
 
 # Build locally from apps/cli:
 bun run build:binary
