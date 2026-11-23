@@ -8,7 +8,8 @@ Conflicts=rocksky.service
 Type=simple
 User=root
 WorkingDirectory=/root/github/rocksky/gleam
-ExecStartPre=/bin/bash -ic 'exec /bin/bash deploy/build-production.sh'
+# Build with gleam/deploy/build-production.sh while the current API is serving,
+# then restart this unit after the build succeeds. Never compile during startup.
 ExecStart=/bin/bash -ic 'exec doppler run -c prd -- env NODE_ENV=production node entry/api.mjs'
 TimeoutStartSec=15min
 Restart=on-failure
