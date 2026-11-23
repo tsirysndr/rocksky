@@ -51,3 +51,10 @@ export function trackUrl(uri?: string) {
     ? `${appUrl}/${encodeURIComponent(match[1])}/song/${encodeURIComponent(match[2])}`
     : undefined;
 }
+
+export function scrobbleUrl(uri?: string) {
+  const match = uri?.match(/^at:\/\/([^/]+)\/app\.rocksky\.scrobble\/([^/]+)$/);
+  return match
+    ? `${appUrl}/${encodeURIComponent(match[1])}/scrobble/${encodeURIComponent(match[2])}`
+    : undefined;
+}

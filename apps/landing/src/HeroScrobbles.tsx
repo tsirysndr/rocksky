@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Disc3, Radio, UserRound } from "lucide-react";
 import type { ScrobbleViewBasic } from "@rocksky/sdk";
-import { appUrl, relativeTime, trackUrl } from "./data";
+import { appUrl, relativeTime, scrobbleUrl, trackUrl } from "./data";
 import { scrobbleKey } from "./live-scrobbles";
 
 function Image({
@@ -29,6 +29,23 @@ function Image({
       ) : (
         fallback
       )}
+    </span>
+  );
+}
+
+function Equalizer() {
+  const [bars] = useState(() =>
+    Array.from({ length: 5 }, () => ({
+      height: `${12 + Math.random() * 12}px`,
+      animationDuration: `${480 + Math.random() * 820}ms`,
+      animationDelay: `${-Math.random() * 2400}ms`,
+    })),
+  );
+  return (
+    <span className="hero-scrobble-equalizer" aria-hidden="true">
+      {bars.map((style, index) => (
+        <i key={index} style={style} />
+      ))}
     </span>
   );
 }
@@ -84,12 +101,11 @@ export default function HeroScrobbles({
         <ol className="hero-scrobbles-list">
           <AnimatePresence initial={false} mode="popLayout">
             {tracks.map((track) => {
-              const href = trackUrl(track.trackUri);
-              const profile = track.did
-                ? `${appUrl}/${encodeURIComponent(track.did)}`
+              const href = scrobbleUrl(track.uri) || trackUrl(track.trackUri);
+              const actor = track.did || track.handle?.replace(/^@/, "");
+              const profile = actor
+                ? `${appUrl}/${encodeURIComponent(actor)}`
                 : undefined;
-              const Cover = href ? "a" : "div";
-              const Track = href ? "a" : "span";
               const Listener = profile ? "a" : "span";
               return (
                 <motion.li
@@ -103,32 +119,41 @@ export default function HeroScrobbles({
                   }
                   transition={{ type: "spring", stiffness: 330, damping: 34 }}
                 >
-                  <Cover
-                    className="hero-scrobble-art-link"
-                    href={href}
-                    aria-label={
-                      href ? `Open ${track.title || "track"}` : undefined
-                    }
-                  >
+                  {href && (
+                    <a
+                      className="hero-scrobble-open"
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open scrobble: ${track.title || "Untitled track"} by ${track.artist || "unknown artist"} (new tab)`}
+                    />
+                  )}
+                  <div className="hero-scrobble-art-link">
                     <Image
                       className="hero-scrobble-art"
                       src={track.albumArt}
                       alt={`${track.album || track.title || "Album"} artwork`}
                       fallback={<Disc3 size={28} />}
                     />
-                  </Cover>
+                  </div>
                   <div className="hero-scrobble-info">
-                    <Track
-                      href={href}
-                      className="hero-scrobble-title"
-                      title={track.title}
-                    >
+                    <span className="hero-scrobble-title" title={track.title}>
                       {track.title || "Untitled track"}
-                    </Track>
+                    </span>
                     <span className="hero-scrobble-artist" title={track.artist}>
                       {track.artist || "Unknown artist"}
                     </span>
-                    <Listener href={profile} className="hero-scrobble-listener">
+                    <Listener
+                      href={profile}
+                      target={profile ? "_blank" : undefined}
+                      rel={profile ? "noopener noreferrer" : undefined}
+                      aria-label={
+                        profile
+                          ? `Open ${track.handle ? `@${track.handle.replace(/^@/, "")}` : "listener"} profile (new tab)`
+                          : undefined
+                      }
+                      className="hero-scrobble-listener"
+                    >
                       <Image
                         className="hero-scrobble-avatar"
                         src={track.avatar}
@@ -147,13 +172,7 @@ export default function HeroScrobbles({
                       {relativeTime(track.createdAt)}
                     </time>
                   </div>
-                  <span className="hero-scrobble-equalizer" aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                  </span>
+                  <Equalizer />
                 </motion.li>
               );
             })}

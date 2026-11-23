@@ -3286,11 +3286,10 @@ a.weekly-entry:focus-visible {
   max-width: 500px;
   justify-self: end;
   padding: 24px;
-  border: 1px solid #ffffff1a;
+  border: 0;
   border-radius: 20px;
-  background: #120925d9;
-  backdrop-filter: blur(24px);
-  box-shadow: 0 24px 64px #08031440;
+  background: transparent;
+  box-shadow: none;
 }
 .hero-scrobbles-header {
   display: flex;
@@ -3343,9 +3342,10 @@ a.weekly-entry:focus-visible {
   grid-template-columns: 80px minmax(0, 1fr) 22px;
   align-items: center;
   gap: 14px;
-  padding: 16px 0;
+  padding: 16px;
   width: 100%;
-  border-bottom: 1px solid #ffffff0c;
+  background: #12092599;
+  border-radius: 14px;
 }
 .hero-scrobble-art-link {
   display: block;
@@ -3358,6 +3358,7 @@ a.weekly-entry:focus-visible {
   background: #2b1a3d;
   color: #d7addf;
   overflow: hidden;
+  border-radius: 12px;
 }
 .hero-scrobble-art img {
   display: block;
@@ -3439,26 +3440,6 @@ a.hero-scrobble-title:hover {
   background: currentColor;
   transform-origin: center bottom;
   animation: hero-equalize 0.75s ease-in-out infinite alternate;
-}
-.hero-scrobble-equalizer i:nth-child(2) {
-  height: 14px;
-  animation-duration: 0.6s;
-  animation-delay: -0.3s;
-}
-.hero-scrobble-equalizer i:nth-child(3) {
-  height: 24px;
-  animation-duration: 0.9s;
-  animation-delay: -0.5s;
-}
-.hero-scrobble-equalizer i:nth-child(4) {
-  height: 16px;
-  animation-duration: 0.65s;
-  animation-delay: -0.15s;
-}
-.hero-scrobble-equalizer i:nth-child(5) {
-  height: 11px;
-  animation-duration: 0.8s;
-  animation-delay: -0.4s;
 }
 .hero-scrobbles[data-live="false"] .hero-scrobble-equalizer i {
   animation-play-state: paused;
@@ -3579,4 +3560,22 @@ a.hero-scrobble-title:hover {
   .hero-scrobble-equalizer i {
     animation: none;
   }
+}
+
+.hero-scrobble-open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+.hero-scrobble .hero-scrobble-open:focus-visible {
+  outline: 2px solid #ff9dca;
+  outline-offset: -2px;
+}
+a.hero-scrobble-listener {
+  position: relative;
+  z-index: 2;
+}
+.hero-scrobble:hover .hero-scrobble-title {
+  color: #ffadd2;
 }
