@@ -80,3 +80,18 @@ test("publishing stays disabled for PostgreSQL and production deploy keeps its g
   assert.match(production, /needs.changes.result == 'success'/);
   assert.match(production, /cancel-in-progress: false/);
 });
+
+test("CLI releases support manual builds and explicit publishing on the supported platforms", () => {
+  const workflow = read('.github/workflows/cli-release.yml');
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(read('.fluentci/host/imports.d.ts'), /export function buildCli\(\): I32/);
+  assert.match(workflow, /publish:[\s\S]*?type: boolean\n\s+default: false/);
+  assert.match(workflow, /if: github.event_name == 'push' \|\| inputs.publish == true/);
+  assert.match(workflow, /variant: \[typescript, purescript\]/);
+  assert.match(workflow, /asset: \[linux-x86_64, linux-aarch64, darwin-aarch64\]/);
+  assert.match(workflow, /os: macos-latest\n\s+asset: darwin-aarch64/);
+  assert.doesNotMatch(workflow, /macos-\d|darwin-x86_64/);
+  assert.match(workflow, /fluentci run setup-bun@v0\.2\.0 setup --version 1\.4\.3/);
+  assert.match(workflow, /needs: \[fluentci-modules, prepare, build\]/);
+  assert.match(read('.fluentci/shared/src/Rocksky/CI/Host/CI.purs'), /"--target", target/);
+});

@@ -1,0 +1,116 @@
+name: CLI binaries
+
+'on':
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (defaults to rocksky-cli-v<CLI package version>)
+        type: string
+        required: false
+      publish:
+        description: Publish binaries to a GitHub release after all builds pass
+        type: boolean
+        default: false
+  push:
+    tags:
+      - rocksky-cli-v*
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-release-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fluentci-modules:
+    uses: ./.github/workflows/fluentci-modules.yml
+  prepare:
+    needs: fluentci-modules
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-fluentci
+      - name: Resolve CLI release tag
+        id: tag
+        env:
+          RELEASE_INPUT_TAG: ${{ inputs.tag }}
+        uses: ./.github/actions/fluentci
+        with:
+          module: host
+          function: resolveTag
+          arguments: '{"project":"cli"}'
+  build:
+    needs: [fluentci-modules, prepare]
+    name: ${{ matrix.variant }} (${{ matrix.asset }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [typescript, purescript]
+        asset: [linux-x86_64, linux-aarch64, darwin-aarch64]
+        include:
+          - os: ubuntu-24.04
+            asset: linux-x86_64
+          - os: ubuntu-24.04-arm
+            asset: linux-aarch64
+          - os: macos-latest
+            asset: darwin-aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-fluentci
+      - name: Set up Bun through FluentCI
+        shell: bash
+        run: |
+          set -euo pipefail
+          fluentci run setup-bun@v0.2.0 setup --version 1.4.3 | python3 .github/scripts/export-setup-env.py
+      - name: Set up PureScript through FluentCI
+        if: matrix.variant == 'purescript'
+        shell: bash
+        run: |
+          set -euo pipefail
+          fluentci run setup-purescript@v0.2.0 setup --version 0.15.16 --spago-version 1.0.5 --node-version 24.22.2 --bun-version 1.4.3 | python3 .github/scripts/export-setup-env.py
+      - name: Compile and verify standalone binary with FluentCI
+        uses: ./.github/actions/fluentci
+        with:
+          module: host
+          function: buildCli
+          arguments: '{"variant":"${{ matrix.variant }}","asset":"${{ matrix.asset }}"}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.variant }}-${{ matrix.asset }}
+          path: ${{ runner.temp }}/cli-assets/*
+          if-no-files-found: error
+          retention-days: 14
+  release:
+    if: github.event_name == 'push' || inputs.publish == true
+    needs: [fluentci-modules, prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      RELEASE_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-fluentci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: ${{ runner.temp }}/cli-assets
+          merge-multiple: true
+      - name: Ensure CLI release exists
+        uses: ./.github/actions/fluentci
+        with:
+          module: github-release
+          function: ensure
+          arguments: '{"repository":"$GITHUB_REPOSITORY","tag":"$RELEASE_TAG","commit":"$GITHUB_SHA","title":"Rocksky CLI $RELEASE_TAG","notes":"Standalone Rocksky CLI binaries for Linux x86_64/aarch64 and macOS aarch64. Includes the TypeScript and PureScript variants, with SHA-256 checksums.","prerelease":false,"token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'
+      - name: Upload verified binaries and checksums
+        uses: ./.github/actions/fluentci
+        with:
+          module: github-release
+          function: upload
+          arguments: '{"assets":"$RUNNER_TEMP/cli-assets","repository":"$GITHUB_REPOSITORY","tag":"$RELEASE_TAG","clobber":true,"token":"env://GH_TOKEN","runId":"$RELEASE_RUN"}'

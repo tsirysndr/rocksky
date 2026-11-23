@@ -73,3 +73,10 @@ flakehubPublish = CI.flakehubPublish
 
 validateDocker :: Effect Unit
 validateDocker = DockerTest.main
+
+buildCli :: Effect Unit
+buildCli = do
+  fields <- input
+  variant <- field "variant" fields
+  asset <- field "asset" fields
+  CI.buildCli variant asset

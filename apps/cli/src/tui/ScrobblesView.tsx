@@ -2,12 +2,14 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { RockskyClient } from "client";
 import dayjs from "dayjs";
 import relative from "dayjs/plugin/relativeTime.js";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui";
 import React, { useEffect, useState } from "react";
 import { Cell, Ell } from "./Columns";
 import { List } from "./List";
 import { rockskyLink } from "./links";
 import { BLUE, TEAL, VIOLET } from "./theme";
+
+import { useFullScreen } from "./useFullScreen";
 
 dayjs.extend(relative);
 
@@ -34,6 +36,8 @@ export function ScrobblesView({
   isActive: boolean;
   height?: number;
 }) {
+  const { cols } = useFullScreen();
+  const compact = cols < 100;
   const [selected, setSelected] = useState(0);
   const [detail, setDetail] = useState<Scrobble | null>(null);
 
@@ -92,32 +96,34 @@ export function ScrobblesView({
   return (
     <Box flexDirection="column">
       <List
-      items={items}
-      selected={selected}
-      height={height}
-      emptyText="No recent scrobbles."
-      renderItem={(s, _idx, active) => {
-        const when = s.date ? dayjs(s.date).fromNow() : "";
-        return (
-          <>
-            <Cell width={2}>
-              <Text color={BLUE}>{active ? "›" : " "}</Text>
-            </Cell>
-            <Cell width={18}>
-              <Ell color={active ? BLUE : VIOLET} bold>{`@${s.user}`}</Ell>
-            </Cell>
-            <Cell grow>
-              <Ell bold>{s.title}</Ell>
-            </Cell>
-            <Cell width={24}>
-              <Ell dimColor>{s.artist}</Ell>
-            </Cell>
-            <Cell width={14} right>
-              <Ell color={TEAL}>{when}</Ell>
-            </Cell>
-          </>
-        );
-      }}
+        items={items}
+        selected={selected}
+        height={height}
+        emptyText="No recent scrobbles."
+        renderItem={(s, _idx, active) => {
+          const when = s.date ? dayjs(s.date).fromNow() : "";
+          return (
+            <>
+              <Cell width={2}>
+                <Text color={BLUE}>{active ? "›" : " "}</Text>
+              </Cell>
+              {!compact && (
+                <Cell width={18}>
+                  <Ell color={active ? BLUE : VIOLET} bold>{`@${s.user}`}</Ell>
+                </Cell>
+              )}
+              <Cell grow>
+                <Ell bold>{s.title}</Ell>
+              </Cell>
+              <Cell width={compact ? 18 : 24}>
+                <Ell dimColor>{s.artist}</Ell>
+              </Cell>
+              <Cell width={compact ? 10 : 14} right>
+                <Ell color={TEAL}>{when}</Ell>
+              </Cell>
+            </>
+          );
+        }}
       />
       {isFetchingNextPage ? <Text dimColor>Loading more…</Text> : null}
     </Box>

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { RockskyClient } from "client";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui";
 import { useAtom, useAtomValue } from "jotai";
 import React, { useEffect, useState } from "react";
 import { Cell, Ell } from "./Columns";
@@ -61,7 +61,12 @@ async function searchGlobal(q: string): Promise<SearchRow[]> {
       };
     }
     if (gtype === "artists") {
-      return { kind: "global", gtype, primary: h.name, link: rockskyLink(h.uri) };
+      return {
+        kind: "global",
+        gtype,
+        primary: h.name,
+        link: rockskyLink(h.uri),
+      };
     }
     // albums + tracks
     return {

@@ -34,6 +34,10 @@ export interface PlaylistEntry {
     album?: string;
     duration?: number;
 }
+export declare function getAlbums(creds: NavidromeCreds, offset?: number, size?: number): Promise<any[]>;
+export declare function getArtists(creds: NavidromeCreds): Promise<any[]>;
+export declare function getArtist(creds: NavidromeCreds, id: string): Promise<any[]>;
+export declare function getTracks(creds: NavidromeCreds, offset?: number, size?: number): Promise<any[]>;
 export declare function getPlaylists(creds: NavidromeCreds): Promise<Playlist[]>;
 export declare function star(creds: NavidromeCreds, songId: string): unknown;
 export declare function unstar(creds: NavidromeCreds, songId: string): unknown;

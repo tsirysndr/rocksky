@@ -2,7 +2,7 @@
 
 import chalk from "chalk";
 import { Command } from "commander";
-import { version } from "../package.json" assert { type: "json" };
+import { version } from "../package.json";
 import { c } from "./theme";
 
 // Command modules are imported lazily inside each action so that a bare
@@ -266,7 +266,11 @@ nfcCmd
     "write a library album, playlist or your favorites onto the tapped tag",
   )
   .action(
-    async (opts: { album?: string; playlist?: string; favorites?: boolean }) => {
+    async (opts: {
+      album?: string;
+      playlist?: string;
+      favorites?: boolean;
+    }) => {
       const { nfcWrite } = await import("cmd/nfc");
       await nfcWrite(opts);
     },
@@ -279,9 +283,19 @@ program
     "<file>",
     "a Spotify or Last.fm export (JSON/CSV file, or the Spotify history folder)",
   )
-  .option("-f, --format <format>", "force the format: spotify or lastfm (default: autodetect)")
-  .option("-n, --dry-run", "parse and print what would be published, without writing to your PDS")
-  .option("-c, --concurrency <number>", "number of scrobbles to publish in parallel", "4")
+  .option(
+    "-f, --format <format>",
+    "force the format: spotify or lastfm (default: autodetect)",
+  )
+  .option(
+    "-n, --dry-run",
+    "parse and print what would be published, without writing to your PDS",
+  )
+  .option(
+    "-c, --concurrency <number>",
+    "number of scrobbles to publish in parallel",
+    "4",
+  )
   .option(
     "-r, --rate <perHour>",
     "scrobbles published per hour (hard-capped to stay under Bluesky PDS write limits; each scrobble writes up to 4 records)",
@@ -291,10 +305,19 @@ program
     "disable the client-side write throttle — self-hosted PDSes only; always ignored on *.bsky.network",
   )
   .option("-l, --limit <number>", "only import the first N scrobbles")
-  .option("--min-seconds <seconds>", "skip Spotify plays shorter than this (default: 30)")
-  .option("--from <date>", "only import scrobbles on or after this date (e.g. 2024-01-01)")
+  .option(
+    "--min-seconds <seconds>",
+    "skip Spotify plays shorter than this (default: 30)",
+  )
+  .option(
+    "--from <date>",
+    "only import scrobbles on or after this date (e.g. 2024-01-01)",
+  )
   .option("--to <date>", "only import scrobbles on or before this date")
-  .option("--restart", "ignore the saved checkpoint and import from the beginning")
+  .option(
+    "--restart",
+    "ignore the saved checkpoint and import from the beginning",
+  )
   .description("import your listening history from a Spotify or Last.fm export")
   .action(async (file: string, opts) => {
     const { importCmd } = await import("cmd/import");

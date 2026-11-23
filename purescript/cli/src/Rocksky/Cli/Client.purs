@@ -27,10 +27,12 @@ get client path description = request client "GET" path Nothing description
 
 request :: Client -> String -> String -> Maybe Foreign -> String -> Aff Foreign
 request client method path body description = do
+  signal <- if method == "GET" then Just <$> liftEffect (Fetch.timeoutSignal 12000) else pure Nothing
   response <- Fetch.fetchWith (apiUrl <> path)
     ( Fetch.defaultOptions
         { method = method
         , headers = headers client
+        , signal = toNullable signal
         , body = toNullable (F.toForeign <<< F.stringify <$> body)
         }
     )

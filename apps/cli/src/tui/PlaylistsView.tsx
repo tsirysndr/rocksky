@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui";
 import { useAtomValue } from "jotai";
 import React, { useState } from "react";
 import { Cell, Ell } from "./Columns";
@@ -9,9 +9,6 @@ import {
   createPlaylist,
   deletePlaylist,
   entryToItem,
-  getCreds,
-  getPlaylist,
-  getPlaylists,
   removeTrackFromPlaylist,
   type PlaylistEntry,
 } from "./navidrome";
@@ -20,6 +17,7 @@ import { writePlaylistTag } from "./nfc";
 import { streamAndPlay } from "./playback";
 import { queryClient } from "./queryClient";
 import { shuffled } from "./shuffle";
+import { playlistQuery, playlistsQuery } from "./library";
 import { authAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
@@ -43,31 +41,15 @@ export function PlaylistsView({
     name: string;
   } | null>(null);
 
-  const credsQ = useQuery({
-    queryKey: ["ndCreds", token],
-    enabled: !!token,
-    queryFn: () => getCreds(token),
-  });
-  const creds = credsQ.data ?? null;
-
-  const playlistsQ = useQuery({
-    queryKey: ["playlists", creds?.handle],
-    enabled: !!creds,
-    queryFn: () => getPlaylists(creds!),
-  });
+  const playlistsQ = useQuery(playlistsQuery(token ?? ""));
   const playlists = playlistsQ.data ?? [];
-
-  const detailQ = useQuery({
-    queryKey: ["playlist", detailId],
-    enabled: !!creds && !!detailId,
-    queryFn: () => getPlaylist(creds!, detailId!),
-  });
+  const detailQ = useQuery(playlistQuery(token ?? "", detailId ?? ""));
   const entries: PlaylistEntry[] = detailQ.data?.entries ?? [];
 
   const refetchLists = () =>
     queryClient.invalidateQueries({ queryKey: ["playlists"] });
   const refetchDetail = () =>
-    queryClient.invalidateQueries({ queryKey: ["playlist", detailId] });
+    queryClient.invalidateQueries({ queryKey: ["playlist", token, detailId] });
 
   function doDelete(pl: { id: string; name: string }) {
     if (!token) return;
@@ -83,6 +65,11 @@ export function PlaylistsView({
 
   useInput(
     (input, key) => {
+      if (!creating && !confirmDelete && input === "R") {
+        if (detailId) void detailQ.refetch();
+        else void playlistsQ.refetch();
+        return;
+      }
       // --- delete confirmation ---
       if (confirmDelete) {
         if (key.return || input === "y" || input === "Y") {
@@ -200,7 +187,7 @@ export function PlaylistsView({
         }
       } else if (input === "d" || input === "x") {
         const pl = playlists[sel];
-        if (pl && creds) setConfirmDelete({ id: pl.id, name: pl.name });
+        if (pl) setConfirmDelete({ id: pl.id, name: pl.name });
       }
     },
     { isActive },
@@ -213,7 +200,6 @@ export function PlaylistsView({
       </Text>
     );
   }
-  if (credsQ.isLoading) return <Text color={VIOLET}>Connecting…</Text>;
 
   // Delete confirmation
   if (confirmDelete) {
@@ -265,9 +251,13 @@ export function PlaylistsView({
           <Text bold color={BLUE}>
             {detailQ.data?.playlist?.name ?? "Playlist"}
           </Text>
-          <Text dimColor>{`  ${entries.length} track${entries.length === 1 ? "" : "s"}`}</Text>
+          <Text
+            dimColor
+          >{`  ${entries.length} track${entries.length === 1 ? "" : "s"}`}</Text>
         </Box>
-        {detailQ.isLoading ? (
+        {detailQ.error && entries.length === 0 ? (
+          <Text color="red">{`${(detailQ.error as Error).message} · R retry`}</Text>
+        ) : detailQ.isLoading ? (
           <Text color={VIOLET}>Loading…</Text>
         ) : (
           <List
@@ -278,7 +268,9 @@ export function PlaylistsView({
             renderItem={(e, _i, active) => (
               <>
                 <Cell width={2}>
-                  <Text color={active ? BLUE : VIOLET}>{active ? "▶" : " "}</Text>
+                  <Text color={active ? BLUE : VIOLET}>
+                    {active ? "▶" : " "}
+                  </Text>
                 </Cell>
                 <Cell grow>
                   <Ell color={active ? BLUE : undefined} bold>
@@ -297,10 +289,11 @@ export function PlaylistsView({
             )}
           />
         )}
+        {playlistsQ.isFetching && playlists.length > 0 ? (
+          <Text dimColor>Refreshing saved playlists…</Text>
+        ) : null}
         {note ? <Text color={BLUE}>{note}</Text> : null}
-        <Text dimColor>
-          Enter play · S shuffle · d remove · Esc back
-        </Text>
+        <Text dimColor>Enter play · S shuffle · d remove · Esc back</Text>
       </Box>
     );
   }
@@ -308,7 +301,9 @@ export function PlaylistsView({
   // List view
   return (
     <Box flexDirection="column">
-      {playlistsQ.isLoading ? (
+      {playlistsQ.error && playlists.length === 0 ? (
+        <Text color="red">{`${(playlistsQ.error as Error).message} · R retry`}</Text>
+      ) : playlistsQ.isLoading ? (
         <Text color={VIOLET}>Loading playlists…</Text>
       ) : (
         <List
@@ -327,12 +322,17 @@ export function PlaylistsView({
                 </Ell>
               </Cell>
               <Cell width={12} right>
-                <Ell color={TEAL}>{`${pl.songCount} song${pl.songCount === 1 ? "" : "s"}`}</Ell>
+                <Ell
+                  color={TEAL}
+                >{`${pl.songCount} song${pl.songCount === 1 ? "" : "s"}`}</Ell>
               </Cell>
             </>
           )}
         />
       )}
+      {playlistsQ.isFetching && playlists.length > 0 ? (
+        <Text dimColor>Refreshing saved playlists…</Text>
+      ) : null}
       {note ? <Text color={BLUE}>{note}</Text> : null}
       <Text dimColor>Enter open · c create · d delete · T write NFC tag</Text>
     </Box>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui.js";
 import { useAtom, useAtomValue } from "jotai";
 import React, { useState } from "react";
 import { Cell, Ell } from "./Columns.js";
@@ -7,9 +7,8 @@ import { List } from "./List.js";
 import {
   addTrackToPlaylist,
   createPlaylist,
-  getCreds,
-  getPlaylists,
 } from "./navidrome.js";
+import { playlistsQuery } from "./library.js";
 import { queryClient } from "./queryClient.js";
 import { addToPlaylistAtom, authAtom } from "./store.js";
 import { BLUE, TEAL, VIOLET } from "./theme.js";
@@ -22,18 +21,7 @@ export function AddToPlaylistView() {
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
 
-  const credsQ = useQuery({
-    queryKey: ["ndCreds", token],
-    enabled: !!token,
-    queryFn: () => getCreds(token),
-  });
-  const creds = credsQ.data ?? null;
-
-  const playlistsQ = useQuery({
-    queryKey: ["playlists", creds?.handle],
-    enabled: !!creds,
-    queryFn: () => getPlaylists(creds!),
-  });
+  const playlistsQ = useQuery(playlistsQuery(token ?? ""));
   const playlists = playlistsQ.data ?? [];
 
   function close() {
@@ -46,7 +34,7 @@ export function AddToPlaylistView() {
       setNote("Adding…");
       await addTrackToPlaylist(token, playlistId, pending.trackId);
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
-      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+      queryClient.invalidateQueries({ queryKey: ["playlist", token, playlistId] });
       close();
     } catch (e: any) {
       setNote(`Error: ${e.message}`);
@@ -113,7 +101,7 @@ export function AddToPlaylistView() {
         </Box>
       ) : (
         <Box marginTop={1} flexDirection="column">
-          {credsQ.isLoading || playlistsQ.isLoading ? (
+          {playlistsQ.isLoading ? (
             <Text color={VIOLET}>Loading playlists…</Text>
           ) : (
             <List

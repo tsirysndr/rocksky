@@ -5,6 +5,7 @@ import Data.Either (Either(..))
 import Data.Foldable (foldM)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Nullable (toNullable)
+import Effect.Class (liftEffect)
 import Effect.Aff (Aff, throwError, try)
 import Effect.Exception (error)
 import Fetch as Fetch
@@ -26,7 +27,8 @@ restUrl method credentials params = navidromeUrl <> "/rest/" <> method <> "?" <>
 
 call :: String -> Credentials -> Foreign -> Aff Foreign
 call method credentials params = do
-  response <- Fetch.fetch (restUrl method credentials params) >>= Fetch.json
+  signal <- liftEffect (Fetch.timeoutSignal (if method == "getStarred2" then 30000 else 12000))
+  response <- Fetch.fetchWith (restUrl method credentials params) (Fetch.defaultOptions { signal = toNullable (Just signal) }) >>= Fetch.json
   let result = fromMaybe F.undefined (F.path "subsonic-response" response)
   if Client.field "status" result == "ok" then pure result
   else throwError $ error (fromMaybe (method <> " failed") (F.readStringAt "error.message" result))
@@ -60,6 +62,27 @@ getPlaylists = list "getPlaylists" "playlists.playlist"
 
 getStarred :: Credentials -> Aff (Array Foreign)
 getStarred = list "getStarred2" "starred2.song"
+
+getAlbums :: Credentials -> Int -> Int -> Aff (Array Foreign)
+getAlbums credentials offset size = do
+  response <- call "getAlbumList2" credentials (F.toForeign { type: "newest", offset, size })
+  pure $ asArray $ fromMaybe F.undefined (F.path "albumList2.album" response)
+
+getArtists :: Credentials -> Aff (Array Foreign)
+getArtists credentials = do
+  response <- call "getArtists" credentials (F.toForeign {})
+  let indexes = asArray $ fromMaybe F.undefined (F.path "artists.index" response)
+  pure $ indexes >>= \index -> asArray $ fromMaybe F.undefined (F.path "artist" index)
+
+getArtist :: Credentials -> String -> Aff (Array Foreign)
+getArtist credentials id = do
+  response <- call "getArtist" credentials (F.toForeign { id })
+  pure $ asArray $ fromMaybe F.undefined (F.path "artist.album" response)
+
+getTracks :: Credentials -> Int -> Int -> Aff (Array Foreign)
+getTracks credentials offset size = do
+  response <- call "search3" credentials (F.toForeign { query: "", songOffset: offset, songCount: size, albumCount: 0, artistCount: 0 })
+  pure $ asArray $ fromMaybe F.undefined (F.path "searchResult3.song" response)
 
 star :: Credentials -> String -> Aff Foreign
 star credentials id = call "star" credentials (F.toForeign { id })

@@ -1,4 +1,4 @@
-import { Box, Text } from "ink";
+import { Box, Text } from "./ui";
 import React from "react";
 
 /**
@@ -21,8 +21,8 @@ export function Cell({
     <Box
       width={grow ? undefined : width}
       flexGrow={grow ? 1 : 0}
-      flexShrink={grow ? 1 : 0}
-      minWidth={0}
+      flexShrink={1}
+      minWidth={grow ? 10 : 0}
       marginRight={1}
       justifyContent={right ? "flex-end" : "flex-start"}
     >

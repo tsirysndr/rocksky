@@ -1,16 +1,27 @@
-import { Box, Text } from "ink";
+import { Box, Text } from "./ui.js";
 import { useAtomValue } from "jotai";
 import React, { useRef } from "react";
 import { fmtDuration } from "./format.js";
 import { likedIdsAtom } from "./likes.js";
 import { isPrefetching } from "./playback.js";
 import { playerController } from "./player.js";
-import { playerNoticeAtom, playerStatusAtom, scrobbledTitleAtom } from "./store.js";
-import { BLUE, LINK as AMBER, TEAL, VIOLET } from "./theme.js";
+import {
+  playerNoticeAtom,
+  playerStatusAtom,
+  scrobbledTitleAtom,
+} from "./store.js";
+import { BLUE, LINK as AMBER, TEAL, VIOLET, palette } from "./theme.js";
 
-const BAR_WIDTH = 30;
+import { useFullScreen } from "./useFullScreen.js";
 
 export function PlayerBar() {
+  const { cols } = useFullScreen();
+  const showAudio = cols >= 100;
+  const showModes = cols >= 120;
+  const BAR_WIDTH = Math.max(
+    8,
+    Math.min(46, cols - (showModes ? 74 : showAudio ? 54 : 36)),
+  );
   const status = useAtomValue(playerStatusAtom);
   const scrobbledTitle = useAtomValue(scrobbledTitleAtom);
   const likedIds = useAtomValue(likedIdsAtom);
@@ -20,27 +31,24 @@ export function PlayerBar() {
 
   if (!status || status.state === "stopped") {
     const restored = playerController.restored;
-    if (restored) {
-      const track = restored.items[restored.index];
-      return (
-        <Box borderStyle="round" borderColor={BLUE} paddingX={1}>
-          <Text>
-            <Text color={notice ? AMBER : BLUE}>{notice ? "⏳ Resume " : "⏸ Resume "}</Text>
-            <Text bold>{track?.title ?? "last session"}</Text>
-            {track?.artist ? <Text dimColor>{` — ${track.artist}`}</Text> : null}
-            {notice ? (
-              <Text color={AMBER}>{`   ${notice}`}</Text>
-            ) : (
-              <Text dimColor>{`  at ${fmtDuration(restored.positionMs)} — press Space`}</Text>
-            )}
-          </Text>
-        </Box>
-      );
-    }
+    const track = restored?.items[restored.index];
     return (
-      <Box borderStyle="round" borderColor={VIOLET} paddingX={1}>
-        <Text dimColor>
-          Nothing playing — pick a track in My Music and press Enter.
+      <Box
+        backgroundColor={palette.surface}
+        paddingX={2}
+        flexDirection="column"
+        height={2}
+      >
+        <Text wrap="truncate-end">
+          <Text color={TEAL}>{restored ? "Ⅱ  " : "♫  "}</Text>
+          <Text bold>{track?.title ?? "Ready when you are"}</Text>
+          {track?.artist && <Text dimColor>{`  ·  ${track.artist}`}</Text>}
+        </Text>
+        <Text color={notice ? AMBER : palette.muted} wrap="truncate-end">
+          {notice ||
+            (restored
+              ? `Space to resume  ·  ${fmtDuration(restored.positionMs) || "0:00"}`
+              : "Find something you love in My Music. Press Enter to play.")}
         </Text>
       </Box>
     );
@@ -64,8 +72,7 @@ export function PlayerBar() {
     pr.stalls = 0;
     pr.pos = pos;
   }
-  const buffering =
-    status.state === "playing" && (pos === 0 || pr.stalls >= 1);
+  const buffering = status.state === "playing" && (pos === 0 || pr.stalls >= 1);
 
   // Audio format info probed by the decoder (e.g. "MP3 · 44.1kHz").
   const codec = status.metadata?.codec;
@@ -79,9 +86,12 @@ export function PlayerBar() {
     .filter(Boolean)
     .join(" · ");
 
-  const filled = dur > 0 ? Math.round((pos / dur) * BAR_WIDTH) : 0;
+  const filled =
+    dur > 0
+      ? Math.max(0, Math.min(BAR_WIDTH, Math.round((pos / dur) * BAR_WIDTH)))
+      : 0;
   const bar =
-    "█".repeat(Math.min(filled, BAR_WIDTH)) +
+    "━".repeat(Math.min(filled, BAR_WIDTH)) +
     "─".repeat(Math.max(0, BAR_WIDTH - filled));
   const icon = buffering ? "⏳" : status.state === "playing" ? "▶" : "⏸";
   const vol = Math.round(playerController.volume() * 100);
@@ -91,9 +101,9 @@ export function PlayerBar() {
     scrobbled ? "scrobbled" : null,
     status.shuffle ? "shuffle" : null,
     status.repeat === "all"
-      ? "repeat all"
+      ? "↻ all"
       : status.repeat === "one"
-        ? "repeat one"
+        ? "↻ one"
         : null,
     playerController.sound.eqEnabled ? "eq" : null,
   ]
@@ -102,30 +112,52 @@ export function PlayerBar() {
 
   return (
     <Box
-      borderStyle="round"
-      borderColor={BLUE}
-      paddingX={1}
+      backgroundColor={palette.surface}
+      height={2}
+      paddingX={2}
       flexDirection="column"
     >
-      <Text>
+      <Text wrap="truncate-end">
         <Text color={buffering ? AMBER : BLUE}>{icon} </Text>
         {item?.trackId && likedIds.has(item.trackId) ? (
           <Text color={TEAL}>{"♥ "}</Text>
         ) : null}
-        <Text bold color="white">
+        <Text bold color={palette.text}>
           {title}
         </Text>
         {artist ? <Text dimColor>{` — ${artist}`}</Text> : null}
         {buffering ? <Text color={AMBER}>{"   ⏳ buffering…"}</Text> : null}
       </Text>
-      <Text>
-        <Text color={TEAL}>{bar}</Text>
-        <Text dimColor>{`  ${fmtDuration(pos)} / ${fmtDuration(dur)}`}</Text>
-        {audioInfo ? <Text color={VIOLET}>{`   ${audioInfo}`}</Text> : null}
-        <Text dimColor>{`   vol ${vol}%`}</Text>
-        <Text dimColor>{`   [${status.index != null ? status.index + 1 : "-"}/${status.queue_len}]`}</Text>
-        {modes ? <Text color={TEAL}>{`   ${modes}`}</Text> : null}
-      </Text>
+      <Box gap={2}>
+        <Box flexGrow={1} flexShrink={1} minWidth={8}>
+          <Text color={TEAL} wrap="truncate-end">
+            {bar}
+          </Text>
+        </Box>
+        <Box width={14}>
+          <Text
+            dimColor
+          >{`${fmtDuration(pos) || "0:00"} / ${fmtDuration(dur) || "–:––"}`}</Text>
+        </Box>
+        {showAudio && (
+          <Box width={16}>
+            <Text color={VIOLET} wrap="truncate-end">
+              {audioInfo}
+            </Text>
+          </Box>
+        )}
+        <Box width={8}>
+          <Text dimColor>{`vol ${vol}%`}</Text>
+        </Box>
+        {showModes && (
+          <Box width={18}>
+            <Text color={TEAL} wrap="truncate-end">
+              {modes ||
+                `${status.index != null ? status.index + 1 : "–"} / ${status.queue_len} in queue`}
+            </Text>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }

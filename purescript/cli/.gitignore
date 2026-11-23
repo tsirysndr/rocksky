@@ -32,3 +32,12 @@
 /runtime/tui/trackCache.js
 /runtime/tui/useDebouncedValue.js
 /runtime/tui/useFullScreen.js
+
+/runtime/tui/launch.js
+/runtime/tui/ui.js
+
+/runtime/tui/library.js
+/runtime/tui/libraryCache.js
+
+/runtime/tui/compiled.js
+/.binary-build/

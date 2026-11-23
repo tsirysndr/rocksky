@@ -52,6 +52,41 @@ You can also use the CLI without installing it globally by running `npx`:
 npx @rocksky/cli --help
 ```
 
+### Standalone binary
+
+After a CLI binary release is published, install without Node.js or Bun:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/install.sh | sh
+```
+
+Supports Linux x86_64/aarch64 (glibc) and macOS Apple Silicon (aarch64).
+The installer verifies SHA-256 before replacing `~/.local/bin/rocksky`.
+Use `NO_COLOR=1` to disable the pink installer banner.
+
+```sh
+# Pin a release, choose the PureScript variant, or change the destination:
+curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/install.sh | \
+  sh -s -- --version 0.11.3 --variant purescript --bin-dir "$HOME/.local/bin"
+
+# Build locally from apps/cli:
+bun run build:binary
+./dist/rocksky --help
+# Explicit target (matching native optional packages must be installed):
+bun run build:binary --target bun-darwin-arm64 --outfile dist/rocksky
+```
+
+The binary embeds Bun, OpenTUI, the Rockbox audio library, SQLite migrations,
+and LevelDB. Audio libraries extract into the user's cache on first run.
+Optional NFC requires the PC/SC system service and its Node bindings;
+`rocksky mcp` requires the separate Rocksky MCP executable on PATH.
+
+The **CLI binaries** GitHub workflow builds both CLI variants for all three
+platforms. Run it manually from Actions → CLI binaries → Run workflow. Manual
+runs upload downloadable artifacts; enable `publish` to create/update a release.
+Pushing a `rocksky-cli-v*` tag publishes after all six builds pass. Every binary
+includes a `.sha256` file. macOS builds always use `macos-latest`.
+
 ## Run in development
 To run the CLI in development mode, install the dependencies:
 
@@ -73,6 +108,26 @@ rocksky <command> [options]
 ```
 
 ## Interactive TUI
+
+The interactive player uses **OpenTUI + React** with a charcoal canvas, soft
+violet navigation, pink playback accents, a responsive sidebar, highlighted rows,
+and scrollable dialogs. At smaller terminal widths it switches to compact tabs.
+Keyboard shortcuts, playback, playlists, sound settings, MPD, remote control and
+NFC/card integrations are retained. Mouse selection is available in navigation.
+
+Install **Bun >=1.3.14** for the interactive player. A Node-launched `rocksky` or
+`rocksky tui` automatically hands the terminal to Bun; other commands continue to
+run on Node. OpenTUI owns the alternate screen, resizing and terminal cleanup.
+Both `q` and Ctrl-C restore the original terminal. The standalone binary embeds Bun.
+
+All library tabs preload in the background after sign-in using the same Navidrome
+reads as the web library. Saved metadata appears immediately on later launches
+while stale rows refresh; failed refreshes retain the saved list. Press `R` to retry.
+
+For development, `bun run build` emits the Node command entry and the separate
+`dist/tui.mjs` OpenTUI asset. Keep both files together when packaging.
+`bun run test:tui` runs native renderer interaction tests;
+`python3 test/terminal-smoke.py dist/index.js` checks actual terminal restoration.
 
 Running `rocksky` with no arguments (or `rocksky tui`) launches a full-screen terminal UI.
 

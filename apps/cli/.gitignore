@@ -2,3 +2,5 @@ node_modules/
 dist/
 result
 imports/
+
+.binary-build/

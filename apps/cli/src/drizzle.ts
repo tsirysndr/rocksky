@@ -29,7 +29,7 @@ export async function initializeDatabase() {
   try {
     // In production (built), migrations are in ../drizzle
     // In development (src), migrations are in ../../drizzle
-    let migrationsFolder = path.join(__dirname, "../drizzle");
+    let migrationsFolder = process.env.ROCKSKY_CLI_MIGRATIONS || path.join(__dirname, "../drizzle");
 
     if (!fs.existsSync(migrationsFolder)) {
       // Try development path

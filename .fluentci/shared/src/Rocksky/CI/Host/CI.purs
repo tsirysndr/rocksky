@@ -135,3 +135,31 @@ flakehubPublish = do
     S.setEnv "INPUT_FLAKEHUB-PUSH-TAG" ""
     S.setEnv "INPUT_FLAKEHUB-PUSH-URL" ""
     void $ S.run false root ["node", directory <> "/dist/index.js"]
+
+-- Compile with an explicit target so embedded native libraries match the asset.
+buildCli :: String -> String -> Effect Unit
+buildCli variant asset = do
+  unless (variant == "typescript" || variant == "purescript") $ throw "Invalid CLI variant"
+  unless (asset == "linux-x86_64" || asset == "linux-aarch64" || asset == "darwin-aarch64") $ throw "Invalid CLI platform"
+  root <- S.root
+  temporary <- S.required "RUNNER_TEMP"
+  let directory = root <> if variant == "purescript" then "/purescript/cli" else "/apps/cli"
+  let name = (if variant == "purescript" then "rocksky-purescript-" else "rocksky-") <> asset
+  let binary = temporary <> "/cli-assets/" <> name
+  let target = case asset of
+        "linux-x86_64" -> "bun-linux-x64"
+        "linux-aarch64" -> "bun-linux-arm64"
+        _ -> "bun-darwin-arm64"
+  void $ S.run false directory ["bun", "install", "--frozen-lockfile", "--ignore-scripts"]
+  when (variant == "purescript") do
+    void $ S.run false (root <> "/purescript") ["bun", "install", "--frozen-lockfile", "--ignore-scripts"]
+    void $ S.run false directory ["bun", "run", "build"]
+  void $ S.run false directory ["bun", "run", "build:binary", "--target", target, "--outfile", binary]
+  void $ S.run false temporary ["file", binary]
+  cpu <- S.arch
+  let native = (cpu == "arm64" && (asset == "linux-aarch64" || asset == "darwin-aarch64")) || (cpu == "x64" && (asset == "linux-x86_64"))
+  when native do
+    void $ S.run false temporary [binary, "--version"]
+    void $ S.run false temporary [binary, "--help"]
+    S.setEnv "ROCKSKY_BINARY_SELF_TEST" "1"
+    void $ S.run false temporary [binary]

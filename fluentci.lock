@@ -1,0 +1,35 @@
+{
+  "lockfileVersion": 1,
+  "modules": {},
+  "packages": {
+    "@fluentci.io/setup-bun@0.2.0": {
+      "registry": "https://api.fluentci.io",
+      "name": "setup-bun",
+      "version": "0.2.0",
+      "author": "did:plc:cukdxxemtwuxspaiurk2xsfz",
+      "url": "https://modules.fluentci.io/fluentci.io/setup-bun/v0.2.0/setup-bun.wasm",
+      "sha256": "4ccd777c1ecb2b28a5076a1075f600c40c8d0e4ee54a89864abe92ec62594fc9",
+      "uri": "at://did:plc:cukdxxemtwuxspaiurk2xsfz/io.fluentci.plugin/setup-bun-0.2.0",
+      "cid": "bafyreif5ingx3cbdp5tsmhco7odhhnycqjd32vpoo5fwqta5zalvo4hvme",
+      "repository": "https://tangled.org/fluentci.io/modules",
+      "readme_url": "https://raw.githubusercontent.com/fluentci-io/modules/refs/heads/main/setup/bun/README.md",
+      "topics": [
+        "bun",
+        "javascript",
+        "typescript",
+        "setup",
+        "ci",
+        "toolchain"
+      ],
+      "os": [
+        "linux",
+        "macos"
+      ],
+      "arch": [
+        "x86_64",
+        "aarch64"
+      ]
+    }
+  },
+  "git": {}
+}

@@ -1,5 +1,5 @@
 import { RockskyClient } from "client";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui";
 import { useAtom, useAtomValue } from "jotai";
 import React, { useState } from "react";
 import { Cell, Ell } from "./Columns";
@@ -9,7 +9,12 @@ import { exportQueue } from "./navidrome";
 import { jumpTo } from "./playback";
 import { playerController } from "./player";
 import { queryClient } from "./queryClient";
-import { authAtom, playerStatusAtom, queueOpenAtom, queueVersionAtom } from "./store";
+import {
+  authAtom,
+  playerStatusAtom,
+  queueOpenAtom,
+  queueVersionAtom,
+} from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
 export function QueueView({ height }: { height: number }) {
@@ -33,7 +38,9 @@ export function QueueView({ height }: { height: number }) {
       // from a saved session may only have `uploadId`, so map those via the
       // uploads API.
       const trackIds = items.map((i) => i.trackId).filter(Boolean) as string[];
-      const unresolvable = items.filter((i) => !i.trackId && !i.uploadId).length;
+      const unresolvable = items.filter(
+        (i) => !i.trackId && !i.uploadId,
+      ).length;
       const needResolve = items.filter((i) => !i.trackId && i.uploadId);
       let missed = 0;
       if (needResolve.length > 0 && token) {
@@ -42,7 +49,10 @@ export function QueueView({ height }: { height: number }) {
         const client = new RockskyClient(token);
         let offset = 0;
         while (wanted.size > 0 && offset < 5000) {
-          const rows: any[] = await client.getUploads({ skip: offset, limit: 200 });
+          const rows: any[] = await client.getUploads({
+            skip: offset,
+            limit: 200,
+          });
           if (!rows.length) break;
           for (const r of rows) {
             if (wanted.has(r.upload.id)) {
@@ -133,7 +143,9 @@ export function QueueView({ height }: { height: number }) {
           <Text color={BLUE}>▏</Text>
         </Box>
         <Box marginTop={1}>
-          <Text dimColor>{`${items.length} tracks · Enter to save · Esc to cancel`}</Text>
+          <Text
+            dimColor
+          >{`${items.length} tracks · Enter to save · Esc to cancel`}</Text>
         </Box>
       </Box>
     );
@@ -145,7 +157,9 @@ export function QueueView({ height }: { height: number }) {
         <Text bold color={BLUE}>
           {" Current Queue "}
         </Text>
-        <Text dimColor>{`  ${items.length} track${items.length === 1 ? "" : "s"} · Enter jump · d remove · s save · Esc close`}</Text>
+        <Text
+          dimColor
+        >{`  ${items.length} track${items.length === 1 ? "" : "s"} · Enter jump · d remove · s save · Esc close`}</Text>
       </Box>
 
       <Box marginTop={1} flexDirection="column">
@@ -164,7 +178,10 @@ export function QueueView({ height }: { height: number }) {
                   </Text>
                 </Cell>
                 <Cell grow>
-                  <Ell color={active ? BLUE : undefined} bold={active || isPlaying}>
+                  <Ell
+                    color={active ? BLUE : undefined}
+                    bold={active || isPlaying}
+                  >
                     {t.title}
                   </Ell>
                 </Cell>

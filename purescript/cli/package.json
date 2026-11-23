@@ -10,7 +10,8 @@
   "scripts": {
     "build": "cd .. && bun run build:cli",
     "test": "cd .. && bun run test:cli",
-    "start": "node index.js"
+    "start": "node index.js",
+    "build:binary": "bun ../../apps/cli/scripts/build-binary.mjs --variant purescript"
   },
   "keywords": [
     "audioscrobbler",
@@ -70,7 +71,9 @@
     "table": "^6.9.0",
     "unstorage": "^1.14.4",
     "uuid": "^13.0.0",
-    "zod": "^3.24.3"
+    "zod": "^3.24.3",
+    "@opentui/core": "0.9.7",
+    "@opentui/react": "0.9.7"
   },
   "optionalDependencies": {
     "@pokusew/pcsclite": "^0.6.0",

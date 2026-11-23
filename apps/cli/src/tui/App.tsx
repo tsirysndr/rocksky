@@ -1,17 +1,17 @@
-import { Box, Text, useApp, useInput } from "ink";
+import { Box, Text, ScrollBox, useApp, useInput } from "./ui";
 import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AddToPlaylistView } from "./AddToPlaylistView";
 import { AuthView } from "./AuthView";
 import { CacheView } from "./CacheView";
 import { EqualizerView } from "./EqualizerView";
 import { HelpView } from "./HelpView";
-import { RockskyClient } from "client";
 import { likedIdsAtom, useToggleLike } from "./likes";
 import { queryClient } from "./queryClient";
 import { initMpris, type MprisHandle } from "./mpris";
 import { startMpdServer, type MpdServerHandle } from "../mpd/server";
 import { loadSettings } from "./settings";
+import { warmLibrary, libraryQuery } from "./library";
 import { MusicView } from "./MusicView";
 import { PlayerBar } from "./PlayerBar";
 import { prefetchTick, resumeSession, skipNext, skipPrev } from "./playback";
@@ -39,7 +39,7 @@ import {
   tabAtom,
 } from "./store";
 import { startNfcWatch } from "./nfc";
-import { BLUE } from "./theme";
+import { BLUE, palette } from "./theme";
 import { useFullScreen } from "./useFullScreen";
 
 const TABS = ["Global Scrobbles", "My Music", "Profile"];
@@ -48,6 +48,10 @@ export function App() {
   const { exit } = useApp();
   const { rows, cols } = useFullScreen();
   const [tab, setTab] = useAtom(tabAtom);
+  const [profileVisited, setProfileVisited] = useState(tab === 2);
+  useEffect(() => {
+    if (tab === 2) setProfileVisited(true);
+  }, [tab]);
   const setPlayerStatus = useSetAtom(playerStatusAtom);
   const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom);
   const setSearchContext = useSetAtom(searchContextAtom);
@@ -63,6 +67,9 @@ export function App() {
   const setLikedIds = useSetAtom(likedIdsAtom);
   const [nfcMessage, setNfcMessage] = useAtom(nfcMessageAtom);
   const toggleLike = useToggleLike(token);
+  useEffect(() => {
+    if (token) void warmLibrary(token);
+  }, [token]);
 
   const overlayOpen =
     searchOpen ||
@@ -145,13 +152,17 @@ export function App() {
   // Seed the set of liked song URIs from the user's loved songs.
   useEffect(() => {
     if (!token) return;
-    const client = new RockskyClient(token);
-    client
-      .getCurrentUser()
-      .then((u: any) => client.getLovedSongs(u.did))
-      .then((tracks: any[]) =>
+    queryClient
+      .fetchInfiniteQuery(libraryQuery(token, "favorites"))
+      .then((data) =>
         setLikedIds(
-          new Set(tracks.map((t) => t.id).filter(Boolean) as string[]),
+          new Set(
+            data.pages
+              .flat()
+              .flatMap((track) =>
+                track.kind === "track" && track.trackId ? [track.trackId] : [],
+              ),
+          ),
         ),
       )
       .catch(() => {});
@@ -174,7 +185,19 @@ export function App() {
     return () => clearInterval(id);
   }, [token, setScrobbledTitle]);
 
-  const listHeight = Math.max(5, rows - 14);
+  const wide = cols >= 100 && rows >= 36;
+  const listHeight = Math.max(1, rows - (rows < 26 ? 11 : wide ? 17 : 19));
+  const titles = ["Global Scrobbles", "My Music", "Your Profile"];
+  const descriptions = [
+    "A live pulse of what everyone is listening to.",
+    "Your collection, one good listen at a time.",
+    "Your listening life, all in one place.",
+  ];
+
+  // Ctrl-C always works, including while a dialog owns the keyboard.
+  useInput((input, key) => {
+    if (key.ctrl && input === "c") exit();
+  });
 
   useInput(
     (input, key) => {
@@ -197,7 +220,8 @@ export function App() {
       if (input === "C") return setCacheOpen(true);
 
       // Tabs
-      if (key.tab) setTab((t) => (t + 1) % TABS.length);
+      if (key.tab)
+        setTab((t) => (t + (key.shift ? TABS.length - 1 : 1)) % TABS.length);
       if (input === "1") setTab(0);
       if (input === "2") setTab(1);
       if (input === "3") setTab(2);
@@ -243,77 +267,245 @@ export function App() {
     { isActive: !overlayOpen },
   );
 
-  return (
-    <Box flexDirection="column" width={cols} height={rows} padding={1}>
-      <Box marginBottom={1}>
+  if (cols < 60 || rows < 18) {
+    return (
+      <Box
+        width={cols}
+        height={rows}
+        backgroundColor={palette.background}
+        padding={1}
+        flexDirection="column"
+      >
         <Text bold color={BLUE}>
-          {"♫ Rocksky   "}
+          ◈ rocksky
         </Text>
-        {TABS.map((label, i) => (
-          <Text
-            key={label}
-            bold={i === tab}
-            inverse={i === tab}
-            color={i === tab ? BLUE : undefined}
-            dimColor={i !== tab}
-          >
-            {` ${i + 1} ${label} `}
-          </Text>
-        ))}
+        <Text>Give your music a little more room.</Text>
+        <Text dimColor>
+          Resize to at least 60 columns × 18 rows. Press q to quit.
+        </Text>
       </Box>
+    );
+  }
 
-      <Box flexDirection="column" flexGrow={1}>
-        {/* Tab views stay mounted (hidden) while an overlay is open, so their
-            navigation state — mode, drill path, selection — is preserved. */}
+  return (
+    <Box
+      width={cols}
+      height={rows}
+      backgroundColor={palette.background}
+      paddingX={2}
+      paddingY={1}
+      flexDirection="column"
+    >
+      <Box
+        height={rows < 26 ? 2 : 3}
+        alignItems="center"
+        justifyContent="space-between"
+      >
+        <Text>
+          <Text bold color={BLUE}>
+            ◈ rocksky
+          </Text>
+          <Text color={palette.muted}> / your music, everywhere</Text>
+        </Text>
+        <Text color={token ? palette.pink : palette.muted}>
+          {token ? "● Connected" : "○ Guest · A sign in"}
+        </Text>
+      </Box>
+      {!wide && (
+        <Box height={rows < 26 ? 1 : 2} gap={1}>
+          {TABS.map((label, i) => (
+            <Box
+              key={label}
+              paddingX={1}
+              backgroundColor={tab === i ? palette.accent : palette.background}
+              onMouseDown={() => {
+                if (!overlayOpen) setTab(i);
+              }}
+            >
+              <Text
+                bold={tab === i}
+                color={tab === i ? palette.background : palette.muted}
+              >{`${i + 1} ${label}`}</Text>
+            </Box>
+          ))}
+        </Box>
+      )}
+      <Box flexGrow={1} flexShrink={1} minHeight={0} gap={2}>
+        {wide && (
+          <Box
+            width={23}
+            flexDirection="column"
+            paddingTop={1}
+            overflow="hidden"
+          >
+            <Text color={palette.muted}>YOUR SPACE</Text>
+            <Box height={1} />
+            {TABS.map((label, i) => (
+              <Box
+                key={label}
+                height={rows < 38 ? 2 : 3}
+                paddingX={1}
+                alignItems="center"
+                backgroundColor={
+                  tab === i ? palette.selected : palette.background
+                }
+                onMouseDown={() => {
+                  if (!overlayOpen) setTab(i);
+                }}
+              >
+                <Text
+                  color={tab === i ? BLUE : palette.muted}
+                  bold={tab === i}
+                >{`${tab === i ? "▎" : " "} ${i + 1}  ${label === "Global Scrobbles" ? "Discover" : label}`}</Text>
+              </Box>
+            ))}
+            <Box height={2} />
+            <Text color={palette.muted}>PLAYER</Text>
+            <Box height={1} />
+            {[
+              ["Q", "Queue", () => setQueueOpen(true)],
+              ["e", "Sound & equalizer", () => setSoundOpen(true)],
+              ["C", "Offline cache", () => setCacheOpen(true)],
+              ["?", "Keyboard shortcuts", () => setHelpOpen(true)],
+            ].map(([key, label, action]) => (
+              <Box
+                key={String(key)}
+                height={2}
+                paddingX={1}
+                onMouseDown={() => {
+                  if (!overlayOpen) (action as () => void)();
+                }}
+              >
+                <Text>
+                  <Text color={palette.accent}>{`${key}  `}</Text>
+                  <Text color={palette.muted}>{String(label)}</Text>
+                </Text>
+              </Box>
+            ))}
+            <Box flexGrow={1} />
+            <Text color={palette.muted}>Made for listening.</Text>
+          </Box>
+        )}
         <Box
           flexDirection="column"
           flexGrow={1}
-          display={overlayOpen ? "none" : "flex"}
+          flexShrink={1}
+          minWidth={0}
+          overflow="hidden"
+          backgroundColor={palette.surface}
+          paddingX={2}
+          paddingY={rows < 26 ? 0 : 1}
         >
-          <Box flexDirection="column" display={tab === 0 ? "flex" : "none"}>
-            <ScrobblesView
-              isActive={tab === 0 && !overlayOpen}
-              height={listHeight}
-            />
+          <Box justifyContent="space-between" height={rows < 26 ? 1 : 2}>
+            <Text bold>
+              {overlayOpen
+                ? helpOpen
+                  ? "Keyboard shortcuts"
+                  : searchOpen
+                    ? "Search"
+                    : queueOpen
+                      ? "Play queue"
+                      : soundOpen
+                        ? "Sound & equalizer"
+                        : authOpen
+                          ? "Your account"
+                          : cacheOpen
+                            ? "Offline cache"
+                            : "Add to playlist"
+                : titles[tab]}
+            </Text>
+            <Text color={BLUE}>/ Search</Text>
           </Box>
-          <Box flexDirection="column" display={tab === 1 ? "flex" : "none"}>
-            <MusicView
-              isActive={tab === 1 && !overlayOpen}
-              height={listHeight}
-            />
+          {!overlayOpen && rows >= 26 && (
+            <Box height={2}>
+              <Text color={palette.muted}>{descriptions[tab]}</Text>
+            </Box>
+          )}
+          <Box
+            flexDirection="column"
+            flexGrow={1}
+            flexShrink={1}
+            minHeight={0}
+            overflow="hidden"
+            display={overlayOpen ? "none" : "flex"}
+          >
+            <Box flexDirection="column" display={tab === 0 ? "flex" : "none"}>
+              <ScrobblesView
+                isActive={tab === 0 && !overlayOpen}
+                height={listHeight}
+              />
+            </Box>
+            <Box flexDirection="column" display={tab === 1 ? "flex" : "none"}>
+              <MusicView
+                isActive={tab === 1 && !overlayOpen}
+                height={listHeight}
+              />
+            </Box>
+            <Box
+              flexDirection="column"
+              flexGrow={1}
+              flexShrink={1}
+              minHeight={0}
+              display={tab === 2 ? "flex" : "none"}
+            >
+              <ScrollBox focused={tab === 2 && !overlayOpen}>
+                {(tab === 2 || profileVisited) && (
+                  <ProfileView
+                    height={listHeight}
+                    isActive={tab === 2 && !overlayOpen}
+                  />
+                )}
+              </ScrollBox>
+            </Box>
           </Box>
-          <Box flexDirection="column" display={tab === 2 ? "flex" : "none"}>
-            <ProfileView
-              height={listHeight}
-              isActive={tab === 2 && !overlayOpen}
-            />
+          <Box
+            flexDirection="column"
+            flexGrow={overlayOpen ? 1 : 0}
+            flexShrink={1}
+            minHeight={0}
+            overflow="hidden"
+          >
+            {overlayOpen && (
+              <ScrollBox focused={helpOpen}>
+                {addTrack != null ? (
+                  <AddToPlaylistView />
+                ) : authOpen ? (
+                  <AuthView />
+                ) : cacheOpen ? (
+                  <CacheView />
+                ) : helpOpen ? (
+                  <HelpView />
+                ) : searchOpen ? (
+                  <SearchOverlay height={listHeight} />
+                ) : queueOpen ? (
+                  <QueueView height={listHeight} />
+                ) : soundOpen ? (
+                  <EqualizerView />
+                ) : null}
+              </ScrollBox>
+            )}
           </Box>
         </Box>
-
-        {addTrack != null ? (
-          <AddToPlaylistView />
-        ) : authOpen ? (
-          <AuthView />
-        ) : cacheOpen ? (
-          <CacheView />
-        ) : helpOpen ? (
-          <HelpView />
-        ) : searchOpen ? (
-          <SearchOverlay height={listHeight} />
-        ) : queueOpen ? (
-          <QueueView height={listHeight} />
-        ) : soundOpen ? (
-          <EqualizerView />
-        ) : null}
       </Box>
-
-      <Box flexDirection="column">
-        <PlayerBar />
-        {nfcMessage ? (
-          <Text color={BLUE} wrap="truncate-end">{`⌁ ${nfcMessage}`}</Text>
-        ) : null}
-        <Text dimColor wrap="truncate-end">
-          {"? help · / search · Q queue · e eq · Space play/pause · n/p next/prev · Tab tabs · q quit"}
+      <Box height={1} />
+      <PlayerBar />
+      <Box height={1} />
+      <Box height={1} justifyContent="space-between">
+        <Text color={palette.muted} wrap="truncate-end">
+          <Text color={BLUE}>Space</Text>
+          {" play / pause    "}
+          <Text color={BLUE}>/</Text>
+          {" search    "}
+          <Text color={BLUE}>Tab</Text>
+          {" switch    "}
+          <Text color={BLUE}>?</Text>
+          {" help"}
+        </Text>
+        <Text
+          color={nfcMessage ? palette.pink : palette.muted}
+          wrap="truncate-end"
+        >
+          {nfcMessage || "q quit"}
         </Text>
       </Box>
     </Box>

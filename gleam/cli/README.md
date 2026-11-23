@@ -4,8 +4,8 @@
 Command dispatch, import parsing and checkpoints, database materialization,
 standalone MPD commands, and headless playback policy are implemented in Gleam.
 
-The terminal UI remains the original TSX/Ink implementation in
-`apps/cli/src/cmd/tui.tsx` and `apps/cli/src/tui/`. The build bundles that source
+The terminal UI remains the shared OpenTUI/React implementation in
+`apps/cli/src/tui/launch.tsx` and `apps/cli/src/tui/`. The build bundles that source
 into `cli/dist/tui.mjs`; a small Gleam FFI entrypoint loads it only for `tui`
 or the default command. UI changes continue to be made in the original TSX
 files, with no copied or rewritten screen implementation to maintain.
@@ -24,7 +24,9 @@ The workspace's root `gleam.toml` includes this package as a path dependency.
 `gleam build` compiles it alongside the API and app proxy. `build:cli` bundles the
 compiled modules into `cli/dist/index.mjs`; runtime npm dependencies and SQLite
 migrations remain alongside the bundle. Node 22 or newer is recommended. Run the
-bundle with Node, including when Bun runs the workspace scripts.
+bundle with Node, including when Bun runs the workspace scripts. The interactive
+player requires Bun >=1.3.14 and is automatically launched under Bun by the
+Node dispatcher; noninteractive commands keep their Node runtime.
 
 Commands include `login`, `whoami`, `nowplaying`, `scrobbles`, `search`, `stats`,
 `artists`, `albums`, `tracks`, `scrobble`, `create apikey`, `mcp`, `sync`,
@@ -102,4 +104,4 @@ python3 cli/test/terminal-smoke.py
 
 Live OAuth/PDS writes, physical audio playback, MPRIS, and physical NFC/cards
 require integration testing with the corresponding account or hardware. The
-terminal smoke test stubs native audio, remote control, and PC/SC so it can exercise the original Ink screens without account or hardware access.
+terminal smoke test stubs native audio, remote control, and PC/SC so it can exercise the shared OpenTUI screens without account or hardware access.

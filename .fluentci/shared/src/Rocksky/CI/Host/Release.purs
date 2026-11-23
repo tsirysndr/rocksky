@@ -20,6 +20,7 @@ prefix project = case project of
   "rocksky-mcp" -> Right "rocksky-mcp-v"
   "bindings" -> Right "bindings-v"
   "desktop" -> Right "desktop-v"
+  "cli" -> Right "rocksky-cli-v"
   _ -> Left "Unknown release project"
 
 resolveTag :: String -> Effect Unit
@@ -32,7 +33,7 @@ resolveTag project = do
   refType <- S.env "GITHUB_REF_TYPE"
   ref <- S.env "GITHUB_REF_NAME"
   tag <- if input /= "" then pure input else if refType == "tag" then pure ref else do
-    version <- if project == "desktop" then trim <$> S.run true root [ "jq", "-r", ".version", "desktop/src-tauri/tauri.conf.json" ] else do
+    version <- if project == "cli" then trim <$> S.run true root ["node", "-p", "require('./apps/cli/package.json').version"] else if project == "desktop" then trim <$> S.run true root [ "jq", "-r", ".version", "desktop/src-tauri/tauri.conf.json" ] else do
       contents <- S.read (root <> if project == "bindings" then "/sdk/erlang/src/rocksky_erl.app.src" else "/" <> project <> "/Cargo.toml")
       let lines = filter (\line -> if project == "bindings" then contains (Pattern "{vsn,") line else case stripPrefix (Pattern "version") (trim line) of
             Just _ -> true
@@ -43,6 +44,9 @@ resolveTag project = do
     when (version == "null" || not (safeName version)) $ throw "Invalid release version"
     pure (start <> version)
   unless (safeName tag) $ throw "Invalid release tag"
+  when (project == "cli") $ case stripPrefix (Pattern start) tag of
+    Just version | version /= "" -> pure unit
+    _ -> throw "CLI release tags must start with rocksky-cli-v"
   output <- S.required "GITHUB_OUTPUT"
   S.append output ("tag=" <> tag <> "\n")
   when (project == "desktop") $ S.append output ("version=" <> fromMaybe tag (stripPrefix (Pattern "desktop-v") tag) <> "\n")

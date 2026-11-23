@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui";
 import { useAtom } from "jotai";
 import React, { useState } from "react";
 import { cacheOpenAtom } from "./store";

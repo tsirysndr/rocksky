@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui";
 import { useAtom } from "jotai";
 import React, { useState } from "react";
 import {
@@ -12,7 +12,7 @@ import {
   playerController,
 } from "./player";
 import { soundOpenAtom } from "./store";
-import { BLUE, TEAL, VIOLET } from "./theme";
+import { BLUE, TEAL, VIOLET, palette } from "./theme";
 
 const SLIDER_ROWS = 9; // odd, so there is a centre (0 dB) row
 
@@ -49,10 +49,16 @@ function Slider({ col, active }: { col: Column; active: boolean }) {
   return (
     <Box flexDirection="column" alignItems="center" marginRight={1}>
       {rows}
-      <Text color={active ? BLUE : VIOLET} bold={active}>
+      <Text
+        color={active ? palette.background : VIOLET}
+        backgroundColor={active ? palette.accent : undefined}
+        bold={active}
+      >
         {col.label.padStart(2, " ").slice(0, 4)}
       </Text>
-      <Text dimColor>{col.value > 0 ? `+${col.value}` : String(col.value)}</Text>
+      <Text dimColor>
+        {col.value > 0 ? `+${col.value}` : String(col.value)}
+      </Text>
     </Box>
   );
 }
@@ -82,7 +88,8 @@ export function EqualizerView() {
     // Read the live value from the controller (not the render-time closure) so
     // rapid successive key presses accumulate correctly.
     const s = playerController.sound;
-    const cur = sel < bandCount ? s.bands[sel] : sel === bandCount ? s.bass : s.treble;
+    const cur =
+      sel < bandCount ? s.bands[sel] : sel === bandCount ? s.bass : s.treble;
     const max = sel < bandCount ? EQ_MAX_DB : TONE_MAX_DB;
     const step = sel < bandCount ? 1 : 2;
     const next = Math.max(-max, Math.min(max, cur + delta * step));
@@ -106,7 +113,9 @@ export function EqualizerView() {
       return;
     }
     if (input === "x") {
-      playerController.setCrossfade((sound.crossfade + 1) % CROSSFADE_MODES.length);
+      playerController.setCrossfade(
+        (sound.crossfade + 1) % CROSSFADE_MODES.length,
+      );
       rerender();
       return;
     }
@@ -194,9 +203,9 @@ export function EqualizerView() {
             return (
               <Box key={f.key} marginRight={2}>
                 <Text
-                  color={active ? BLUE : VIOLET}
+                  color={active ? palette.background : VIOLET}
                   bold={active}
-                  inverse={active}
+                  backgroundColor={active ? palette.accent : undefined}
                 >
                   {` ${f.label} `}
                 </Text>
@@ -209,7 +218,9 @@ export function EqualizerView() {
 
       <Box marginTop={1}>
         <Text dimColor wrap="truncate-end">
-          {"←/→ band · ↑/↓ gain · Space EQ · x crossfade · m mix · ,/. fade field · [ ] fade secs · g replaygain · G no-clip · r reset · Esc"}
+          {
+            "←/→ band · ↑/↓ gain · Space EQ · x crossfade · m mix · ,/. fade field · [ ] fade secs · g replaygain · G no-clip · r reset · Esc"
+          }
         </Text>
       </Box>
     </Box>

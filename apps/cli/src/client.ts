@@ -359,6 +359,7 @@ export class RockskyClient {
 
     const response = await fetch(`${ROCKSKY_API_URL}/uploads?${params}`, {
       method: "GET",
+      signal: AbortSignal.timeout(12_000),
       headers: {
         Authorization: this.token ? `Bearer ${this.token}` : undefined,
         "Content-Type": "application/json",
@@ -415,6 +416,7 @@ export class RockskyClient {
       `${ROCKSKY_API_URL}/uploads/albums?offset=${skip}&size=${limit}`,
       {
         method: "GET",
+        signal: AbortSignal.timeout(12_000),
         headers: {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
@@ -433,6 +435,7 @@ export class RockskyClient {
       `${ROCKSKY_API_URL}/uploads/artists?offset=${skip}&size=${limit}`,
       {
         method: "GET",
+        signal: AbortSignal.timeout(12_000),
         headers: {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
@@ -499,16 +502,13 @@ export class RockskyClient {
   // --- xrpc data endpoints --------------------------------------------------
   private async xrpc(method: string, params: Record<string, string>) {
     const qs = new URLSearchParams(params);
-    const response = await fetch(
-      `${ROCKSKY_API_URL}/xrpc/${method}?${qs}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: this.token ? `Bearer ${this.token}` : undefined,
-          "Content-Type": "application/json",
-        },
+    const response = await fetch(`${ROCKSKY_API_URL}/xrpc/${method}?${qs}`, {
+      method: "GET",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        "Content-Type": "application/json",
       },
-    );
+    });
     if (!response.ok) {
       throw new Error(`${method} failed: ${response.statusText}`);
     }

@@ -14,11 +14,13 @@
     "lexgen": "lex gen-server ./src/lexicon ./lexicons/**/* ./lexicons/*",
     "test": "tsx src/lib/importParsers.smoke.ts",
     "dev": "tsx ./src/index.ts",
-    "build": "bun build src/index.ts --outfile dist/index.js --target node --packages external && chmod +x ./dist/index.js && cp -r drizzle ./dist",
+    "build": "bun scripts/build.mjs",
     "prepublishOnly": "bun run build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:tui": "bun test test/opentui.test.tsx",
+    "build:binary": "bun scripts/build-binary.mjs"
   },
   "keywords": [
     "audioscrobbler",
@@ -78,7 +80,9 @@
     "table": "^6.9.0",
     "unstorage": "^1.14.4",
     "uuid": "^13.0.0",
-    "zod": "^3.24.3"
+    "zod": "^3.24.3",
+    "@opentui/core": "0.9.7",
+    "@opentui/react": "0.9.7"
   },
   "optionalDependencies": {
     "@pokusew/pcsclite": "^0.6.0",
@@ -89,7 +93,8 @@
     "@types/express": "^5.0.1",
     "@types/node": "^22.14.1",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "esbuild": "^0.25.12"
   },
   "exports": {
     ".": {

@@ -1,4 +1,5 @@
 import { atom, useAtom } from "jotai";
+import { queryClient } from "./queryClient";
 import { getCreds, star, unstar } from "./navidrome";
 
 /** Set of liked track ids (Subsonic song id = tracks.xata_id). */
@@ -24,6 +25,9 @@ export function useToggleLike(token?: string) {
       if (!creds) throw new Error("no credentials");
       if (wasLiked) await unstar(creds, trackId);
       else await star(creds, trackId);
+      void queryClient.invalidateQueries({
+        queryKey: ["library", token, "favorites"],
+      });
     } catch {
       setLiked((cur) => {
         const reverted = new Set(cur);

@@ -1,5 +1,6 @@
-import { Box, Text } from "ink";
+import { Box, Text } from "./ui.js";
 import React from "react";
+import { palette } from "./theme.js";
 
 interface ListProps<T> {
   items: T[];
@@ -21,7 +22,12 @@ export function List<T>({
   emptyText = "Nothing here.",
 }: ListProps<T>) {
   if (items.length === 0) {
-    return <Text dimColor>{emptyText}</Text>;
+    return (
+      <Box padding={2} flexDirection="column">
+        <Text color={palette.muted}>Your next discovery is waiting.</Text>
+        <Text dimColor>{emptyText}</Text>
+      </Box>
+    );
   }
 
   const half = Math.floor(height / 2);
@@ -33,7 +39,15 @@ export function List<T>({
     <Box flexDirection="column">
       {visible.map((item, i) => {
         const index = start + i;
-        return <Box key={index}>{renderItem(item, index, index === selected)}</Box>;
+        return (
+          <Box
+            key={index}
+            height={1}
+            backgroundColor={index === selected ? palette.selected : undefined}
+          >
+            {renderItem(item, index, index === selected)}
+          </Box>
+        );
       })}
     </Box>
   );

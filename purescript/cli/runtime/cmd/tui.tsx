@@ -1,79 +1,34 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { render } from "ink";
-import { loadToken } from "../lib/token.js";
-import React from "react";
-import { App } from "../tui/App.js";
-import { closeNfc } from "../tui/nfc.js";
-import { playerController } from "../tui/player.js";
-import { queryClient } from "../tui/queryClient.js";
-import { startRockskyRemote } from "../tui/rockskyWs.js";
-import { saveSession } from "../tui/session.js";
-import { loadSession } from "../tui/session.js";
-import { loadSettings, saveSettings } from "../tui/settings.js";
+import { compiledTui } from "../tui/compiled.js";
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-// Leave the alternate screen buffer and re-show the cursor, restoring whatever
-// was on the terminal before the TUI launched.
-function restoreTerminal() {
-  process.stdout.write("\x1b[?1049l\x1b[?25h");
-}
-
+/** Keep command-line reads on Node; only the native OpenTUI session needs Bun. */
 export async function tui(opts: { output?: string } = {}) {
-  if (!process.stdin.isTTY) {
-    console.error("The Rocksky TUI requires an interactive terminal.");
-    process.exit(1);
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new Error("The Rocksky TUI requires an interactive terminal.");
   }
-
-  // Safety net: restore the terminal however the process ends (q, Ctrl-C, crash).
-  process.on("exit", restoreTerminal);
-
-  // Restore persisted sound / transport preferences and keep them saved
-  // (debounced) whenever they change. A `--output` flag overrides the persisted
-  // audio backend for this run without being written back to settings.toml.
-  const settings = loadSettings();
-  if (opts.output) settings.output = opts.output;
-  playerController.applySettings(settings);
-  let saveTimer: NodeJS.Timeout;
-  playerController.onSettingsChange = () => {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(
-      () => saveSettings(playerController.snapshotSettings()),
-      400,
-    );
-  };
-
-  // Restore the last playback session (queue + position) — not auto-played;
-  // the user resumes from the player bar.
-  const session = loadSession();
-  if (session) {
-    playerController.restoreSession({
-      items: session.queue,
-      index: session.index,
-      positionMs: session.positionMs,
-    });
+  const embedded = compiledTui();
+  if (embedded) return embedded(opts);
+  const entry = [
+    new URL("./tui.mjs", import.meta.url),
+    new URL("../tui/launch.js", import.meta.url),
+  ].find(existsSync);
+  if (!entry)
+    throw new Error("OpenTUI bundle is missing. Rebuild the Rocksky CLI.");
+  if ("Bun" in globalThis) {
+    const ui = await import(entry.href);
+    return ui.tui(opts);
   }
-
-  // Expose this player to the web/mobile miniplayers as a controllable device
-  // and mirror its now-playing there in real time.
-  const remote = startRockskyRemote(() => loadToken());
-
-  const { waitUntilExit } = render(
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>,
+  const child = spawnSync(
+    "bun",
+    [fileURLToPath(entry), ...(opts.output ? ["--output", opts.output] : [])],
+    { stdio: "inherit" },
   );
-  await waitUntilExit();
-
-  // Flush pending settings + final session on exit.
-  // Ink has fully unmounted here; leave the alternate screen last so the TUI is
-  // cleared and the pre-launch terminal is restored without artifacts.
-  clearTimeout(saveTimer!);
-  remote.stop();
-  closeNfc();
-  saveSettings(playerController.snapshotSettings());
-  saveSession(playerController.sessionSnapshot());
-  restoreTerminal();
-
-  // The native audio engine keeps handles on the event loop (and its close()
-  // can block), so force a clean exit — this also frees the audio device.
-  process.exit(0);
+  if (child.error)
+    throw new Error(
+      "The interactive player needs Bun >=1.3.14. Install Bun, then run rocksky again.",
+      { cause: child.error },
+    );
+  process.exitCode = child.status ?? 1;
 }

@@ -1,7 +1,7 @@
 # Rocksky CLI
 
-Workspace port of `apps/cli`, with a PureScript core and the React/Ink TUI
-maintained in TSX. Requires Node.js >=22.15, Bun, and the workspace's PureScript
+Workspace port of `apps/cli`, with a PureScript core and the OpenTUI/React TUI
+maintained in TSX. Requires Node.js >=22.15, Bun >=1.3.14, and the workspace's PureScript
 toolchain.
 
 From `purescript/`:
@@ -11,7 +11,7 @@ bun install
 (cd cli && bun install --frozen-lockfile)
 bun run build:cli
 node cli/index.js --help
-node cli/index.js                 # interactive terminal player
+node cli/index.js                 # automatically launches the OpenTUI player with Bun
 bun run test:cli
 bun run bundle:cli               # cli/dist/index.js; npm/native deps remain external
 ```
@@ -36,13 +36,19 @@ playback state also use `~/.rocksky`; the local SQLite database uses the
 platform's Rocksky application-data directory. Both implementations therefore
 share local state when run as the same user.
 
+The interactive UI uses charcoal surfaces, violet accents and pink playback
+highlights, with responsive navigation, selected rows and scrollable dialogs.
+The Node dispatcher launches only the TUI under Bun, preserving Node execution
+for other commands. OpenTUI owns resizing and terminal restoration on quit or
+Ctrl-C. The build retains the PureScript-backed client and playback facades.
+
 ## Code boundaries
 
 - `src/Rocksky/Cli/`: command definitions and dispatch, API client, authentication,
   sync orchestration, scrobble matching, history parsing/import/checkpoints,
   playback orchestration, library operations, settings, MPD protocol/status,
   and NFC payload logic.
-- `runtime/tui/*.tsx` and `runtime/cmd/{tui,upload}.tsx`: maintained React/Ink
+- `runtime/tui/*.tsx` and `runtime/cmd/{tui,upload}.tsx`: maintained OpenTUI/React
   views. Supporting UI hooks and device adapters remain TypeScript. The build
   emits ignored adjacent `.js` files with esbuild.
 - `runtime/`: JavaScript interoperability facades and retained native, SDK,
@@ -58,6 +64,21 @@ React components and native bindings into PureScript.
 
 Tests cover command parsing, HTTP contracts, import parsing/checkpoints and
 deduplication, SQLite import indexing, queue/library behavior, settings,
-scrobble decisions, MPD formatting, NFC/card encoding, and actual Ink rendering.
+scrobble decisions, MPD formatting, NFC/card encoding, and actual OpenTUI rendering.
 Network/device behavior is mocked where appropriate; these tests do not verify
 live account writes, audio output, or a physical NFC/smart-card reader.
+
+## Standalone binary
+
+From `purescript/cli`, run `bun run build` followed by `bun run build:binary`.
+The output is `dist/rocksky-purescript` plus its SHA-256 checksum.
+`--target bun-darwin-arm64` (or `bun-linux-x64`, `bun-linux-arm64`) selects the target.
+The shared builder embeds the PureScript output, OpenTUI, Bun and native runtime assets.
+
+The root `install.sh --variant purescript` installs the PureScript release as
+`rocksky`; see [CLI installation and workflow instructions](../../apps/cli/README.md#standalone-binary).
+The release workflow supports manual artifact builds, optional publishing,
+Linux x86_64/aarch64, and macOS aarch64 on `macos-latest`.
+
+Library tabs preload in the background and reuse saved metadata while refreshing,
+using the same indexed Navidrome album, artist and song reads as the web library.

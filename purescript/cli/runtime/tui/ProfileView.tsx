@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import relative from "dayjs/plugin/relativeTime.js";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui.js";
 import { useAtomValue } from "jotai";
 import React from "react";
 import {
@@ -81,7 +81,9 @@ export function ProfileView({
         <Text bold color={VIOLET}>
           {profile?.displayName || profile?.handle || "Unknown"}
         </Text>
-        {profile?.handle ? <Text color={BLUE}>{`  @${profile.handle}`}</Text> : null}
+        {profile?.handle ? (
+          <Text color={BLUE}>{`  @${profile.handle}`}</Text>
+        ) : null}
       </Text>
 
       <Box marginTop={1}>
@@ -119,7 +121,13 @@ export function ProfileView({
           </Section>
           <Section title="Top Tracks">
             {(data?.topTracks ?? []).map((t, i) => (
-              <Ranked key={i} rank={i + 1} primary={t.title} secondary={t.artist} plays={t.playCount} />
+              <Ranked
+                key={i}
+                rank={i + 1}
+                primary={t.title}
+                secondary={t.artist}
+                plays={t.playCount}
+              />
             ))}
           </Section>
         </Box>
@@ -127,12 +135,23 @@ export function ProfileView({
         <Box flexDirection="column" width="50%">
           <Section title="Top Artists">
             {(data?.topArtists ?? []).map((a, i) => (
-              <Ranked key={i} rank={i + 1} primary={a.name} plays={a.playCount} />
+              <Ranked
+                key={i}
+                rank={i + 1}
+                primary={a.name}
+                plays={a.playCount}
+              />
             ))}
           </Section>
           <Section title="Top Albums">
             {(data?.topAlbums ?? []).map((a, i) => (
-              <Ranked key={i} rank={i + 1} primary={a.title} secondary={a.artist} plays={a.playCount} />
+              <Ranked
+                key={i}
+                rank={i + 1}
+                primary={a.title}
+                secondary={a.artist}
+                plays={a.playCount}
+              />
             ))}
           </Section>
         </Box>
@@ -152,17 +171,19 @@ function Stat({ label, value }: { label: string; value?: number }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text bold color={BLUE}>
         {title}
       </Text>
-      {React.Children.count(children) > 0 ? (
-        children
-      ) : (
-        <Text dimColor>—</Text>
-      )}
+      {React.Children.count(children) > 0 ? children : <Text dimColor>—</Text>}
     </Box>
   );
 }

@@ -1,13 +1,12 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { RockskyClient } from "../client.js";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui.js";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import { Cell, Ell } from "./Columns.js";
 import { fmtDuration } from "./format.js";
 import { likedIdsAtom, useToggleLike } from "./likes.js";
 import { List } from "./List.js";
-import { getCreds, getStarred } from "./navidrome.js";
 import { writeAlbumCard, writeFavoritesCard } from "./cards.js";
 import { writeAlbumTag, writeFavoritesTag } from "./nfc.js";
 import { enqueueAt, streamAndPlay } from "./playback.js";
@@ -16,11 +15,17 @@ import { PlaylistsView } from "./PlaylistsView.js";
 import { queryClient } from "./queryClient.js";
 import { shuffled } from "./shuffle.js";
 import { addToPlaylistAtom, authAtom, playbackMessageAtom } from "./store.js";
-import { BLUE, ERROR, TEAL, VIOLET } from "./theme.js";
+import { BLUE, ERROR, TEAL, VIOLET, palette } from "./theme.js";
 
-const PAGE_SIZE = 100;
-
-type Mode = "tracks" | "albums" | "artists" | "favorites" | "playlists";
+import {
+  libraryQuery,
+  resolveLibraryTracks,
+  type Mode,
+  type Row,
+  type Drill,
+  type TrackItem,
+  type AlbumItem,
+} from "./library.js";
 const MODES: Mode[] = ["tracks", "albums", "artists", "favorites", "playlists"];
 const MODE_LABELS: Record<Mode, string> = {
   tracks: "Tracks",
@@ -29,30 +34,6 @@ const MODE_LABELS: Record<Mode, string> = {
   favorites: "Favorites",
   playlists: "Playlists",
 };
-
-interface TrackItem extends QueueItem {
-  kind: "track";
-  trackNumber?: number;
-  discNumber?: number;
-}
-interface AlbumItem {
-  kind: "album";
-  album: string;
-  albumArtist: string;
-  albumUri?: string;
-  trackCount: number;
-}
-interface ArtistItem {
-  kind: "artist";
-  name: string;
-  albumCount: number;
-  trackCount: number;
-}
-type Row = TrackItem | AlbumItem | ArtistItem;
-
-type Drill =
-  | { type: "album"; label: string; albumArtist?: string; albumName?: string; albumUri?: string }
-  | { type: "artist"; label: string; name: string };
 
 export function MusicView({
   isActive,
@@ -78,19 +59,18 @@ export function MusicView({
   // A track/album pending delete confirmation.
   const [confirmDelete, setConfirmDelete] = useState<
     | { kind: "track"; trackId: string; label: string }
-    | { kind: "album"; albumUri?: string; albumArtist: string; album: string; label: string }
+    | {
+        kind: "album";
+        albumUri?: string;
+        albumArtist: string;
+        album: string;
+        label: string;
+      }
     | null
   >(null);
 
   const top = drill[drill.length - 1];
   const drillKey = drill.map((d) => `${d.type}:${d.label}`).join(">");
-
-  // Navidrome credentials (for Favorites) — created/cached on first use.
-  const { data: creds } = useQuery({
-    queryKey: ["ndCreds", token],
-    enabled: !!token,
-    queryFn: () => getCreds(token),
-  });
 
   const {
     data,
@@ -99,58 +79,9 @@ export function MusicView({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery<Row[]>({
-    queryKey: ["library", token, mode, drillKey],
-    enabled:
-      !!token && mode !== "playlists" && (mode !== "favorites" || !!creds),
-    initialPageParam: 0,
-    queryFn: async ({ pageParam }) => {
-      const client = new RockskyClient(token);
-      const skip = pageParam as number;
-      // Playlists render their own view; no library rows here.
-      if (mode === "playlists") return [];
-      // Favorites come from the Navidrome starred API (single page).
-      if (mode === "favorites") {
-        if (skip > 0 || !creds) return [];
-        const songs = await getStarred(creds);
-        return songs.map(toFavTrack);
-      }
-      // Drill-down lists are bounded → fetched in a single page.
-      if (top?.type === "album") {
-        if (skip > 0) return [];
-        const rows = await client.getUploads({
-          limit: 500,
-          albumUri: top.albumUri,
-          albumArtist: top.albumUri ? undefined : top.albumArtist,
-          albumName: top.albumUri ? undefined : top.albumName,
-        });
-        // Order by disc then track number so multi-disc albums group correctly.
-        return (rows || [])
-          .map(toTrack)
-          .sort(
-            (a, b) =>
-              (a.discNumber ?? 1) - (b.discNumber ?? 1) ||
-              (a.trackNumber ?? 0) - (b.trackNumber ?? 0),
-          );
-      }
-      if (top?.type === "artist") {
-        if (skip > 0) return [];
-        const rows = await client.getUploadAlbums({ limit: 500 });
-        return (rows || []).map(toAlbum).filter((a) => a.albumArtist === top.name);
-      }
-      // Top-level lists paginate.
-      if (mode === "albums")
-        return (await client.getUploadAlbums({ skip, limit: PAGE_SIZE })).map(toAlbum);
-      if (mode === "artists")
-        return (await client.getUploadArtists({ skip, limit: PAGE_SIZE })).map(toArtist);
-      return (await client.getUploads({ skip, limit: PAGE_SIZE })).map(toTrack);
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      if (drill.length > 0 || mode === "favorites") return undefined; // single page
-      if (lastPage.length < PAGE_SIZE) return undefined;
-      return allPages.reduce((n, p) => n + p.length, 0);
-    },
-  });
+    isFetching,
+    refetch,
+  } = useInfiniteQuery(libraryQuery(token ?? "", mode, drill));
 
   const items: Row[] = data ? data.pages.flat() : [];
 
@@ -227,35 +158,8 @@ export function MusicView({
   // Resolve the selected row to a concrete list of tracks (fetching album /
   // artist contents as needed).
   async function resolveTracks(row: Row): Promise<QueueItem[]> {
-    const client = new RockskyClient(token);
-    if (row.kind === "track") return [stripKind(row)];
-    if (row.kind === "album") {
-      const rows = await client.getUploads({
-        limit: 500,
-        albumUri: row.albumUri,
-        albumArtist: row.albumUri ? undefined : row.albumArtist,
-        albumName: row.albumUri ? undefined : row.album,
-      });
-      return (rows || []).map((r: any) => stripKind(toTrack(r)));
-    }
-    // artist → every track across the artist's albums
-    const albums = (await client.getUploadAlbums({ limit: 500 }))
-      .map(toAlbum)
-      .filter((a: AlbumItem) => a.albumArtist === row.name);
-    const lists = await Promise.all(
-      albums.map((a) =>
-        client
-          .getUploads({
-            limit: 500,
-            albumUri: a.albumUri,
-            albumArtist: a.albumUri ? undefined : a.albumArtist,
-            albumName: a.albumUri ? undefined : a.album,
-          })
-          .then((rows: any[]) => (rows || []).map((r) => stripKind(toTrack(r))))
-          .catch(() => []),
-      ),
-    );
-    return lists.flat();
+    if (!token) return [];
+    return resolveLibraryTracks(token, row);
   }
 
   async function withResolved(
@@ -288,10 +192,14 @@ export function MusicView({
           albumArtist: cur.albumArtist,
           albumName: cur.album,
           albumUri: cur.albumUri,
+          navidromeId: cur.navidromeId,
         },
       ]);
     } else if (cur.kind === "artist") {
-      setDrill((d) => [...d, { type: "artist", label: cur.name, name: cur.name }]);
+      setDrill((d) => [
+        ...d,
+        { type: "artist", label: cur.name, name: cur.name, navidromeId: cur.navidromeId },
+      ]);
     }
   }
 
@@ -352,6 +260,10 @@ export function MusicView({
         return;
       }
 
+      if (input === "R") {
+        void refetch();
+        return;
+      }
       if (key.upArrow || input === "k") setSelected((s) => Math.max(0, s - 1));
       else if (key.downArrow || input === "j")
         setSelected((s) => Math.min(items.length - 1, s + 1));
@@ -362,7 +274,8 @@ export function MusicView({
       else if (key.rightArrow) cycleMode(1);
       else if (input === "a") {
         const cur = items[selected];
-        if (cur) withResolved(cur, (tracks) => playFrom(tracks as TrackItem[], 0));
+        if (cur)
+          withResolved(cur, (tracks) => playFrom(tracks as TrackItem[], 0));
       } else if (input === "N") {
         const cur = items[selected];
         if (cur) withResolved(cur, (tracks) => enqueueSmart(tracks, 2));
@@ -450,7 +363,9 @@ export function MusicView({
         } else {
           setMessage(`Hold a tag on the reader to write “${album.name}”…`);
           writeAlbumTag(album)
-            .then(() => setMessage(`Tag written — it now plays “${album.name}”`))
+            .then(() =>
+              setMessage(`Tag written — it now plays “${album.name}”`),
+            )
             .catch((e: any) => setMessage(`NFC: ${e.message}`));
         }
       } else if (input === "d" || input === "x") {
@@ -466,6 +381,7 @@ export function MusicView({
           setConfirmDelete({
             kind: "album",
             albumUri: cur.albumUri,
+          navidromeId: cur.navidromeId,
             albumArtist: cur.albumArtist,
             album: cur.album,
             label: `${cur.album} — ${cur.albumArtist}`,
@@ -479,7 +395,9 @@ export function MusicView({
   if (!token) {
     return (
       <Text color={VIOLET}>
-        {"You are not logged in. Run `rocksky login <handle>` to browse and stream your uploaded music."}
+        {
+          "You are not logged in. Run `rocksky login <handle>` to browse and stream your uploaded music."
+        }
       </Text>
     );
   }
@@ -493,8 +411,8 @@ export function MusicView({
             <Text
               key={m}
               bold={activeTab}
-              inverse={activeTab}
-              color={activeTab ? BLUE : undefined}
+              backgroundColor={activeTab ? palette.accent : undefined}
+              color={activeTab ? palette.background : palette.muted}
               dimColor={!activeTab}
             >
               {` ${MODE_LABELS[m]} `}
@@ -502,7 +420,9 @@ export function MusicView({
           );
         })}
         {drill.length > 0 ? (
-          <Text color={TEAL}>{`   › ${drill.map((d) => d.label).join(" › ")}`}</Text>
+          <Text
+            color={TEAL}
+          >{`   › ${drill.map((d) => d.label).join(" › ")}`}</Text>
         ) : null}
       </Box>
 
@@ -531,7 +451,9 @@ export function MusicView({
               {"Add to queue: "}
             </Text>
             <Text bold>{insertMenu.label}</Text>
-            <Text dimColor>{`  (${insertMenu.tracks.length} track${insertMenu.tracks.length === 1 ? "" : "s"})`}</Text>
+            <Text
+              dimColor
+            >{`  (${insertMenu.tracks.length} track${insertMenu.tracks.length === 1 ? "" : "s"})`}</Text>
           </Text>
           <Box flexDirection="column" marginTop={1}>
             {INSERT_MODES.map((m, i) => (
@@ -549,8 +471,8 @@ export function MusicView({
         <PlaylistsView isActive={isActive} height={height} />
       ) : loading ? (
         <Text color={VIOLET}>Loading…</Text>
-      ) : error ? (
-        <Text color="red">Error: {(error as Error).message}</Text>
+      ) : error && items.length === 0 ? (
+        <Text color="red">Error: {(error as Error).message} · R retry</Text>
       ) : mode === "tracks" && drill.length === 0 && items.length === 0 ? (
         <EmptyLibrary />
       ) : (
@@ -583,7 +505,14 @@ export function MusicView({
         />
       )}
 
-      {isFetchingNextPage ? <Text dimColor>Loading more…</Text> : null}
+      {isFetchingNextPage ? (
+        <Text dimColor>Loading more…</Text>
+      ) : isFetching && items.length > 0 ? (
+        <Text dimColor>Refreshing saved library…</Text>
+      ) : null}
+      {error && items.length > 0 ? (
+        <Text dimColor>Refresh failed · showing saved library · R retry</Text>
+      ) : null}
       {message ? <Text color={BLUE}>{message}</Text> : null}
     </Box>
   );
@@ -636,10 +565,14 @@ function AlbumTrackRow({
       ) : null}
       <Box width="100%">
         <Cell width={2}>
-          <Text color={active ? BLUE : VIOLET}>{active ? "▶" : " "}</Text>
+          <Text color={active ? palette.background : VIOLET}>
+            {active ? "▶" : " "}
+          </Text>
         </Cell>
         <Cell width={3} right>
-          <Text dimColor>{row.trackNumber != null ? `${row.trackNumber}` : ""}</Text>
+          <Text dimColor>
+            {row.trackNumber != null ? `${row.trackNumber}` : ""}
+          </Text>
         </Cell>
         <Cell grow>
           <Ell color={active ? BLUE : undefined} bold>
@@ -653,7 +586,9 @@ function AlbumTrackRow({
           <Ell dimColor>{row.artist}</Ell>
         </Cell>
         <Cell width={6} right>
-          <Ell color={TEAL}>{row.duration ? fmtDuration(row.duration) : ""}</Ell>
+          <Ell color={TEAL}>
+            {row.duration ? fmtDuration(row.duration) : ""}
+          </Ell>
         </Cell>
       </Box>
     </Box>
@@ -671,7 +606,9 @@ function RowLine({
 }) {
   const marker = (
     <Cell width={2}>
-      <Text color={active ? BLUE : VIOLET}>{active ? "▶" : " "}</Text>
+      <Text color={active ? palette.background : VIOLET}>
+        {active ? "▶" : " "}
+      </Text>
     </Cell>
   );
 
@@ -694,7 +631,9 @@ function RowLine({
           <Ell dimColor>{row.album ?? ""}</Ell>
         </Cell>
         <Cell width={6} right>
-          <Ell color={TEAL}>{row.duration ? fmtDuration(row.duration) : ""}</Ell>
+          <Ell color={TEAL}>
+            {row.duration ? fmtDuration(row.duration) : ""}
+          </Ell>
         </Cell>
       </>
     );
@@ -713,7 +652,9 @@ function RowLine({
           <Ell dimColor>{row.albumArtist}</Ell>
         </Cell>
         <Cell width={11} right>
-          <Ell color={TEAL}>{`${row.trackCount} track${row.trackCount === 1 ? "" : "s"}`}</Ell>
+          <Ell
+            color={TEAL}
+          >{`${row.trackCount} track${row.trackCount === 1 ? "" : "s"}`}</Ell>
         </Cell>
       </>
     );
@@ -728,50 +669,10 @@ function RowLine({
         </Ell>
       </Cell>
       <Cell width={22} right>
-        <Ell color={TEAL}>{`${row.albumCount} alb · ${row.trackCount} trk`}</Ell>
+        <Ell
+          color={TEAL}
+        >{`${row.albumCount} alb · ${row.trackCount} trk`}</Ell>
       </Cell>
     </>
   );
 }
-
-const toTrack = (r: any): TrackItem => ({
-  kind: "track",
-  uploadId: r.upload.id,
-  title: r.track.title,
-  artist: r.track.artist,
-  album: r.track.album,
-  albumArtist: r.track.albumArtist,
-  albumArt: r.track.albumArt,
-  duration: r.track.duration,
-  mimeType: r.upload.mimeType,
-  uri: r.track.uri,
-  trackId: r.track.id,
-  trackNumber: r.track.trackNumber ?? undefined,
-  discNumber: r.track.discNumber ?? undefined,
-});
-
-// A Navidrome starred song → a track row (streamed via Navidrome, no uploadId).
-const toFavTrack = (s: any): TrackItem => ({
-  kind: "track",
-  uploadId: "",
-  trackId: s.id,
-  title: s.title,
-  artist: s.artist,
-  album: s.album,
-  duration: s.duration ? s.duration * 1000 : undefined,
-});
-
-const toAlbum = (r: any): AlbumItem => ({
-  kind: "album",
-  album: r.album,
-  albumArtist: r.albumArtist,
-  albumUri: r.albumUri || undefined,
-  trackCount: r.trackCount ?? 0,
-});
-
-const toArtist = (r: any): ArtistItem => ({
-  kind: "artist",
-  name: r.name,
-  albumCount: r.albumCount ?? 0,
-  trackCount: r.trackCount ?? 0,
-});

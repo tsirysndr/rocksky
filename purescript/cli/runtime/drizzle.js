@@ -17,7 +17,7 @@ async function initializeDatabase() {
     return;
   }
   try {
-    let migrationsFolder = path.join(__dirname, "../drizzle");
+    let migrationsFolder = process.env.ROCKSKY_CLI_MIGRATIONS || path.join(__dirname, "../drizzle");
     if (!fs.existsSync(migrationsFolder)) {
       migrationsFolder = path.join(__dirname, "../../drizzle");
     }

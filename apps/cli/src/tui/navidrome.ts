@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { queryClient } from "./queryClient";
 import { ROCKSKY_API_URL, RockskyClient } from "client";
 import fs from "fs";
 import os from "os";
@@ -12,41 +14,57 @@ export interface NavidromeCreds {
   apiKey: string;
 }
 
-let cachedCreds: NavidromeCreds | null = null;
+const credentialRequests = new Map<string, Promise<NavidromeCreds | null>>();
+const credentialsByToken = new Map<string, NavidromeCreds>();
 
-/**
- * Subsonic credentials for the Navidrome-compatible API: the user's handle plus
- * a dedicated Rocksky API key (created once and cached in ~/.rocksky).
- */
-export async function getCreds(token?: string): Promise<NavidromeCreds | null> {
-  if (cachedCreds) return cachedCreds;
-  try {
-    const c = JSON.parse(fs.readFileSync(credsPath(), "utf-8"));
-    if (c.handle && c.apiKey) return (cachedCreds = c);
-  } catch {
-    // fall through to create one
-  }
-  if (!token) return null;
-  const client = new RockskyClient(token);
-  const user = await client.getCurrentUser();
-  const key = await client.createApiKey("rocksky-cli");
-  const creds: NavidromeCreds = { handle: user.handle, apiKey: key.api_key };
-  try {
-    fs.mkdirSync(path.dirname(credsPath()), { recursive: true });
-    fs.writeFileSync(credsPath(), JSON.stringify(creds));
-  } catch {
-    // best-effort cache
-  }
-  return (cachedCreds = creds);
+export function getCreds(token?: string): Promise<NavidromeCreds | null> {
+  if (!token) return Promise.resolve(null);
+  const cached = credentialsByToken.get(token);
+  if (cached) return Promise.resolve(cached);
+  const pending = credentialRequests.get(token);
+  if (pending) return pending;
+  const work = (async () => {
+    const account = createHash("sha256").update(token).digest("hex");
+    let stored: (NavidromeCreds & { account?: string }) | undefined;
+    try {
+      stored = JSON.parse(fs.readFileSync(credsPath(), "utf8"));
+    } catch {}
+    if (stored?.account === account && stored.handle && stored.apiKey) {
+      credentialsByToken.set(token, stored);
+      return stored;
+    }
+    const client = new RockskyClient(token);
+    const user = await queryClient.fetchQuery({
+      queryKey: ["me", token],
+      queryFn: () => client.getCurrentUser(),
+    });
+    const creds =
+      stored?.handle === user.handle && stored.apiKey
+        ? { handle: stored.handle, apiKey: stored.apiKey }
+        : {
+            handle: user.handle,
+            apiKey: (await client.createApiKey("rocksky-cli")).api_key,
+          };
+    credentialsByToken.set(token, creds);
+    try {
+      fs.mkdirSync(path.dirname(credsPath()), { recursive: true, mode: 0o700 });
+      fs.writeFileSync(credsPath(), JSON.stringify({ ...creds, account }), {
+        mode: 0o600,
+      });
+    } catch {}
+    return creds;
+  })();
+  credentialRequests.set(token, work);
+  void work.finally(() => credentialRequests.delete(token)).catch(() => {});
+  return work;
 }
 
-let cachedDid: string | null = null;
-
-/** The signed-in user's DID — it can't change within a session, so cache it. */
 export async function getDid(token: string): Promise<string> {
-  if (cachedDid) return cachedDid;
-  const user = await new RockskyClient(token).getCurrentUser();
-  return (cachedDid = user.did);
+  const user = await queryClient.fetchQuery({
+    queryKey: ["me", token],
+    queryFn: () => new RockskyClient(token).getCurrentUser(),
+  });
+  return user.did;
 }
 
 function restUrl(
@@ -70,7 +88,11 @@ async function call(
   creds: NavidromeCreds,
   params: Record<string, string> = {},
 ) {
-  const res = await fetch(restUrl(method, creds, params));
+  const res = await fetch(restUrl(method, creds, params), {
+    signal: method.startsWith("get")
+      ? AbortSignal.timeout(method === "getStarred2" ? 30_000 : 12_000)
+      : undefined,
+  });
   const json = await res.json();
   const r = json["subsonic-response"];
   if (!r || r.status !== "ok") {
@@ -90,15 +112,21 @@ async function libraryProcedure(
   method: string,
   body: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  const res = await fetch(`${ROCKSKY_API_URL}/xrpc/app.rocksky.library.${method}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const res = await fetch(
+    `${ROCKSKY_API_URL}/xrpc/app.rocksky.library.${method}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
-  const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  );
+  const json = (await res.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
   if (!res.ok) {
     throw new Error(
       (json?.message as string) || `library.${method} failed (${res.status})`,
@@ -138,6 +166,47 @@ export interface PlaylistEntry {
 const asArray = <T>(v: T | T[] | undefined): T[] =>
   Array.isArray(v) ? v : v ? [v] : [];
 
+// Match the web library's indexed Subsonic reads instead of upload aggregates.
+export async function getAlbums(
+  creds: NavidromeCreds,
+  offset = 0,
+  size = 50,
+): Promise<any[]> {
+  const r = await call("getAlbumList2", creds, {
+    type: "newest",
+    offset: String(offset),
+    size: String(size),
+  });
+  return asArray(r.albumList2?.album);
+}
+export async function getArtists(creds: NavidromeCreds): Promise<any[]> {
+  const r = await call("getArtists", creds);
+  return asArray<any>(r.artists?.index).flatMap((index) =>
+    asArray(index.artist),
+  );
+}
+export async function getArtist(
+  creds: NavidromeCreds,
+  id: string,
+): Promise<any[]> {
+  const r = await call("getArtist", creds, { id });
+  return asArray(r.artist?.album);
+}
+export async function getTracks(
+  creds: NavidromeCreds,
+  offset = 0,
+  size = 50,
+): Promise<any[]> {
+  const r = await call("search3", creds, {
+    query: "",
+    songOffset: String(offset),
+    songCount: String(size),
+    albumCount: "0",
+    artistCount: "0",
+  });
+  return asArray(r.searchResult3?.song);
+}
+
 export async function getPlaylists(creds: NavidromeCreds): Promise<Playlist[]> {
   const r = await call("getPlaylists", creds);
   return asArray<Playlist>(r.playlists?.playlist);
@@ -151,7 +220,9 @@ export function unstar(creds: NavidromeCreds, songId: string) {
 }
 
 /** The user's starred (loved) songs that are streamable via Navidrome. */
-export async function getStarred(creds: NavidromeCreds): Promise<PlaylistEntry[]> {
+export async function getStarred(
+  creds: NavidromeCreds,
+): Promise<PlaylistEntry[]> {
   const r = await call("getStarred2", creds);
   return asArray<PlaylistEntry>(r.starred2?.song);
 }
@@ -161,7 +232,10 @@ export async function getPlaylist(
   id: string,
 ): Promise<{ playlist: Playlist; entries: PlaylistEntry[] }> {
   const r = await call("getPlaylist", creds, { id });
-  return { playlist: r.playlist, entries: asArray<PlaylistEntry>(r.playlist?.entry) };
+  return {
+    playlist: r.playlist,
+    entries: asArray<PlaylistEntry>(r.playlist?.entry),
+  };
 }
 
 export async function getAlbum(

@@ -1,5 +1,5 @@
 import { RockskyClient } from "../client.js";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./ui.js";
 import { useAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import { signIn, signOut } from "./auth.js";
@@ -74,7 +74,9 @@ export function AuthView() {
             </Text>
           </Text>
           <Box marginTop={1}>
-            <Text dimColor>{busy ? status : "Enter to sign out · Esc cancel"}</Text>
+            <Text dimColor>
+              {busy ? status : "Enter to sign out · Esc cancel"}
+            </Text>
           </Box>
         </Box>
       ) : (
@@ -87,7 +89,9 @@ export function AuthView() {
           </Box>
           <Box marginTop={1}>
             <Text dimColor>
-              {busy ? status : "e.g. you.bsky.social · Enter to continue · Esc cancel"}
+              {busy
+                ? status
+                : "e.g. you.bsky.social · Enter to continue · Esc cancel"}
             </Text>
           </Box>
         </Box>
