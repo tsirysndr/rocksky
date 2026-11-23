@@ -48,5 +48,10 @@ returns snapshots and subsequent Jetstream-driven updates.
 
 ```sh
 bun test src/scrobbles/events.test.ts
-curl -N https://api.rocksky.app/events/scrobbles
+curl -N https://sse.rocksky.app/events/scrobbles
 ```
+
+The dedicated `sse.rocksky.app` Caddy site proxies all paths directly to
+`127.0.0.1:8115` with `flush_interval -1` and automatic HTTPS. The landing uses
+`https://sse.rocksky.app/events/scrobbles` by default; override
+`VITE_ROCKSKY_SSE_URL` for local development. The API route remains compatible.

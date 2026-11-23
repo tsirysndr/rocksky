@@ -17,7 +17,7 @@ This is a standalone app with its own Bun lockfile. The repository's existing Re
 
 ## Live data
 
-The landing subscribes to `GET https://api.rocksky.app/events/scrobbles` using EventSource. Jetstream scrobble commits drive named `scrobbles` events after indexing catches up; named `heartbeat` events report upstream health every 15 seconds. EventSource reconnects automatically. `src/data.ts` also uses `RockskyClient.globalStats()` every 30 seconds and `RockskyClient.scrobbleFeed()` every 15 seconds as recovery, including while SSE is connected. TanStack Query stops polling in background tabs and refreshes on focus/reconnection. The Jotai auto-refresh toggle pauses both intervals; normal reconnect/focus refresh remains enabled. No mock counts or listens are substituted on failure.
+The landing subscribes to `GET https://sse.rocksky.app/events/scrobbles` using EventSource. Jetstream scrobble commits drive named `scrobbles` events after indexing catches up; named `heartbeat` events report upstream health every 15 seconds. EventSource reconnects automatically. `src/data.ts` also uses `RockskyClient.globalStats()` every 30 seconds and `RockskyClient.scrobbleFeed()` every 15 seconds as recovery, including while SSE is connected. TanStack Query stops polling in background tabs and refreshes on focus/reconnection. The Jotai auto-refresh toggle pauses both intervals; normal reconnect/focus refresh remains enabled. No mock counts or listens are substituted on failure.
 
 Optional build-time settings are listed in `.env.example`. Application links default to `https://rocksky.app`. Mirror and import links point to the guides at `https://docs.rocksky.app/mirroring/overview` and `https://docs.rocksky.app/cli/import`.
 

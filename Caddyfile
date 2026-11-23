@@ -58,6 +58,12 @@ api.rocksky.app {
 	}
 }
 
+sse.rocksky.app {
+	reverse_proxy 127.0.0.1:8115 {
+		flush_interval -1
+	}
+}
+
 audioscrobbler.rocksky.app {
 	reverse_proxy http://localhost:7882
 }

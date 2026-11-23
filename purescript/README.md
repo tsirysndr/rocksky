@@ -29,7 +29,8 @@ Lexicon JSON is read at startup from `../apps/api/lexicons` and
 
 The public `GET /events/scrobbles` SSE route is served by the shared Jetstream
 worker in [`apps/api/src/scrobbles`](../apps/api/src/scrobbles/README.md).
-Caddy routes it directly to `127.0.0.1:8115`, independently of the selected REST
+`https://sse.rocksky.app/events/scrobbles` and the API compatibility route are
+proxied by Caddy directly to `127.0.0.1:8115`, independently of the selected REST
 backend. Run that worker alongside PureScript; no PureScript restart or duplicate
 Jetstream subscription is needed for the public endpoint. Use the Caddy API
 origin when testing SSE, rather than the REST process's direct port.

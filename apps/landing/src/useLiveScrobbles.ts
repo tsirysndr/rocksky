@@ -16,7 +16,7 @@ export function useLiveScrobbles(enabled: boolean) {
     const key = ["landing", "scrobbles"];
     const endpoint =
       import.meta.env.VITE_ROCKSKY_SSE_URL ||
-      `${(import.meta.env.VITE_ROCKSKY_API_URL || "https://api.rocksky.app").replace(/\/$/, "")}/events/scrobbles`;
+      "https://sse.rocksky.app/events/scrobbles";
     function connect() {
       source = new EventSource(endpoint);
       source.addEventListener("scrobbles", (event) => {
