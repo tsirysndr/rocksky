@@ -731,3 +731,8 @@ fn agent_hydrate_ffi(agent: Agent) -> Dynamic
 pub fn hydrate_from_jetstream(agent: Agent) -> Dynamic {
   agent_hydrate_ffi(agent)
 }
+
+/// Latest server-reported PDS record-write point quota, including failed writes.
+/// Returns the normal {ok, map | null} envelope; reads/dedup do not refresh it.
+@external(erlang, "rocksky", "agent_pds_write_rate_limit")
+pub fn pds_write_rate_limit(agent: Agent) -> Dynamic

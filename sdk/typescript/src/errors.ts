@@ -1,3 +1,5 @@
+import type { PdsWriteRateLimit } from "./pds-write-rate-limit.js";
+
 export class RockskyError extends Error {
   /** The XRPC error code (e.g. "InvalidRequest", "AuthMissing"), when the
    * server sent one. */
@@ -5,7 +7,7 @@ export class RockskyError extends Error {
   /** The HTTP status of the failed response, when known. */
   readonly status?: number;
 
-  constructor(payload: unknown, status?: number) {
+  constructor(payload: unknown, status?: number, readonly pdsWriteRateLimit: PdsWriteRateLimit | null = null) {
     const p = payload as { error?: string; message?: string } | undefined;
     super(p?.message || p?.error || "rocksky request failed");
     this.name = "RockskyError";

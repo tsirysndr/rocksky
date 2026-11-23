@@ -189,8 +189,8 @@ func TestScrobbleExactDuplicateWritesNothing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if uri2 != uri1 {
-		t.Errorf("expected existing uri %q, got %q", uri1, uri2)
+	if uri2.URI != uri1.URI {
+		t.Errorf("expected existing uri %q, got %q", uri1.URI, uri2.URI)
 	}
 	if len(*created) != 0 {
 		t.Errorf("expected no writes, got %v", cols(*created))

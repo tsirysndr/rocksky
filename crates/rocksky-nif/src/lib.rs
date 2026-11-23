@@ -771,6 +771,11 @@ fn agent_login(
 }
 
 #[rustler::nif]
+fn agent_pds_write_rate_limit(agent: ResourceArc<AgentRes>) -> String {
+    envelope::<_, String>(Ok(agent.0.pds_write_rate_limit()))
+}
+
+#[rustler::nif]
 fn agent_did(agent: ResourceArc<AgentRes>) -> String {
     envelope::<_, String>(Ok(agent.0.profile().map(|p| p.did)))
 }
@@ -831,7 +836,7 @@ fn agent_like(agent: ResourceArc<AgentRes>, uri: String, cid: String) -> String 
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn agent_unlike(agent: ResourceArc<AgentRes>, uri: String) -> String {
-    envelope(RT.block_on(agent.0.unlike(&uri)).map(|_| true))
+    envelope(RT.block_on(agent.0.unlike(&uri)))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
@@ -841,7 +846,7 @@ fn agent_follow(agent: ResourceArc<AgentRes>, did: String) -> String {
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn agent_unfollow(agent: ResourceArc<AgentRes>, did: String) -> String {
-    envelope(RT.block_on(agent.0.unfollow(&did)).map(|_| true))
+    envelope(RT.block_on(agent.0.unfollow(&did)))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
@@ -928,14 +933,14 @@ fn agent_reply_shout(
 #[rustler::nif(schedule = "DirtyIo")]
 fn agent_set_now_playing(agent: ResourceArc<AgentRes>, track_json: String) -> String {
     match parse::<NowPlaying>(&track_json) {
-        Ok(t) => envelope(RT.block_on(agent.0.set_now_playing(&t)).map(|_| true)),
+        Ok(t) => envelope(RT.block_on(agent.0.set_now_playing(&t))),
         Err(e) => envelope::<(), _>(Err(e)),
     }
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn agent_clear_now_playing(agent: ResourceArc<AgentRes>) -> String {
-    envelope(RT.block_on(agent.0.clear_now_playing()).map(|_| true))
+    envelope(RT.block_on(agent.0.clear_now_playing()))
 }
 
 // ---- dedup / jetstream (feature-gated) -----------------------------------

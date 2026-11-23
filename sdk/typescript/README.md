@@ -24,7 +24,7 @@ const top = await rk.topTracks(10, 0);
 
 // Writes — log in with an app password (resolves the PDS automatically).
 const agent = await Agent.login("alice.bsky.social", "app-password");
-const uri = await agent.scrobble({
+const result = await agent.scrobble({
   title: "Chaser", artist: "Calibro 35",
   album: "Jazzploitation", albumArtist: "Calibro 35", duration: 182320,
 });
@@ -165,3 +165,6 @@ bun run examples/native.ts
 ## License
 
 MIT.
+
+Direct PDS write responses include the typed write point quota when available.
+See [PDS write quota responses and migration](../PDS_WRITE_RATE_LIMITS.md).

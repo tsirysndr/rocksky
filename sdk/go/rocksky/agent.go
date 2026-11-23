@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bluesky-social/indigo/api/atproto"
@@ -30,9 +31,11 @@ const (
 // Agent is an authenticated Rocksky client: it logs in with an app password and
 // writes app.rocksky.* records to the user's PDS.
 type Agent struct {
-	client *xrpc.Client // pointed at the user's PDS, with Auth set
-	did    string
-	idx    *Index // optional local dedup index
+	quotaMu    sync.RWMutex
+	writeQuota *PdsWriteRateLimit
+	client     *xrpc.Client // pointed at the user's PDS, with Auth set
+	did        string
+	idx        *Index // optional local dedup index
 }
 
 // UseIndex attaches a local dedup index. When set, the write verbs skip records
@@ -110,43 +113,43 @@ func withType(nsid string, rec any) (map[string]any, error) {
 }
 
 // create writes a new record and returns its at:// URI.
-func (a *Agent) create(ctx context.Context, collection string, rec any) (string, error) {
+func (a *Agent) create(ctx context.Context, collection string, rec any) (WriteResult, error) {
 	m, err := withType(collection, rec)
 	if err != nil {
-		return "", err
+		return WriteResult{}, err
 	}
 	input := map[string]any{"repo": a.did, "collection": collection, "record": m}
 	var out atproto.RepoCreateRecord_Output
-	if err := a.client.Do(ctx, xrpc.Procedure, "application/json",
-		"com.atproto.repo.createRecord", nil, input, &out); err != nil {
-		return "", fmt.Errorf("create %s: %w", collection, err)
+	quota, err := a.write(ctx, "com.atproto.repo.createRecord", input, &out)
+	if err != nil {
+		return WriteResult{}, fmt.Errorf("create %s: %w", collection, err)
 	}
-	return out.Uri, nil
+	return WriteResult{URI: out.Uri, PdsWriteRateLimit: quota, Written: true}, nil
 }
 
 // put upserts a record at rkey and returns its at:// URI.
-func (a *Agent) put(ctx context.Context, collection, rkey string, rec any) (string, error) {
+func (a *Agent) put(ctx context.Context, collection, rkey string, rec any) (WriteResult, error) {
 	m, err := withType(collection, rec)
 	if err != nil {
-		return "", err
+		return WriteResult{}, err
 	}
 	input := map[string]any{"repo": a.did, "collection": collection, "rkey": rkey, "record": m}
 	var out atproto.RepoPutRecord_Output
-	if err := a.client.Do(ctx, xrpc.Procedure, "application/json",
-		"com.atproto.repo.putRecord", nil, input, &out); err != nil {
-		return "", fmt.Errorf("put %s/%s: %w", collection, rkey, err)
+	quota, err := a.write(ctx, "com.atproto.repo.putRecord", input, &out)
+	if err != nil {
+		return WriteResult{}, fmt.Errorf("put %s/%s: %w", collection, rkey, err)
 	}
-	return out.Uri, nil
+	return WriteResult{URI: out.Uri, PdsWriteRateLimit: quota, Written: true}, nil
 }
 
 // Delete removes a record by collection + rkey.
-func (a *Agent) Delete(ctx context.Context, collection, rkey string) error {
+func (a *Agent) Delete(ctx context.Context, collection, rkey string) (DeleteResult, error) {
 	input := map[string]any{"repo": a.did, "collection": collection, "rkey": rkey}
-	if err := a.client.Do(ctx, xrpc.Procedure, "application/json",
-		"com.atproto.repo.deleteRecord", nil, input, nil); err != nil {
-		return fmt.Errorf("delete %s/%s: %w", collection, rkey, err)
+	quota, err := a.write(ctx, "com.atproto.repo.deleteRecord", input, nil)
+	if err != nil {
+		return DeleteResult{}, fmt.Errorf("delete %s/%s: %w", collection, rkey, err)
 	}
-	return nil
+	return DeleteResult{PdsWriteRateLimit: quota}, nil
 }
 
 func nowRFC3339() string { return time.Now().UTC().Format("2006-01-02T15:04:05.000Z") }
@@ -157,24 +160,26 @@ func nowRFC3339() string { return time.Now().UTC().Format("2006-01-02T15:04:05.0
 // in the user's PDS. Every write is deduplicated against the attached index:
 // anything already present in the repo is skipped, never republished. createdAt
 // defaults to now.
-func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, error) {
+func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (WriteResult, error) {
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
 	// Materialize artist -> album -> song first (deduped). Then the scrobble.
-	if err := a.publishScrobbleMetadata(ctx, rec); err != nil {
-		return "", err
+	metadata, err := a.publishScrobbleMetadata(ctx, rec)
+	if err != nil {
+		return WriteResult{}, err
 	}
 	if a.idx != nil {
 		secs, _ := rfc3339Secs(rec.CreatedAt)
 		if uri, _ := a.idx.ScrobbleURI(a.did, rec.Title, rec.Artist, rec.Album, secs); uri != "" {
-			return uri, nil
+			metadata.URI = uri
+			return metadata, nil
 		}
 	}
 	uri, err := a.create(ctx, colScrobble, rec)
 	if err == nil && a.idx != nil {
 		secs, _ := rfc3339Secs(rec.CreatedAt)
-		_ = a.idx.recordScrobble(a.did, rec.Title, rec.Artist, rec.Album, secs, uri)
+		_ = a.idx.recordScrobble(a.did, rec.Title, rec.Artist, rec.Album, secs, uri.URI)
 	}
 	return uri, err
 }
@@ -186,17 +191,20 @@ func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, e
 // + artist, song needs title + artist + album — because a record without a
 // stable identity hash cannot be deduped and would be republished on every
 // scrobble.
-func (a *Agent) publishScrobbleMetadata(ctx context.Context, rec gen.ScrobbleRecord) error {
+func (a *Agent) publishScrobbleMetadata(ctx context.Context, rec gen.ScrobbleRecord) (WriteResult, error) {
+	var latest WriteResult
 	if rec.AlbumArtist != "" {
-		if _, err := a.CreateArtist(ctx, gen.ArtistRecord{
+		if result, err := a.CreateArtist(ctx, gen.ArtistRecord{
 			Name:      rec.AlbumArtist,
 			CreatedAt: rec.CreatedAt,
 		}); err != nil {
-			return err
+			return WriteResult{}, err
+		} else if result.Written {
+			latest = result
 		}
 	}
 	if rec.AlbumArtist != "" && rec.Album != "" {
-		if _, err := a.CreateAlbum(ctx, gen.AlbumRecord{
+		if result, err := a.CreateAlbum(ctx, gen.AlbumRecord{
 			Title:          rec.Album,
 			Artist:         rec.AlbumArtist,
 			ReleaseDate:    rec.ReleaseDate,
@@ -210,17 +218,21 @@ func (a *Agent) publishScrobbleMetadata(ctx context.Context, rec gen.ScrobbleRec
 			AppleMusicLink: rec.AppleMusicLink,
 			CreatedAt:      rec.CreatedAt,
 		}); err != nil {
-			return err
+			return WriteResult{}, err
+		} else if result.Written {
+			latest = result
 		}
 	}
 	if rec.Title != "" && rec.Artist != "" && rec.Album != "" {
 		// A song record shares the scrobble's shape verbatim (same fields, in
 		// the same order) — a direct conversion, checked at compile time.
-		if _, err := a.CreateSong(ctx, gen.SongRecord(rec)); err != nil {
-			return err
+		if result, err := a.CreateSong(ctx, gen.SongRecord(rec)); err != nil {
+			return WriteResult{}, err
+		} else if result.Written {
+			latest = result
 		}
 	}
-	return nil
+	return latest, nil
 }
 
 // ScrobbleMatchInput is the input to [Agent.ScrobbleMatch]. Title and Artist
@@ -248,7 +260,7 @@ func strval(p *string) string {
 // writes the scrobble. Matching uses the public AppView; pass appview="" for the
 // default. If the match comes back empty it falls back to a minimal record so
 // the scrobble still lands.
-func (a *Agent) ScrobbleMatch(ctx context.Context, appview string, in ScrobbleMatchInput) (string, error) {
+func (a *Agent) ScrobbleMatch(ctx context.Context, appview string, in ScrobbleMatchInput) (WriteResult, error) {
 	var m struct {
 		Title, Artist, AlbumArtist, Album, AlbumArt     string
 		Duration, TrackNumber, DiscNumber, Year         int
@@ -321,60 +333,60 @@ func jsonInt(v any) int {
 }
 
 // CreateSong writes a canonical track record (app.rocksky.song). Returns the URI.
-func (a *Agent) CreateSong(ctx context.Context, rec gen.SongRecord) (string, error) {
+func (a *Agent) CreateSong(ctx context.Context, rec gen.SongRecord) (WriteResult, error) {
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
 	if a.idx != nil {
 		if uri, _ := a.idx.SongURI(a.did, rec.Title, rec.Artist, rec.Album); uri != "" {
-			return uri, nil
+			return WriteResult{URI: uri, Written: false}, nil
 		}
 	}
 	uri, err := a.create(ctx, colSong, rec)
 	if err == nil && a.idx != nil {
-		_ = a.idx.recordSong(a.did, rec.Title, rec.Artist, rec.Album, uri)
+		_ = a.idx.recordSong(a.did, rec.Title, rec.Artist, rec.Album, uri.URI)
 	}
 	return uri, err
 }
 
 // CreateAlbum writes an album record (app.rocksky.album). Returns the URI. With
 // a dedup index, returns the existing URI when the album already exists.
-func (a *Agent) CreateAlbum(ctx context.Context, rec gen.AlbumRecord) (string, error) {
+func (a *Agent) CreateAlbum(ctx context.Context, rec gen.AlbumRecord) (WriteResult, error) {
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
 	if a.idx != nil {
 		if uri, _ := a.idx.AlbumURI(a.did, rec.Title, rec.Artist); uri != "" {
-			return uri, nil
+			return WriteResult{URI: uri, Written: false}, nil
 		}
 	}
 	uri, err := a.create(ctx, colAlbum, rec)
 	if err == nil && a.idx != nil {
-		_ = a.idx.recordAlbum(a.did, rec.Title, rec.Artist, uri)
+		_ = a.idx.recordAlbum(a.did, rec.Title, rec.Artist, uri.URI)
 	}
 	return uri, err
 }
 
 // CreateArtist writes an artist record (app.rocksky.artist). Returns the URI.
 // With a dedup index, returns the existing URI when the artist already exists.
-func (a *Agent) CreateArtist(ctx context.Context, rec gen.ArtistRecord) (string, error) {
+func (a *Agent) CreateArtist(ctx context.Context, rec gen.ArtistRecord) (WriteResult, error) {
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
 	if a.idx != nil {
 		if uri, _ := a.idx.ArtistURI(a.did, rec.Name); uri != "" {
-			return uri, nil
+			return WriteResult{URI: uri, Written: false}, nil
 		}
 	}
 	uri, err := a.create(ctx, colArtist, rec)
 	if err == nil && a.idx != nil {
-		_ = a.idx.recordArtist(a.did, rec.Name, uri)
+		_ = a.idx.recordArtist(a.did, rec.Name, uri.URI)
 	}
 	return uri, err
 }
 
 // Like likes a record by strong reference (uri + cid). Returns the like URI.
-func (a *Agent) Like(ctx context.Context, uri, cid string) (string, error) {
+func (a *Agent) Like(ctx context.Context, uri, cid string) (WriteResult, error) {
 	return a.create(ctx, colLike, gen.LikeRecord{
 		Subject:   &gen.StrongRef{URI: uri, CID: cid},
 		CreatedAt: nowRFC3339(),
@@ -382,7 +394,7 @@ func (a *Agent) Like(ctx context.Context, uri, cid string) (string, error) {
 }
 
 // Follow follows an account by DID (app.rocksky.graph.follow). Returns the URI.
-func (a *Agent) Follow(ctx context.Context, did string) (string, error) {
+func (a *Agent) Follow(ctx context.Context, did string) (WriteResult, error) {
 	return a.create(ctx, colFollow, gen.FollowRecord{
 		Subject:   did,
 		CreatedAt: nowRFC3339(),
@@ -390,7 +402,7 @@ func (a *Agent) Follow(ctx context.Context, did string) (string, error) {
 }
 
 // Shout posts a shout on a subject (app.rocksky.shout). Returns the URI.
-func (a *Agent) Shout(ctx context.Context, subjectURI, subjectCID, message string) (string, error) {
+func (a *Agent) Shout(ctx context.Context, subjectURI, subjectCID, message string) (WriteResult, error) {
 	return a.create(ctx, colShout, gen.ShoutRecord{
 		Subject:   &gen.StrongRef{URI: subjectURI, CID: subjectCID},
 		Message:   message,
@@ -399,7 +411,7 @@ func (a *Agent) Shout(ctx context.Context, subjectURI, subjectCID, message strin
 }
 
 // ReplyShout replies to another shout, with a parent strong-ref.
-func (a *Agent) ReplyShout(ctx context.Context, subjectURI, subjectCID, parentURI, parentCID, message string) (string, error) {
+func (a *Agent) ReplyShout(ctx context.Context, subjectURI, subjectCID, parentURI, parentCID, message string) (WriteResult, error) {
 	return a.create(ctx, colShout, gen.ShoutRecord{
 		Subject:   &gen.StrongRef{URI: subjectURI, CID: subjectCID},
 		Parent:    &gen.StrongRef{URI: parentURI, CID: parentCID},
@@ -411,7 +423,7 @@ func (a *Agent) ReplyShout(ctx context.Context, subjectURI, subjectCID, parentUR
 // ShoutWithGif posts a shout with an optional GIF/sticker/clip attachment
 // (app.rocksky.shout). Pass at least one of message / gif — message may be empty
 // when a gif is attached. Returns the URI.
-func (a *Agent) ShoutWithGif(ctx context.Context, subjectURI, subjectCID, message string, gif *gen.ShoutGif) (string, error) {
+func (a *Agent) ShoutWithGif(ctx context.Context, subjectURI, subjectCID, message string, gif *gen.ShoutGif) (WriteResult, error) {
 	return a.create(ctx, colShout, gen.ShoutRecord{
 		Subject:   &gen.StrongRef{URI: subjectURI, CID: subjectCID},
 		Message:   message,
@@ -422,7 +434,7 @@ func (a *Agent) ShoutWithGif(ctx context.Context, subjectURI, subjectCID, messag
 
 // ReplyShoutWithGif replies to a shout with an optional GIF/sticker/clip
 // attachment, with a parent strong-ref. Pass at least one of message / gif.
-func (a *Agent) ReplyShoutWithGif(ctx context.Context, subjectURI, subjectCID, parentURI, parentCID, message string, gif *gen.ShoutGif) (string, error) {
+func (a *Agent) ReplyShoutWithGif(ctx context.Context, subjectURI, subjectCID, parentURI, parentCID, message string, gif *gen.ShoutGif) (WriteResult, error) {
 	return a.create(ctx, colShout, gen.ShoutRecord{
 		Subject:   &gen.StrongRef{URI: subjectURI, CID: subjectCID},
 		Parent:    &gen.StrongRef{URI: parentURI, CID: parentCID},
@@ -433,7 +445,7 @@ func (a *Agent) ReplyShoutWithGif(ctx context.Context, subjectURI, subjectCID, p
 }
 
 // SetNowPlaying upserts the actor's now-playing status singleton (rkey "self").
-func (a *Agent) SetNowPlaying(ctx context.Context, track gen.ActorTrackView) (string, error) {
+func (a *Agent) SetNowPlaying(ctx context.Context, track gen.ActorTrackView) (WriteResult, error) {
 	return a.put(ctx, colStatus, "self", gen.StatusRecord{
 		Track:     &track,
 		StartedAt: nowRFC3339(),
@@ -441,6 +453,6 @@ func (a *Agent) SetNowPlaying(ctx context.Context, track gen.ActorTrackView) (st
 }
 
 // ClearNowPlaying deletes the actor's now-playing status singleton.
-func (a *Agent) ClearNowPlaying(ctx context.Context) error {
+func (a *Agent) ClearNowPlaying(ctx context.Context) (DeleteResult, error) {
 	return a.Delete(ctx, colStatus, "self")
 }

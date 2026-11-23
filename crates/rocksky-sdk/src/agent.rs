@@ -35,8 +35,10 @@ use crate::auth::{fetch_profile, rocksky_scopes, Profile};
 use crate::com_atproto::repo::strong_ref::StrongRef;
 use crate::error::{auth_err, Result, SdkError};
 
+use crate::pds_write_rate_limit::{ObservedHttp, WriteQuota};
+
 /// The handle resolver backing the agent.
-type Resolver = JacquardResolver<reqwest::Client>;
+type Resolver = JacquardResolver<ObservedHttp>;
 
 /// User input for a scrobble (`app.rocksky.scrobble`). Only the first five fields
 /// are required by the lexicon; the rest enrich the record when known.
@@ -165,6 +167,42 @@ pub struct ShoutGif {
     pub height: Option<i64>,
 }
 
+/// Result of a record write. A dedup hit has `written = false` and no quota.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordWriteResult {
+    pub uri: String,
+    pub pds_write_rate_limit: Option<crate::PdsWriteRateLimit>,
+    pub written: bool,
+}
+impl RecordWriteResult {
+    #[cfg(feature = "dedup")]
+    fn dedup(uri: String) -> Self {
+        Self {
+            uri,
+            pds_write_rate_limit: None,
+            written: false,
+        }
+    }
+}
+
+/// Result of an upsert or deletion without a returned record URI.
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteResult {
+    pub pds_write_rate_limit: Option<crate::PdsWriteRateLimit>,
+    pub written: bool,
+}
+
+/// Result of saving a preset, preserving its record key.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PresetWriteResult {
+    pub rkey: String,
+    pub pds_write_rate_limit: Option<crate::PdsWriteRateLimit>,
+    pub written: bool,
+}
+
 /// The four records a [`scrobble`](RockskyAgent::scrobble) touches. Each URI is
 /// either newly created or, when the record already existed (dedup), the
 /// pre-existing one.
@@ -175,6 +213,8 @@ pub struct ScrobbleResult {
     pub album_uri: String,
     pub song_uri: String,
     pub scrobble_uri: String,
+    pub pds_write_rate_limit: Option<crate::PdsWriteRateLimit>,
+    pub written: bool,
 }
 
 /// The artist a scrobble implies: identity is the **album artist** (matching the
@@ -261,6 +301,7 @@ pub struct EqualizerPresetDraft {
 pub struct RockskyAgent {
     store: Arc<FileAuthStore>,
     resolver: Arc<Resolver>,
+    write_quota: WriteQuota,
     session_path: PathBuf,
     /// Serializes authenticated operations. atproto rotates the refresh token on
     /// every refresh, so two operations refreshing at once would reuse the same
@@ -352,19 +393,30 @@ impl RockskyAgent {
         let store = Arc::new(FileAuthStore::new(
             session_path.to_string_lossy().to_string(),
         ));
+        let write_quota = WriteQuota::default();
         let resolver = Arc::new(JacquardResolver::new(
-            reqwest::Client::new(),
+            ObservedHttp {
+                inner: reqwest::Client::new(),
+                quota: write_quota.clone(),
+            },
             Default::default(),
         ));
         Self {
             store,
             resolver,
+            write_quota,
             session_path,
             auth_lock: Arc::new(tokio::sync::Mutex::new(())),
             appview: AppView::new(appview),
             #[cfg(feature = "dedup")]
             dedup: None,
         }
+    }
+
+    /// Latest actual PDS write response, including failures. Dedup hits and
+    /// reads leave this snapshot unchanged; missing/unknown policies clear it.
+    pub fn pds_write_rate_limit(&self) -> Option<crate::PdsWriteRateLimit> {
+        self.write_quota.get()
     }
 
     // ---- identity --------------------------------------------------------
@@ -461,7 +513,14 @@ impl RockskyAgent {
             config: AtprotoClientMetadata::default_localhost(),
         };
         let store = FileAuthStore::new(self.session_path.to_string_lossy().to_string());
-        let oauth = OAuthClient::new(store, client_data, reqwest::Client::new());
+        let oauth = OAuthClient::new(
+            store,
+            client_data,
+            ObservedHttp {
+                inner: reqwest::Client::new(),
+                quota: self.write_quota.clone(),
+            },
+        );
         let hint = SessionHint::from_optional_input(input);
         let scopes = rocksky_scopes()?;
 
@@ -535,7 +594,14 @@ impl RockskyAgent {
             config: AtprotoClientMetadata::default_localhost(),
         };
         let store = FileAuthStore::new(self.session_path.to_string_lossy().to_string());
-        let oauth = OAuthClient::new(store, client_data, reqwest::Client::new());
+        let oauth = OAuthClient::new(
+            store,
+            client_data,
+            ObservedHttp {
+                inner: reqwest::Client::new(),
+                quota: self.write_quota.clone(),
+            },
+        );
         let actor = self.actor();
         let hint = SessionHint::from_optional_input(actor.as_deref());
         let opts = AuthorizeOptions::default().with_scopes(rocksky_scopes()?);
@@ -621,7 +687,7 @@ impl RockskyAgent {
 impl RockskyAgent {
     /// Create a record on the user's PDS, resuming whichever session exists.
     /// Returns the new record's `at://` URI.
-    async fn create<R>(&self, record: R, what: &'static str) -> Result<String>
+    async fn create<R>(&self, record: R, what: &'static str) -> Result<RecordWriteResult>
     where
         R: jacquard_common::types::collection::Collection + serde::Serialize,
     {
@@ -631,19 +697,36 @@ impl RockskyAgent {
             Agent::from(session)
                 .create_record(record, None)
                 .await
-                .map_err(|e| SdkError::Auth(format!("{what}: {e:?}")))?
+                .map_err(|e| SdkError::PdsWrite {
+                    operation: what.to_string(),
+                    message: format!("{e:?}"),
+                    pds_write_rate_limit: self.pds_write_rate_limit(),
+                })?
         } else {
             self.credential_agent()
                 .await?
                 .create_record(record, None)
                 .await
-                .map_err(|e| SdkError::Auth(format!("{what}: {e:?}")))?
+                .map_err(|e| SdkError::PdsWrite {
+                    operation: what.to_string(),
+                    message: format!("{e:?}"),
+                    pds_write_rate_limit: self.pds_write_rate_limit(),
+                })?
         };
-        Ok(out.uri.to_string())
+        Ok(RecordWriteResult {
+            uri: out.uri.to_string(),
+            pds_write_rate_limit: self.pds_write_rate_limit(),
+            written: true,
+        })
     }
 
     /// Put (upsert) a record at `rkey`, resuming whichever session exists.
-    async fn put<R>(&self, rkey: RecordKey<Rkey>, record: R, what: &'static str) -> Result<()>
+    async fn put<R>(
+        &self,
+        rkey: RecordKey<Rkey>,
+        record: R,
+        what: &'static str,
+    ) -> Result<WriteResult>
     where
         R: jacquard_common::types::collection::Collection + serde::Serialize,
     {
@@ -653,19 +736,30 @@ impl RockskyAgent {
             Agent::from(session)
                 .put_record(rkey, record)
                 .await
-                .map_err(|e| SdkError::Auth(format!("{what}: {e:?}")))?;
+                .map_err(|e| SdkError::PdsWrite {
+                    operation: what.to_string(),
+                    message: format!("{e:?}"),
+                    pds_write_rate_limit: self.pds_write_rate_limit(),
+                })?;
         } else {
             self.credential_agent()
                 .await?
                 .put_record(rkey, record)
                 .await
-                .map_err(|e| SdkError::Auth(format!("{what}: {e:?}")))?;
+                .map_err(|e| SdkError::PdsWrite {
+                    operation: what.to_string(),
+                    message: format!("{e:?}"),
+                    pds_write_rate_limit: self.pds_write_rate_limit(),
+                })?;
         }
-        Ok(())
+        Ok(WriteResult {
+            pds_write_rate_limit: self.pds_write_rate_limit(),
+            written: true,
+        })
     }
 
     /// Delete a single record by rkey from `R`'s collection.
-    async fn delete<R>(&self, rkey: &str, what: &'static str) -> Result<()>
+    async fn delete<R>(&self, rkey: &str, what: &'static str) -> Result<WriteResult>
     where
         R: jacquard_common::types::collection::Collection + serde::Serialize,
     {
@@ -677,15 +771,26 @@ impl RockskyAgent {
             Agent::from(self.resume_oauth().await?)
                 .delete_record::<R>(rk)
                 .await
-                .map_err(|e| SdkError::Auth(format!("{what}: {e:?}")))?;
+                .map_err(|e| SdkError::PdsWrite {
+                    operation: what.to_string(),
+                    message: format!("{e:?}"),
+                    pds_write_rate_limit: self.pds_write_rate_limit(),
+                })?;
         } else {
             self.credential_agent()
                 .await?
                 .delete_record::<R>(rk)
                 .await
-                .map_err(|e| SdkError::Auth(format!("{what}: {e:?}")))?;
+                .map_err(|e| SdkError::PdsWrite {
+                    operation: what.to_string(),
+                    message: format!("{e:?}"),
+                    pds_write_rate_limit: self.pds_write_rate_limit(),
+                })?;
         }
-        Ok(())
+        Ok(WriteResult {
+            pds_write_rate_limit: self.pds_write_rate_limit(),
+            written: true,
+        })
     }
 
     /// The rkeys of every record in `collection` whose JSON body satisfies
@@ -808,17 +913,24 @@ impl RockskyAgent {
         let album_uri = self.create_album(&album_draft_for(draft)).await?;
         let song_uri = self.create_song(&song_draft_for(draft)).await?;
         let scrobble_uri = self.write_scrobble_record(draft).await?;
+        let latest = [&scrobble_uri, &song_uri, &album_uri, &artist_uri]
+            .into_iter()
+            .find(|r| r.written);
+        let pds_write_rate_limit = latest.and_then(|r| r.pds_write_rate_limit.clone());
+        let written = latest.is_some();
         Ok(ScrobbleResult {
-            artist_uri,
-            album_uri,
-            song_uri,
-            scrobble_uri,
+            artist_uri: artist_uri.uri,
+            album_uri: album_uri.uri,
+            song_uri: song_uri.uri,
+            scrobble_uri: scrobble_uri.uri,
+            pds_write_rate_limit,
+            written,
         })
     }
 
     /// Write only the `app.rocksky.scrobble` record (no artist/album/song
     /// fan-out). Deduped on `(song, second)` when a dedup store is configured.
-    async fn write_scrobble_record(&self, draft: &ScrobbleDraft) -> Result<String> {
+    async fn write_scrobble_record(&self, draft: &ScrobbleDraft) -> Result<RecordWriteResult> {
         let created_at = match draft.timestamp {
             Some(ts) => datetime_from_unix(ts)?,
             None => Datetime::now(),
@@ -831,7 +943,7 @@ impl RockskyAgent {
             if let Some(uri) =
                 idx.scrobble_uri(&did, &draft.title, &draft.artist, &draft.album, secs)?
             {
-                return Ok(uri);
+                return Ok(RecordWriteResult::dedup(uri));
             }
         }
         let record = Scrobble::new()
@@ -861,7 +973,14 @@ impl RockskyAgent {
         #[cfg(feature = "dedup")]
         if let Some(idx) = &self.dedup {
             let did = self.did()?;
-            idx.record_scrobble(&did, &draft.title, &draft.artist, &draft.album, secs, &uri)?;
+            idx.record_scrobble(
+                &did,
+                &draft.title,
+                &draft.artist,
+                &draft.album,
+                secs,
+                &uri.uri,
+            )?;
         }
         Ok(uri)
     }
@@ -869,12 +988,12 @@ impl RockskyAgent {
     /// Create a canonical track record (`app.rocksky.song`). With a dedup store,
     /// returns the existing URI when a song with the same identity
     /// (`title`+`artist`+`album`) is already in the repo, writing nothing.
-    pub async fn create_song(&self, draft: &SongDraft) -> Result<String> {
+    pub async fn create_song(&self, draft: &SongDraft) -> Result<RecordWriteResult> {
         #[cfg(feature = "dedup")]
         if let Some(idx) = &self.dedup {
             let did = self.did()?;
             if let Some(uri) = idx.song_uri(&did, &draft.title, &draft.artist, &draft.album)? {
-                return Ok(uri);
+                return Ok(RecordWriteResult::dedup(uri));
             }
         }
         let record = Song::new()
@@ -901,7 +1020,7 @@ impl RockskyAgent {
         #[cfg(feature = "dedup")]
         if let Some(idx) = &self.dedup {
             let did = self.did()?;
-            idx.record_song(&did, &draft.title, &draft.artist, &draft.album, &uri)?;
+            idx.record_song(&did, &draft.title, &draft.artist, &draft.album, &uri.uri)?;
         }
         Ok(uri)
     }
@@ -909,12 +1028,12 @@ impl RockskyAgent {
     /// Create an album record (`app.rocksky.album`). With a dedup store, returns
     /// the existing URI when an album with the same identity (`title`+`artist`)
     /// is already in the repo, writing nothing.
-    pub async fn create_album(&self, draft: &AlbumDraft) -> Result<String> {
+    pub async fn create_album(&self, draft: &AlbumDraft) -> Result<RecordWriteResult> {
         #[cfg(feature = "dedup")]
         if let Some(idx) = &self.dedup {
             let did = self.did()?;
             if let Some(uri) = idx.album_uri(&did, &draft.title, &draft.artist)? {
-                return Ok(uri);
+                return Ok(RecordWriteResult::dedup(uri));
             }
         }
         let record = Album::new()
@@ -932,7 +1051,7 @@ impl RockskyAgent {
         #[cfg(feature = "dedup")]
         if let Some(idx) = &self.dedup {
             let did = self.did()?;
-            idx.record_album(&did, &draft.title, &draft.artist, &uri)?;
+            idx.record_album(&did, &draft.title, &draft.artist, &uri.uri)?;
         }
         Ok(uri)
     }
@@ -940,12 +1059,12 @@ impl RockskyAgent {
     /// Create an artist record (`app.rocksky.artist`). With a dedup store, returns
     /// the existing URI when an artist with the same identity (`name`) is already
     /// in the repo, writing nothing.
-    pub async fn create_artist(&self, draft: &ArtistDraft) -> Result<String> {
+    pub async fn create_artist(&self, draft: &ArtistDraft) -> Result<RecordWriteResult> {
         #[cfg(feature = "dedup")]
         if let Some(idx) = &self.dedup {
             let did = self.did()?;
             if let Some(uri) = idx.artist_uri(&did, &draft.name)? {
-                return Ok(uri);
+                return Ok(RecordWriteResult::dedup(uri));
             }
         }
         let record = Artist::new()
@@ -959,14 +1078,14 @@ impl RockskyAgent {
         #[cfg(feature = "dedup")]
         if let Some(idx) = &self.dedup {
             let did = self.did()?;
-            idx.record_artist(&did, &draft.name, &uri)?;
+            idx.record_artist(&did, &draft.name, &uri.uri)?;
         }
         Ok(uri)
     }
 
     /// Set the actor's now-playing status singleton (`app.rocksky.actor.status`,
     /// rkey `self`). Upserts, so calling it again just refreshes the record.
-    pub async fn set_now_playing(&self, track: &NowPlaying) -> Result<()> {
+    pub async fn set_now_playing(&self, track: &NowPlaying) -> Result<WriteResult> {
         let view = TrackView {
             name: track.name.clone().into(),
             artist: track.artist.clone().into(),
@@ -987,7 +1106,7 @@ impl RockskyAgent {
     }
 
     /// Delete the actor's now-playing status singleton (rkey `self`).
-    pub async fn clear_now_playing(&self) -> Result<()> {
+    pub async fn clear_now_playing(&self) -> Result<WriteResult> {
         self.delete::<ActorStatus>("self", "clear now playing")
             .await
     }
@@ -998,7 +1117,10 @@ impl RockskyAgent {
     /// `createdAt`; the AppView procedure
     /// ([`AppView::put_equalizer_preset`](crate::appview::AppView::put_equalizer_preset))
     /// preserves the original instead. Returns the record key.
-    pub async fn put_equalizer_preset(&self, draft: &EqualizerPresetDraft) -> Result<String> {
+    pub async fn put_equalizer_preset(
+        &self,
+        draft: &EqualizerPresetDraft,
+    ) -> Result<PresetWriteResult> {
         let rkey = preset_rkey(&draft.name);
         let rk: RecordKey<Rkey> = rkey
             .parse()
@@ -1021,12 +1143,16 @@ impl RockskyAgent {
             .created_at(Datetime::now())
             .updated_at(Datetime::now())
             .build();
-        self.put(rk, record, "put equalizer preset").await?;
-        Ok(rkey)
+        let result = self.put(rk, record, "put equalizer preset").await?;
+        Ok(PresetWriteResult {
+            rkey,
+            pds_write_rate_limit: result.pds_write_rate_limit,
+            written: result.written,
+        })
     }
 
     /// Delete an equalizer preset record from the user's PDS by rkey.
-    pub async fn delete_equalizer_preset(&self, rkey: &str) -> Result<()> {
+    pub async fn delete_equalizer_preset(&self, rkey: &str) -> Result<WriteResult> {
         self.delete::<Equalizer>(rkey, "delete equalizer preset")
             .await
     }
@@ -1034,7 +1160,7 @@ impl RockskyAgent {
     /// Like a record by strong reference (`app.rocksky.like`). `uri`/`cid`
     /// identify the target (a scrobble, song, artist, album, …). Returns the
     /// like record URI.
-    pub async fn like(&self, uri: &str, cid: &str) -> Result<String> {
+    pub async fn like(&self, uri: &str, cid: &str) -> Result<RecordWriteResult> {
         let record = Like::new()
             .subject(strong_ref(uri, cid)?)
             .created_at(Datetime::now())
@@ -1044,19 +1170,20 @@ impl RockskyAgent {
 
     /// Remove every `app.rocksky.like` in the caller's repo whose subject URI
     /// equals `uri`.
-    pub async fn unlike(&self, uri: &str) -> Result<()> {
+    pub async fn unlike(&self, uri: &str) -> Result<WriteResult> {
         let rkeys = self
             .rkeys_where("app.rocksky.like", |v| subject_uri_is(v, uri))
             .await?;
+        let mut result = WriteResult::default();
         for rkey in rkeys {
-            self.delete::<Like>(&rkey, "delete like").await?;
+            result = self.delete::<Like>(&rkey, "delete like").await?;
         }
-        Ok(())
+        Ok(result)
     }
 
     /// Follow another account by DID (`app.rocksky.graph.follow`). Returns the
     /// follow record URI.
-    pub async fn follow(&self, did: &str) -> Result<String> {
+    pub async fn follow(&self, did: &str) -> Result<RecordWriteResult> {
         let subject = Did::new_owned(did).map_err(|e| SdkError::Auth(format!("did: {e}")))?;
         let record = Follow::new()
             .subject(subject)
@@ -1067,16 +1194,17 @@ impl RockskyAgent {
 
     /// Unfollow an account: delete every `app.rocksky.graph.follow` in the
     /// caller's repo whose `subject` DID equals `did`.
-    pub async fn unfollow(&self, did: &str) -> Result<()> {
+    pub async fn unfollow(&self, did: &str) -> Result<WriteResult> {
         let rkeys = self
             .rkeys_where("app.rocksky.graph.follow", |v| {
                 v.get("subject").and_then(|s| s.as_str()) == Some(did)
             })
             .await?;
+        let mut result = WriteResult::default();
         for rkey in rkeys {
-            self.delete::<Follow>(&rkey, "delete follow").await?;
+            result = self.delete::<Follow>(&rkey, "delete follow").await?;
         }
-        Ok(())
+        Ok(result)
     }
 
     /// Post a shout on a subject (`app.rocksky.shout`). The subject strong-ref
@@ -1087,7 +1215,7 @@ impl RockskyAgent {
         subject_uri: &str,
         subject_cid: &str,
         message: &str,
-    ) -> Result<String> {
+    ) -> Result<RecordWriteResult> {
         self.shout_with_gif(subject_uri, subject_cid, Some(message), None)
             .await
     }
@@ -1101,7 +1229,7 @@ impl RockskyAgent {
         subject_cid: &str,
         message: Option<&str>,
         gif: Option<ShoutGif>,
-    ) -> Result<String> {
+    ) -> Result<RecordWriteResult> {
         let record = Shout::new()
             .subject(strong_ref(subject_uri, subject_cid)?)
             .maybe_message(message.map(Into::into))
@@ -1120,7 +1248,7 @@ impl RockskyAgent {
         parent_uri: &str,
         parent_cid: &str,
         message: &str,
-    ) -> Result<String> {
+    ) -> Result<RecordWriteResult> {
         self.reply_shout_with_gif(
             subject_uri,
             subject_cid,
@@ -1143,7 +1271,7 @@ impl RockskyAgent {
         parent_cid: &str,
         message: Option<&str>,
         gif: Option<ShoutGif>,
-    ) -> Result<String> {
+    ) -> Result<RecordWriteResult> {
         let record = Shout::new()
             .subject(strong_ref(subject_uri, subject_cid)?)
             .maybe_parent(Some(strong_ref(parent_uri, parent_cid)?))

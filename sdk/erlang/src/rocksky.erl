@@ -26,7 +26,7 @@
          agent_scrobble_match/2, agent_scrobble_match/7, agent_sync_repo/1,
          agent_hydrate_from_jetstream/1, agent_like/3,
          agent_follow/2, agent_shout/4, agent_shout_with_gif/5,
-         agent_reply_shout_with_gif/7, agent_refresh_session/1,
+         agent_reply_shout_with_gif/7, agent_refresh_session/1, agent_pds_write_rate_limit/1,
          unread_count/1, unread_count/2, notifications/1, notifications/2,
          notifications/3, update_seen/2, update_seen/3, update_seen_raw/3,
          equalizer_presets/1, equalizer_presets/2,
@@ -38,6 +38,11 @@
          event_rsvps/1, event_rsvps/5, artist_events/1, artist_events/5,
          put_rsvp/3, put_rsvp/4,
          agent_shout_with_gif_raw/5, agent_reply_shout_with_gif_raw/7]).
+
+%% JSON maps use binary keys (limit, remaining, resetAt, policy).
+-type pds_write_rate_limit() :: #{binary() => non_neg_integer() | binary()}.
+-type record_write_result() :: #{binary() => binary() | boolean() | pds_write_rate_limit() | null}.
+-export_type([pds_write_rate_limit/0, record_write_result/0]).
 
 %% Decode a NIF JSON-envelope binary into {ok, Value} | {error, Message}.
 unwrap(Bin) ->
@@ -407,6 +412,8 @@ agent_reply_shout_with_gif(Agent, SubjectUri, SubjectCid, ParentUri, ParentCid, 
     unwrap(rocksky_nif:agent_reply_shout_with_gif(
         Agent, b(SubjectUri), b(SubjectCid), b(ParentUri), b(ParentCid),
         b(Message), gif_json(Gif))).
+
+agent_pds_write_rate_limit(Agent) -> unwrap(rocksky_nif:agent_pds_write_rate_limit(Agent)).
 
 agent_refresh_session(Agent) -> unwrap(rocksky_nif:agent_refresh_session(Agent)).
 

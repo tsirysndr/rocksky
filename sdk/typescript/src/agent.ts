@@ -11,6 +11,7 @@ import {
 import { PasswordSession } from "@atcute/password-session";
 
 import { RockskyError } from "./errors.js";
+import { parsePdsWriteRateLimit, type PdsWriteRateLimit, type WriteResult, type DeleteResult } from "./pds-write-rate-limit.js";
 import type {
   AlbumRecord,
   ArtistRecord,
@@ -320,31 +321,46 @@ export class Agent {
     return runJetstream(this.idx, this.did, opts);
   }
 
-  private async create(collection: string, record: Record<string, unknown>): Promise<string> {
+  private writeRateLimit: PdsWriteRateLimit | null = null;
+
+  /** Latest actual write response, including failures. Reads and dedup hits do
+   * not refresh it; a write without a recognized policy clears it. */
+  get pdsWriteRateLimit(): PdsWriteRateLimit | null {
+    return this.writeRateLimit;
+  }
+
+  private async create(collection: string, record: Record<string, unknown>): Promise<WriteResult> {
     await this.writeGate.take();
+    this.writeRateLimit = null;
     const res = await this.rpc.post("com.atproto.repo.createRecord" as never, {
       input: { repo: this.did, collection, record: { ...record, $type: collection } },
     } as never);
-    if (!res.ok) throw new RockskyError(res.data, res.status);
-    return (res.data as { uri: string }).uri;
+    this.writeRateLimit = parsePdsWriteRateLimit(res.headers);
+    if (!res.ok) throw new RockskyError(res.data, res.status, this.writeRateLimit);
+    return { uri: (res.data as { uri: string }).uri, pdsWriteRateLimit: this.writeRateLimit, written: true };
   }
 
-  private async putRecord(collection: string, rkey: string, record: Record<string, unknown>): Promise<string> {
+  private async putRecord(collection: string, rkey: string, record: Record<string, unknown>): Promise<WriteResult> {
     await this.writeGate.take();
+    this.writeRateLimit = null;
     const res = await this.rpc.post("com.atproto.repo.putRecord" as never, {
       input: { repo: this.did, collection, rkey, record: { ...record, $type: collection } },
     } as never);
-    if (!res.ok) throw new RockskyError(res.data, res.status);
-    return (res.data as { uri: string }).uri;
+    this.writeRateLimit = parsePdsWriteRateLimit(res.headers);
+    if (!res.ok) throw new RockskyError(res.data, res.status, this.writeRateLimit);
+    return { uri: (res.data as { uri: string }).uri, pdsWriteRateLimit: this.writeRateLimit, written: true };
   }
 
   /** Delete a record by collection + rkey. */
-  async delete(collection: string, rkey: string): Promise<void> {
+  async delete(collection: string, rkey: string): Promise<DeleteResult> {
     await this.writeGate.take();
+    this.writeRateLimit = null;
     const res = await this.rpc.post("com.atproto.repo.deleteRecord" as never, {
       input: { repo: this.did, collection, rkey },
     } as never);
-    if (!res.ok) throw new RockskyError(res.data, res.status);
+    this.writeRateLimit = parsePdsWriteRateLimit(res.headers);
+    if (!res.ok) throw new RockskyError(res.data, res.status, this.writeRateLimit);
+    return { pdsWriteRateLimit: this.writeRateLimit };
   }
 
   /**
@@ -355,19 +371,19 @@ export class Agent {
    * already present in the repo is skipped, never republished. createdAt
    * defaults to now.
    */
-  async scrobble(rec: ScrobbleInput): Promise<string> {
+  async scrobble(rec: ScrobbleInput): Promise<WriteResult> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     // Materialize artist -> album -> song first (deduped). Then the scrobble.
-    await this.publishScrobbleMetadata(record);
+    const metadata = await this.publishScrobbleMetadata(record);
     if (this.idx) {
       const secs = Math.floor(Date.parse(record.createdAt) / 1000);
       const existing = await this.idx.scrobbleUri(this.did, record.title!, record.artist!, record.album!, secs);
-      if (existing) return existing;
+      if (existing) return { uri: existing, ...metadata };
     }
     const uri = await this.create(C_SCROBBLE, record as Record<string, unknown>);
     if (this.idx) {
       const secs = Math.floor(Date.parse(record.createdAt) / 1000);
-      await this.idx.recordScrobble(this.did, record.title!, record.artist!, record.album!, secs, uri);
+      await this.idx.recordScrobble(this.did, record.title!, record.artist!, record.album!, secs, uri.uri);
     }
     return uri;
   }
@@ -380,13 +396,15 @@ export class Agent {
    * needs title + artist + album — because a record without a stable identity
    * hash cannot be deduped and would be republished on every scrobble.
    */
-  private async publishScrobbleMetadata(record: ScrobbleInput & { createdAt: string }): Promise<void> {
+  private async publishScrobbleMetadata(record: ScrobbleInput & { createdAt: string }): Promise<Omit<WriteResult, "uri">> {
+    let latest: Omit<WriteResult, "uri"> = { written: false, pdsWriteRateLimit: null };
+    const capture = (result: WriteResult) => { if (result.written) latest = { written: true, pdsWriteRateLimit: result.pdsWriteRateLimit }; };
     const { albumArtist, album, title, artist, createdAt } = record;
     if (albumArtist) {
-      await this.createArtist({ name: albumArtist, createdAt });
+      capture(await this.createArtist({ name: albumArtist, createdAt }));
     }
     if (albumArtist && album) {
-      await this.createAlbum({
+      capture(await this.createAlbum({
         title: album,
         artist: albumArtist,
         releaseDate: record.releaseDate,
@@ -399,12 +417,13 @@ export class Agent {
         tidalLink: record.tidalLink,
         appleMusicLink: record.appleMusicLink,
         createdAt,
-      });
+      }));
     }
     if (title && artist && album) {
       // A song record shares the scrobble's shape verbatim.
-      await this.createSong({ ...record });
+      capture(await this.createSong({ ...record }));
     }
+    return latest;
   }
 
   /** Scrobble from just a title + artist (album optional, plus optional
@@ -412,7 +431,7 @@ export class Agent {
    * Matching uses the public AppView unless `appview` is given; an empty match
    * falls back to a minimal record. Delegates to {@link Agent.scrobble}, so it
    * publishes the implied artist/album/song (deduped) before the scrobble. */
-  async scrobbleMatch(input: ScrobbleMatchInput, appview?: string): Promise<string> {
+  async scrobbleMatch(input: ScrobbleMatchInput, appview?: string): Promise<WriteResult> {
     const { title, artist, album, mbId, isrc, timestamp } = input;
     const { RockskyClient } = await import("./client.js");
     // matchSong hits the shared Rocksky AppView; always throttle it, regardless
@@ -460,55 +479,55 @@ export class Agent {
   }
 
   /** Create a canonical track record (app.rocksky.song). */
-  async createSong(rec: SongInput): Promise<string> {
+  async createSong(rec: SongInput): Promise<WriteResult> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     if (this.idx) {
       const existing = await this.idx.songUri(this.did, record.title!, record.artist!, record.album!);
-      if (existing) return existing;
+      if (existing) return { uri: existing, pdsWriteRateLimit: null, written: false };
     }
     const uri = await this.create(C_SONG, record as Record<string, unknown>);
-    if (this.idx) await this.idx.recordSong(this.did, record.title!, record.artist!, record.album!, uri);
+    if (this.idx) await this.idx.recordSong(this.did, record.title!, record.artist!, record.album!, uri.uri);
     return uri;
   }
 
   /** Create an album record (app.rocksky.album). `artist` is the album artist. */
-  async createAlbum(rec: AlbumInput): Promise<string> {
+  async createAlbum(rec: AlbumInput): Promise<WriteResult> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     if (this.idx) {
       const existing = await this.idx.albumUri(this.did, record.title!, record.artist!);
-      if (existing) return existing;
+      if (existing) return { uri: existing, pdsWriteRateLimit: null, written: false };
     }
     const uri = await this.create(C_ALBUM, record as Record<string, unknown>);
-    if (this.idx) await this.idx.recordAlbum(this.did, record.title!, record.artist!, uri);
+    if (this.idx) await this.idx.recordAlbum(this.did, record.title!, record.artist!, uri.uri);
     return uri;
   }
 
   /** Create an artist record (app.rocksky.artist). */
-  async createArtist(rec: ArtistInput): Promise<string> {
+  async createArtist(rec: ArtistInput): Promise<WriteResult> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     if (this.idx) {
       const existing = await this.idx.artistUri(this.did, record.name!);
-      if (existing) return existing;
+      if (existing) return { uri: existing, pdsWriteRateLimit: null, written: false };
     }
     const uri = await this.create(C_ARTIST, record as Record<string, unknown>);
-    if (this.idx) await this.idx.recordArtist(this.did, record.name!, uri);
+    if (this.idx) await this.idx.recordArtist(this.did, record.name!, uri.uri);
     return uri;
   }
 
-  /** Like a record by strong reference (uri + cid). Returns the like URI. */
-  like(uri: string, cid: string): Promise<string> {
+  /** Like a record by strong reference (uri + cid). Returns the like URI and write quota. */
+  like(uri: string, cid: string): Promise<WriteResult> {
     return this.create(C_LIKE, { subject: { uri, cid }, createdAt: nowISO() });
   }
 
-  /** Follow an account by DID. Returns the follow URI. */
-  follow(did: string): Promise<string> {
+  /** Follow an account by DID. Returns the follow URI and write quota. */
+  follow(did: string): Promise<WriteResult> {
     return this.create(C_FOLLOW, { subject: did, createdAt: nowISO() });
   }
 
-  /** Post a shout on a subject. Returns the shout URI. Pass at least one of
+  /** Post a shout on a subject. Returns the shout URI and write quota. Pass at least one of
    * `message` / `gif` — `message` may be omitted when a GIF/sticker/clip is
    * attached. */
-  shout(subjectUri: string, subjectCid: string, message?: string, gif?: ShoutGif): Promise<string> {
+  shout(subjectUri: string, subjectCid: string, message?: string, gif?: ShoutGif): Promise<WriteResult> {
     return this.create(C_SHOUT, {
       subject: { uri: subjectUri, cid: subjectCid },
       ...(message !== undefined ? { message } : {}),
@@ -526,7 +545,7 @@ export class Agent {
     parentCid: string,
     message?: string,
     gif?: ShoutGif,
-  ): Promise<string> {
+  ): Promise<WriteResult> {
     return this.create(C_SHOUT, {
       subject: { uri: subjectUri, cid: subjectCid },
       parent: { uri: parentUri, cid: parentCid },
@@ -537,12 +556,12 @@ export class Agent {
   }
 
   /** Upsert the actor's now-playing status singleton (rkey "self"). */
-  setNowPlaying(track: ActorTrackView): Promise<string> {
+  setNowPlaying(track: ActorTrackView): Promise<WriteResult> {
     return this.putRecord(C_STATUS, "self", { track, startedAt: nowISO() });
   }
 
   /** Delete the actor's now-playing status singleton. */
-  clearNowPlaying(): Promise<void> {
+  clearNowPlaying(): Promise<DeleteResult> {
     return this.delete(C_STATUS, "self");
   }
 }

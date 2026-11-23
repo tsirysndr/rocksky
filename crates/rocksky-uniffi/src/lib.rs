@@ -347,6 +347,8 @@ pub struct ScrobbleResult {
     pub album_uri: String,
     pub song_uri: String,
     pub scrobble_uri: String,
+    pub pds_write_rate_limit: Option<PdsWriteRateLimit>,
+    pub written: bool,
 }
 
 impl From<rocksky_sdk::ScrobbleResult> for ScrobbleResult {
@@ -356,6 +358,8 @@ impl From<rocksky_sdk::ScrobbleResult> for ScrobbleResult {
             album_uri: r.album_uri,
             song_uri: r.song_uri,
             scrobble_uri: r.scrobble_uri,
+            pds_write_rate_limit: r.pds_write_rate_limit.map(Into::into),
+            written: r.written,
         }
     }
 }
@@ -2017,6 +2021,54 @@ fn json(r: rocksky_sdk::Result<serde_json::Value>) -> Result<String, RockskyErro
 
 // ---- authenticated agent -------------------------------------------------
 
+/// Server-reported PDS record-write point budget. Reset time is Unix seconds.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct PdsWriteRateLimit {
+    pub limit: u64,
+    pub remaining: u64,
+    pub reset_at: u64,
+    pub policy: String,
+}
+impl From<rocksky_sdk::PdsWriteRateLimit> for PdsWriteRateLimit {
+    fn from(q: rocksky_sdk::PdsWriteRateLimit) -> Self {
+        Self {
+            limit: q.limit,
+            remaining: q.remaining,
+            reset_at: q.reset_at,
+            policy: q.policy,
+        }
+    }
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct RecordWriteResult {
+    pub uri: String,
+    pub pds_write_rate_limit: Option<PdsWriteRateLimit>,
+    pub written: bool,
+}
+impl From<rocksky_sdk::RecordWriteResult> for RecordWriteResult {
+    fn from(r: rocksky_sdk::RecordWriteResult) -> Self {
+        Self {
+            uri: r.uri,
+            pds_write_rate_limit: r.pds_write_rate_limit.map(Into::into),
+            written: r.written,
+        }
+    }
+}
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct WriteResult {
+    pub pds_write_rate_limit: Option<PdsWriteRateLimit>,
+    pub written: bool,
+}
+impl From<rocksky_sdk::WriteResult> for WriteResult {
+    fn from(r: rocksky_sdk::WriteResult) -> Self {
+        Self {
+            pds_write_rate_limit: r.pds_write_rate_limit.map(Into::into),
+            written: r.written,
+        }
+    }
+}
+
 /// The Rocksky agent: app-password login + record writes.
 #[derive(uniffi::Object)]
 pub struct Agent {
@@ -2025,6 +2077,12 @@ pub struct Agent {
 
 #[uniffi::export]
 impl Agent {
+    /// Latest actual write response, also available after a failed write.
+    /// Reads and dedup hits leave it unchanged. Unknown policies return None.
+    pub fn pds_write_rate_limit(&self) -> Option<PdsWriteRateLimit> {
+        self.inner.pds_write_rate_limit().map(Into::into)
+    }
+
     /// Log in with an app password, persisting the session at `session_path`.
     /// `dedup_path`, when set, enables the local duplicate-prevention index
     /// (requires the `dedup` feature; ignored otherwise).
@@ -2085,37 +2143,48 @@ impl Agent {
             .into())
     }
 
-    pub fn create_song(&self, input: SongInput) -> Result<String, RockskyError> {
+    pub fn create_song(&self, input: SongInput) -> Result<RecordWriteResult, RockskyError> {
         RT.block_on(self.inner.create_song(&input.into()))
+            .map(Into::into)
             .map_err(err)
     }
 
-    pub fn create_album(&self, input: AlbumInput) -> Result<String, RockskyError> {
+    pub fn create_album(&self, input: AlbumInput) -> Result<RecordWriteResult, RockskyError> {
         RT.block_on(self.inner.create_album(&input.into()))
+            .map(Into::into)
             .map_err(err)
     }
 
-    pub fn create_artist(&self, input: ArtistInput) -> Result<String, RockskyError> {
+    pub fn create_artist(&self, input: ArtistInput) -> Result<RecordWriteResult, RockskyError> {
         RT.block_on(self.inner.create_artist(&input.into()))
+            .map(Into::into)
             .map_err(err)
     }
 
     /// Like a record by strong reference. Returns the like URI.
-    pub fn like(&self, uri: String, cid: String) -> Result<String, RockskyError> {
-        RT.block_on(self.inner.like(&uri, &cid)).map_err(err)
+    pub fn like(&self, uri: String, cid: String) -> Result<RecordWriteResult, RockskyError> {
+        RT.block_on(self.inner.like(&uri, &cid))
+            .map(Into::into)
+            .map_err(err)
     }
 
-    pub fn unlike(&self, uri: String) -> Result<(), RockskyError> {
-        RT.block_on(self.inner.unlike(&uri)).map_err(err)
+    pub fn unlike(&self, uri: String) -> Result<WriteResult, RockskyError> {
+        RT.block_on(self.inner.unlike(&uri))
+            .map(Into::into)
+            .map_err(err)
     }
 
     /// Follow an account by DID. Returns the follow URI.
-    pub fn follow(&self, did: String) -> Result<String, RockskyError> {
-        RT.block_on(self.inner.follow(&did)).map_err(err)
+    pub fn follow(&self, did: String) -> Result<RecordWriteResult, RockskyError> {
+        RT.block_on(self.inner.follow(&did))
+            .map(Into::into)
+            .map_err(err)
     }
 
-    pub fn unfollow(&self, did: String) -> Result<(), RockskyError> {
-        RT.block_on(self.inner.unfollow(&did)).map_err(err)
+    pub fn unfollow(&self, did: String) -> Result<WriteResult, RockskyError> {
+        RT.block_on(self.inner.unfollow(&did))
+            .map(Into::into)
+            .map_err(err)
     }
 
     /// Post a shout on a subject. Returns the shout URI.
@@ -2124,8 +2193,9 @@ impl Agent {
         subject_uri: String,
         subject_cid: String,
         message: String,
-    ) -> Result<String, RockskyError> {
+    ) -> Result<RecordWriteResult, RockskyError> {
         RT.block_on(self.inner.shout(&subject_uri, &subject_cid, &message))
+            .map(Into::into)
             .map_err(err)
     }
 
@@ -2137,13 +2207,14 @@ impl Agent {
         subject_cid: String,
         message: Option<String>,
         gif: Option<ShoutGifInput>,
-    ) -> Result<String, RockskyError> {
+    ) -> Result<RecordWriteResult, RockskyError> {
         RT.block_on(self.inner.shout_with_gif(
             &subject_uri,
             &subject_cid,
             message.as_deref(),
             gif.map(Into::into),
         ))
+        .map(Into::into)
         .map_err(err)
     }
 
@@ -2155,7 +2226,7 @@ impl Agent {
         parent_uri: String,
         parent_cid: String,
         message: String,
-    ) -> Result<String, RockskyError> {
+    ) -> Result<RecordWriteResult, RockskyError> {
         RT.block_on(self.inner.reply_shout(
             &subject_uri,
             &subject_cid,
@@ -2163,6 +2234,7 @@ impl Agent {
             &parent_cid,
             &message,
         ))
+        .map(Into::into)
         .map_err(err)
     }
 
@@ -2176,7 +2248,7 @@ impl Agent {
         parent_cid: String,
         message: Option<String>,
         gif: Option<ShoutGifInput>,
-    ) -> Result<String, RockskyError> {
+    ) -> Result<RecordWriteResult, RockskyError> {
         RT.block_on(self.inner.reply_shout_with_gif(
             &subject_uri,
             &subject_cid,
@@ -2185,18 +2257,22 @@ impl Agent {
             message.as_deref(),
             gif.map(Into::into),
         ))
+        .map(Into::into)
         .map_err(err)
     }
 
     /// Set the actor's now-playing status singleton.
-    pub fn set_now_playing(&self, track: NowPlayingInput) -> Result<(), RockskyError> {
+    pub fn set_now_playing(&self, track: NowPlayingInput) -> Result<WriteResult, RockskyError> {
         RT.block_on(self.inner.set_now_playing(&track.into()))
+            .map(Into::into)
             .map_err(err)
     }
 
     /// Delete the actor's now-playing status singleton.
-    pub fn clear_now_playing(&self) -> Result<(), RockskyError> {
-        RT.block_on(self.inner.clear_now_playing()).map_err(err)
+    pub fn clear_now_playing(&self) -> Result<WriteResult, RockskyError> {
+        RT.block_on(self.inner.clear_now_playing())
+            .map(Into::into)
+            .map_err(err)
     }
 }
 

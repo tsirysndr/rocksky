@@ -26,7 +26,7 @@
          equalizer_presets/3, put_equalizer_preset/3, delete_equalizer_preset/3,
          events/3, event/3, event_rsvps/5, artist_events/5, put_rsvp/4,
          song_hash/3, album_hash/2, artist_hash/1,
-         agent_login/5, agent_did/1, agent_refresh_session/1, agent_scrobble/2,
+         agent_login/5, agent_did/1, agent_pds_write_rate_limit/1, agent_refresh_session/1, agent_scrobble/2,
          agent_scrobble_match/2, agent_sync_repo/1, agent_hydrate_from_jetstream/1,
          agent_create_song/2, agent_create_album/2, agent_create_artist/2,
          agent_like/3, agent_unlike/2, agent_follow/2, agent_unfollow/2,
@@ -301,6 +301,7 @@ album_hash(_Album, _AlbumArtist) -> ?NOT_LOADED.
 artist_hash(_AlbumArtist) -> ?NOT_LOADED.
 agent_login(_Session, _Id, _Pw, _AppView, _DedupPath) -> ?NOT_LOADED.
 agent_did(_Agent) -> ?NOT_LOADED.
+agent_pds_write_rate_limit(_Agent) -> ?NOT_LOADED.
 agent_refresh_session(_Agent) -> ?NOT_LOADED.
 agent_scrobble(_Agent, _Json) -> ?NOT_LOADED.
 agent_scrobble_match(_Agent, _InputJson) -> ?NOT_LOADED.

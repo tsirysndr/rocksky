@@ -69,6 +69,8 @@ pub use crate::app_rocksky as lexicons;
 
 // --- hand-written SDK modules ---
 pub mod agent;
+pub mod pds_write_rate_limit;
+pub use pds_write_rate_limit::PdsWriteRateLimit;
 pub mod appview;
 pub mod auth;
 pub mod dedup;
@@ -87,8 +89,9 @@ pub mod remote_controller;
 pub mod remote_player;
 
 pub use agent::{
-    AlbumDraft, ArtistDraft, EqualizerPresetDraft, NowPlaying, RockskyAgent, RockskyAgentBuilder,
-    ScrobbleDraft, ScrobbleMatch, ScrobbleResult, ShoutGif, SongDraft,
+    AlbumDraft, ArtistDraft, EqualizerPresetDraft, NowPlaying, PresetWriteResult,
+    RecordWriteResult, RockskyAgent, RockskyAgentBuilder, ScrobbleDraft, ScrobbleMatch,
+    ScrobbleResult, ShoutGif, SongDraft, WriteResult,
 };
 pub use appview::{
     AlbumView, AppView, ArtistView, DateInterval, EqualizerBandView, EqualizerPresetInput,

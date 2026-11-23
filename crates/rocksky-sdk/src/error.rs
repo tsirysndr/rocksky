@@ -25,6 +25,14 @@ pub enum SdkError {
         body: String,
     },
 
+    /// A PDS record write failed. The quota comes from that response, if known.
+    #[error("PDS write {operation}: {message}")]
+    PdsWrite {
+        operation: String,
+        message: String,
+        pds_write_rate_limit: Option<crate::PdsWriteRateLimit>,
+    },
+
     /// Anything from the jacquard auth / XRPC / OAuth stack. jacquard's own error
     /// types are erased to their `Display` string so they don't leak into our
     /// public surface.

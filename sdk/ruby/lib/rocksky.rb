@@ -40,6 +40,7 @@ module Rocksky
       "void* rocksky_agent_login(const char*, const char*, const char*, const char*, const char*)",
       "void rocksky_agent_free(void*)",
       "char* rocksky_agent_scrobble(void*, const char*)",
+      "char* rocksky_agent_pds_write_rate_limit(void*)",
       "char* rocksky_agent_scrobble_match(void*, const char*)",
       "char* rocksky_agent_sync_repo(void*)",
       "char* rocksky_agent_hydrate_from_jetstream(void*)",
@@ -284,6 +285,10 @@ module Rocksky
     end
 
     # Scrobble a play; fans out to artist/album/song/scrobble. Returns the URIs.
+    def pds_write_rate_limit
+      Rocksky.unwrap(C.rocksky_agent_pds_write_rate_limit(@ptr))
+    end
+
     def scrobble(track)
       Rocksky.unwrap(C.rocksky_agent_scrobble(@ptr, JSON.generate(track)))
     end

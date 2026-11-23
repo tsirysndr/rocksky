@@ -25,7 +25,10 @@ function fakeAgent(idx?: unknown): {
       if (nsid === "com.atproto.repo.createRecord") {
         const { collection, record } = opts.input;
         created.push({ collection, record });
-        return { ok: true, data: { uri: `at://${DID}/${collection}/rec${++n}` } };
+        return { ok: true, data: { uri: `at://${DID}/${collection}/rec${++n}` }, headers: new Headers({
+          "ratelimit-policy": "5000;w=3600", "ratelimit-limit": "5000",
+          "ratelimit-remaining": String(5000 - 3 * n), "ratelimit-reset": "1800000000",
+        }) };
       }
       return { ok: false, data: { error: "UnexpectedCall", message: nsid } };
     },
@@ -130,7 +133,11 @@ describe("Agent.scrobble dedup (never republish what's already in the PDS)", () 
     created.length = 0;
 
     const uri2 = await agent.scrobble(FULL);
-    expect(uri2).toBe(uri1);
+    expect(uri2.uri).toBe(uri1.uri);
+    expect(uri2.written).toBe(false);
+    expect(uri2.pdsWriteRateLimit).toBeNull();
+    expect(uri1.pdsWriteRateLimit?.remaining).toBe(4988);
+    expect(agent.pdsWriteRateLimit?.remaining).toBe(4988);
     expect(created).toHaveLength(0);
   });
 

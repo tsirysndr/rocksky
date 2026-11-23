@@ -1050,6 +1050,8 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -1076,7 +1078,7 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_fn_constructor_agent_login_password(`sessionPath`: RustBuffer.ByValue,`identifier`: RustBuffer.ByValue,`password`: RustBuffer.ByValue,`appview`: RustBuffer.ByValue,`dedupPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
     fun uniffi_rocksky_uniffi_fn_method_agent_clear_now_playing(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_create_album(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_create_artist(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1091,6 +1093,8 @@ internal interface UniffiLib : JnaLibrary {
     ): Unit
     fun uniffi_rocksky_uniffi_fn_method_agent_like(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`cid`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_agent_pds_write_rate_limit(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_profile(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_refresh_session(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
@@ -1104,7 +1108,7 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_set_now_playing(`ptr`: Pointer,`track`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_shout(`ptr`: Pointer,`subjectUri`: RustBuffer.ByValue,`subjectCid`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_shout_with_gif(`ptr`: Pointer,`subjectUri`: RustBuffer.ByValue,`subjectCid`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`gif`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1112,9 +1116,9 @@ internal interface UniffiLib : JnaLibrary {
     fun uniffi_rocksky_uniffi_fn_method_agent_sync_repo(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_unfollow(`ptr`: Pointer,`did`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_unlike(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_clone_appview(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
     fun uniffi_rocksky_uniffi_fn_free_appview(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
@@ -1551,6 +1555,8 @@ internal interface UniffiLib : JnaLibrary {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_like(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_agent_pds_write_rate_limit(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_profile(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_refresh_session(
@@ -1883,28 +1889,31 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_func_song_hash() != 50204.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_clear_now_playing() != 32048.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_clear_now_playing() != 30306.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_create_album() != 62415.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_create_album() != 13186.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_create_artist() != 23559.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_create_artist() != 17117.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_create_song() != 53294.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_create_song() != 61673.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_did() != 15782.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_follow() != 59928.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_follow() != 8274.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream() != 57739.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_like() != 24747.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_like() != 35139.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_pds_write_rate_limit() != 8410.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_profile() != 30678.toShort()) {
@@ -1913,10 +1922,10 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_refresh_session() != 26198.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout() != 29470.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout() != 5573.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout_with_gif() != 30347.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout_with_gif() != 32343.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314.toShort()) {
@@ -1925,22 +1934,22 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 139.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 44892.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_shout() != 41382.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_shout() != 22242.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_shout_with_gif() != 51807.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_shout_with_gif() != 26819.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_sync_repo() != 33910.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow() != 48247.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow() != 5924.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_unlike() != 7657.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_unlike() != 35755.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists() != 29553.toShort()) {
@@ -2820,20 +2829,20 @@ public interface AgentInterface {
     /**
      * Delete the actor's now-playing status singleton.
      */
-    fun `clearNowPlaying`()
+    fun `clearNowPlaying`(): WriteResult
     
-    fun `createAlbum`(`input`: AlbumInput): kotlin.String
+    fun `createAlbum`(`input`: AlbumInput): RecordWriteResult
     
-    fun `createArtist`(`input`: ArtistInput): kotlin.String
+    fun `createArtist`(`input`: ArtistInput): RecordWriteResult
     
-    fun `createSong`(`input`: SongInput): kotlin.String
+    fun `createSong`(`input`: SongInput): RecordWriteResult
     
     fun `did`(): kotlin.String?
     
     /**
      * Follow an account by DID. Returns the follow URI.
      */
-    fun `follow`(`did`: kotlin.String): kotlin.String
+    fun `follow`(`did`: kotlin.String): RecordWriteResult
     
     /**
      * Keep the local dedup index hydrated from Jetstream in the background and
@@ -2844,7 +2853,13 @@ public interface AgentInterface {
     /**
      * Like a record by strong reference. Returns the like URI.
      */
-    fun `like`(`uri`: kotlin.String, `cid`: kotlin.String): kotlin.String
+    fun `like`(`uri`: kotlin.String, `cid`: kotlin.String): RecordWriteResult
+
+    /**
+     * Latest actual write response, also available after a failed write.
+     * Reads and dedup hits leave it unchanged. Unknown policies return None.
+     */
+    fun `pdsWriteRateLimit`(): PdsWriteRateLimit?
     
     fun `profile`(): Profile?
     
@@ -2856,13 +2871,13 @@ public interface AgentInterface {
     /**
      * Reply to a shout. Returns the shout URI.
      */
-    fun `replyShout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String): kotlin.String
+    fun `replyShout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String): RecordWriteResult
     
     /**
      * Reply to a shout with an optional GIF/sticker/clip attachment. Pass at
      * least one of `message` / `gif`. Returns the shout URI.
      */
-    fun `replyShoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String
+    fun `replyShoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): RecordWriteResult
     
     /**
      * Scrobble a play — fans out to artist/album/song then the scrobble.
@@ -2878,18 +2893,18 @@ public interface AgentInterface {
     /**
      * Set the actor's now-playing status singleton.
      */
-    fun `setNowPlaying`(`track`: NowPlayingInput)
+    fun `setNowPlaying`(`track`: NowPlayingInput): WriteResult
     
     /**
      * Post a shout on a subject. Returns the shout URI.
      */
-    fun `shout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String): kotlin.String
+    fun `shout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String): RecordWriteResult
     
     /**
      * Post a shout with an optional GIF/sticker/clip attachment. Pass at least
      * one of `message` / `gif`. Returns the shout URI.
      */
-    fun `shoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String
+    fun `shoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): RecordWriteResult
     
     /**
      * Download the caller's repo (CAR) and (re)build the local dedup index,
@@ -2898,9 +2913,9 @@ public interface AgentInterface {
      */
     fun `syncRepo`(): kotlin.String
     
-    fun `unfollow`(`did`: kotlin.String)
+    fun `unfollow`(`did`: kotlin.String): WriteResult
     
-    fun `unlike`(`uri`: kotlin.String)
+    fun `unlike`(`uri`: kotlin.String): WriteResult
     
     companion object
 }
@@ -2993,20 +3008,21 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     /**
      * Delete the actor's now-playing status singleton.
      */
-    @Throws(RockskyException::class)override fun `clearNowPlaying`()
-        = 
+    @Throws(RockskyException::class)override fun `clearNowPlaying`(): WriteResult {
+            return FfiConverterTypeWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_clear_now_playing(
         it, _status)
 }
     }
-    
+    )
+    }
     
 
     
-    @Throws(RockskyException::class)override fun `createAlbum`(`input`: AlbumInput): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `createAlbum`(`input`: AlbumInput): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_create_album(
@@ -3018,8 +3034,8 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     
 
     
-    @Throws(RockskyException::class)override fun `createArtist`(`input`: ArtistInput): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `createArtist`(`input`: ArtistInput): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_create_artist(
@@ -3031,8 +3047,8 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     
 
     
-    @Throws(RockskyException::class)override fun `createSong`(`input`: SongInput): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `createSong`(`input`: SongInput): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_create_song(
@@ -3059,8 +3075,8 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     /**
      * Follow an account by DID. Returns the follow URI.
      */
-    @Throws(RockskyException::class)override fun `follow`(`did`: kotlin.String): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `follow`(`did`: kotlin.String): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_follow(
@@ -3090,12 +3106,28 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     /**
      * Like a record by strong reference. Returns the like URI.
      */
-    @Throws(RockskyException::class)override fun `like`(`uri`: kotlin.String, `cid`: kotlin.String): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `like`(`uri`: kotlin.String, `cid`: kotlin.String): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_like(
         it, FfiConverterString.lower(`uri`),FfiConverterString.lower(`cid`),_status)
+}
+    }
+    )
+    }
+
+
+
+    /**
+     * Latest actual write response, also available after a failed write.
+     * Reads and dedup hits leave it unchanged. Unknown policies return None.
+     */override fun `pdsWriteRateLimit`(): PdsWriteRateLimit? {
+            return FfiConverterOptionalTypePdsWriteRateLimit.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_pds_write_rate_limit(
+        it, _status)
 }
     }
     )
@@ -3133,8 +3165,8 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     /**
      * Reply to a shout. Returns the shout URI.
      */
-    @Throws(RockskyException::class)override fun `replyShout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `replyShout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_reply_shout(
@@ -3150,8 +3182,8 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
      * Reply to a shout with an optional GIF/sticker/clip attachment. Pass at
      * least one of `message` / `gif`. Returns the shout URI.
      */
-    @Throws(RockskyException::class)override fun `replyShoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `replyShoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_reply_shout_with_gif(
@@ -3199,23 +3231,24 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     /**
      * Set the actor's now-playing status singleton.
      */
-    @Throws(RockskyException::class)override fun `setNowPlaying`(`track`: NowPlayingInput)
-        = 
+    @Throws(RockskyException::class)override fun `setNowPlaying`(`track`: NowPlayingInput): WriteResult {
+            return FfiConverterTypeWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_set_now_playing(
         it, FfiConverterTypeNowPlayingInput.lower(`track`),_status)
 }
     }
-    
+    )
+    }
     
 
     
     /**
      * Post a shout on a subject. Returns the shout URI.
      */
-    @Throws(RockskyException::class)override fun `shout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `shout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_shout(
@@ -3231,8 +3264,8 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
      * Post a shout with an optional GIF/sticker/clip attachment. Pass at least
      * one of `message` / `gif`. Returns the shout URI.
      */
-    @Throws(RockskyException::class)override fun `shoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String {
-            return FfiConverterString.lift(
+    @Throws(RockskyException::class)override fun `shoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): RecordWriteResult {
+            return FfiConverterTypeRecordWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_shout_with_gif(
@@ -3262,27 +3295,29 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     
 
     
-    @Throws(RockskyException::class)override fun `unfollow`(`did`: kotlin.String)
-        = 
+    @Throws(RockskyException::class)override fun `unfollow`(`did`: kotlin.String): WriteResult {
+            return FfiConverterTypeWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_unfollow(
         it, FfiConverterString.lower(`did`),_status)
 }
     }
-    
+    )
+    }
     
 
     
-    @Throws(RockskyException::class)override fun `unlike`(`uri`: kotlin.String)
-        = 
+    @Throws(RockskyException::class)override fun `unlike`(`uri`: kotlin.String): WriteResult {
+            return FfiConverterTypeWriteResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_unlike(
         it, FfiConverterString.lower(`uri`),_status)
 }
     }
-    
+    )
+    }
     
 
     
@@ -8115,6 +8150,49 @@ public object FfiConverterTypeNowPlayingInput: FfiConverterRustBuffer<NowPlaying
 
 
 /**
+ * Server-reported PDS record-write point budget. Reset time is Unix seconds.
+ */
+data class PdsWriteRateLimit (
+    var `limit`: kotlin.ULong,
+    var `remaining`: kotlin.ULong,
+    var `resetAt`: kotlin.ULong,
+    var `policy`: kotlin.String
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePdsWriteRateLimit: FfiConverterRustBuffer<PdsWriteRateLimit> {
+    override fun read(buf: ByteBuffer): PdsWriteRateLimit {
+        return PdsWriteRateLimit(
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PdsWriteRateLimit) = (
+            FfiConverterULong.allocationSize(value.`limit`) +
+            FfiConverterULong.allocationSize(value.`remaining`) +
+            FfiConverterULong.allocationSize(value.`resetAt`) +
+            FfiConverterString.allocationSize(value.`policy`)
+    )
+
+    override fun write(value: PdsWriteRateLimit, buf: ByteBuffer) {
+            FfiConverterULong.write(value.`limit`, buf)
+            FfiConverterULong.write(value.`remaining`, buf)
+            FfiConverterULong.write(value.`resetAt`, buf)
+            FfiConverterString.write(value.`policy`, buf)
+    }
+}
+
+
+
+/**
  * The locally-cached identity after login.
  */
 data class Profile (
@@ -8257,6 +8335,42 @@ public object FfiConverterTypePutRsvpResult: FfiConverterRustBuffer<PutRsvpResul
     override fun write(value: PutRsvpResult, buf: ByteBuffer) {
             FfiConverterString.write(value.`uri`, buf)
             FfiConverterString.write(value.`status`, buf)
+    }
+}
+
+
+
+data class RecordWriteResult (
+    var `uri`: kotlin.String,
+    var `pdsWriteRateLimit`: PdsWriteRateLimit?,
+    var `written`: kotlin.Boolean
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRecordWriteResult: FfiConverterRustBuffer<RecordWriteResult> {
+    override fun read(buf: ByteBuffer): RecordWriteResult {
+        return RecordWriteResult(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalTypePdsWriteRateLimit.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RecordWriteResult) = (
+            FfiConverterString.allocationSize(value.`uri`) +
+            FfiConverterOptionalTypePdsWriteRateLimit.allocationSize(value.`pdsWriteRateLimit`) +
+            FfiConverterBoolean.allocationSize(value.`written`)
+    )
+
+    override fun write(value: RecordWriteResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`uri`, buf)
+            FfiConverterOptionalTypePdsWriteRateLimit.write(value.`pdsWriteRateLimit`, buf)
+            FfiConverterBoolean.write(value.`written`, buf)
     }
 }
 
@@ -8785,7 +8899,9 @@ data class ScrobbleResult (
     var `artistUri`: kotlin.String, 
     var `albumUri`: kotlin.String, 
     var `songUri`: kotlin.String, 
-    var `scrobbleUri`: kotlin.String
+    var `scrobbleUri`: kotlin.String,
+    var `pdsWriteRateLimit`: PdsWriteRateLimit?,
+    var `written`: kotlin.Boolean
 ) {
     
     companion object
@@ -8801,6 +8917,8 @@ public object FfiConverterTypeScrobbleResult: FfiConverterRustBuffer<ScrobbleRes
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterOptionalTypePdsWriteRateLimit.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -8808,7 +8926,9 @@ public object FfiConverterTypeScrobbleResult: FfiConverterRustBuffer<ScrobbleRes
             FfiConverterString.allocationSize(value.`artistUri`) +
             FfiConverterString.allocationSize(value.`albumUri`) +
             FfiConverterString.allocationSize(value.`songUri`) +
-            FfiConverterString.allocationSize(value.`scrobbleUri`)
+            FfiConverterString.allocationSize(value.`scrobbleUri`) +
+            FfiConverterOptionalTypePdsWriteRateLimit.allocationSize(value.`pdsWriteRateLimit`) +
+            FfiConverterBoolean.allocationSize(value.`written`)
     )
 
     override fun write(value: ScrobbleResult, buf: ByteBuffer) {
@@ -8816,6 +8936,8 @@ public object FfiConverterTypeScrobbleResult: FfiConverterRustBuffer<ScrobbleRes
             FfiConverterString.write(value.`albumUri`, buf)
             FfiConverterString.write(value.`songUri`, buf)
             FfiConverterString.write(value.`scrobbleUri`, buf)
+            FfiConverterOptionalTypePdsWriteRateLimit.write(value.`pdsWriteRateLimit`, buf)
+            FfiConverterBoolean.write(value.`written`, buf)
     }
 }
 
@@ -9419,6 +9541,38 @@ public object FfiConverterTypeUpdateSeenResult: FfiConverterRustBuffer<UpdateSee
 
     override fun write(value: UpdateSeenResult, buf: ByteBuffer) {
             FfiConverterLong.write(value.`unreadCount`, buf)
+    }
+}
+
+
+
+data class WriteResult (
+    var `pdsWriteRateLimit`: PdsWriteRateLimit?,
+    var `written`: kotlin.Boolean
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeWriteResult: FfiConverterRustBuffer<WriteResult> {
+    override fun read(buf: ByteBuffer): WriteResult {
+        return WriteResult(
+            FfiConverterOptionalTypePdsWriteRateLimit.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WriteResult) = (
+            FfiConverterOptionalTypePdsWriteRateLimit.allocationSize(value.`pdsWriteRateLimit`) +
+            FfiConverterBoolean.allocationSize(value.`written`)
+    )
+
+    override fun write(value: WriteResult, buf: ByteBuffer) {
+            FfiConverterOptionalTypePdsWriteRateLimit.write(value.`pdsWriteRateLimit`, buf)
+            FfiConverterBoolean.write(value.`written`, buf)
     }
 }
 
@@ -10556,6 +10710,38 @@ public object FfiConverterOptionalTypeNotificationSubject: FfiConverterRustBuffe
         } else {
             buf.put(1)
             FfiConverterTypeNotificationSubject.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypePdsWriteRateLimit: FfiConverterRustBuffer<PdsWriteRateLimit?> {
+    override fun read(buf: ByteBuffer): PdsWriteRateLimit? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypePdsWriteRateLimit.read(buf)
+    }
+
+    override fun allocationSize(value: PdsWriteRateLimit?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypePdsWriteRateLimit.allocationSize(value)
+        }
+    }
+
+    override fun write(value: PdsWriteRateLimit?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypePdsWriteRateLimit.write(value, buf)
         }
     }
 }

@@ -145,3 +145,6 @@ requiring the namespaces (e.g. for cljdoc) touches no native code.
 ## License
 
 MIT.
+
+Direct PDS write responses include the typed write point quota when available.
+See [PDS write quota responses and migration](../PDS_WRITE_RATE_LIMITS.md).

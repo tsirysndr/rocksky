@@ -64,3 +64,5 @@ export {
 export { songHash, albumHash, artistHash } from "./hash.js";
 export { RockskyError } from "./errors.js";
 export type * from "./generated/types.js";
+
+export type { PdsWriteRateLimit, WriteResult, DeleteResult } from "./pds-write-rate-limit.js";

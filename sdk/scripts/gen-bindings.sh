@@ -28,7 +28,7 @@ gen() { # <language> <out-dir>
   mkdir -p "$outdir"
   cargo run --release --manifest-path "$root/Cargo.toml" \
     -p rocksky-uniffi --bin uniffi-bindgen -- \
-    generate --library "$lib" --language "$lang" --out-dir "$outdir"
+    generate --library "$lib" --metadata-no-deps --language "$lang" --out-dir "$outdir"
   echo "  generated $lang -> $outdir"
 }
 

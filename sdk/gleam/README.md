@@ -169,3 +169,6 @@ and accepts your bearer token; it does not automatically read native-agent
 sessions. Query arrays use repeated URL parameters. Fields the lexicons
 explicitly leave open, such as provider payloads, remain JSON values.
 Regenerate with `bun tools/lexgen/generate.ts --gleam` from the repository root.
+
+Direct PDS write responses include the typed write point quota when available.
+See [PDS write quota responses and migration](../PDS_WRITE_RATE_LIMITS.md).

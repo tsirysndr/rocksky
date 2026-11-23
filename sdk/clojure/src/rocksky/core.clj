@@ -51,6 +51,7 @@
 (def ^:private h-login    (delay (downcall "rocksky_agent_login" ADDR [ADDR ADDR ADDR ADDR ADDR])))
 (def ^:private h-last-err (delay (downcall "rocksky_last_error" ADDR [])))
 (def ^:private h-afree    (delay (downcall "rocksky_agent_free" nil [ADDR])))
+(def ^:private h-write-quota (delay (downcall "rocksky_agent_pds_write_rate_limit" ADDR [ADDR])))
 (def ^:private h-scrobble (delay (downcall "rocksky_agent_scrobble" ADDR [ADDR ADDR])))
 (def ^:private h-scrobble-match (delay (downcall "rocksky_agent_scrobble_match" ADDR [ADDR ADDR])))
 (def ^:private h-sync     (delay (downcall "rocksky_agent_sync_repo" ADDR [ADDR])))
@@ -347,6 +348,11 @@
   (with-open [^Arena a (Arena/ofConfined)]
     (unwrap (.invokeWithArguments h
                                   (object-array (cons agent (map #(.allocateFrom a (str %)) args)))))))
+
+(defn pds-write-rate-limit
+  "Latest PDS write point quota, including failed writes; nil if unknown."
+  [agent]
+  (agent-call @h-write-quota agent))
 
 (defn scrobble
   "Scrobble a play (fans out to artist/album/song/scrobble). Returns the URIs."

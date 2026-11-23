@@ -467,45 +467,47 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_func_song_hash() != 50204:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_clear_now_playing() != 32048:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_clear_now_playing() != 30306:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_create_album() != 62415:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_create_album() != 13186:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_create_artist() != 23559:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_create_artist() != 17117:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_create_song() != 53294:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_create_song() != 61673:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_did() != 15782:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_follow() != 59928:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_follow() != 8274:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream() != 57739:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_like() != 24747:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_like() != 35139:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_pds_write_rate_limit() != 8410:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_profile() != 30678:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_refresh_session() != 26198:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout() != 29470:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout() != 5573:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout_with_gif() != 30347:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout_with_gif() != 32343:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 139:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 44892:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_shout() != 41382:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_shout() != 22242:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_shout_with_gif() != 51807:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_shout_with_gif() != 26819:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_sync_repo() != 33910:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow() != 48247:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow() != 5924:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_unlike() != 7657:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_unlike() != 35755:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists() != 29553:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -918,7 +920,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_clear_now_playing.argtypes = (
     ctypes.c_void_p,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
-_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_clear_now_playing.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_clear_now_playing.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_create_album.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -960,6 +962,11 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_like.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_like.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_pds_write_rate_limit.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_pds_write_rate_limit.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_profile.argtypes = (
     ctypes.c_void_p,
     ctypes.POINTER(_UniffiRustCallStatus),
@@ -1008,7 +1015,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_set_now_playing.argtypes = (
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
-_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_set_now_playing.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_set_now_playing.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_shout.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -1036,13 +1043,13 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unfollow.argtypes = (
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
-_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unfollow.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unfollow.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unlike.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
-_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unlike.restype = None
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unlike.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_clone_appview.argtypes = (
     ctypes.c_void_p,
     ctypes.POINTER(_UniffiRustCallStatus),
@@ -2367,6 +2374,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream.re
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_like.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_like.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_pds_write_rate_limit.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_pds_write_rate_limit.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_profile.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_profile.restype = ctypes.c_uint16
@@ -3019,6 +3029,13 @@ class AgentProtocol(typing.Protocol):
         """
 
         raise NotImplementedError
+    def pds_write_rate_limit(self, ):
+        """
+        Latest actual write response, also available after a failed write.
+        Reads and dedup hits leave it unchanged. Unknown policies return None.
+        """
+
+        raise NotImplementedError
     def profile(self, ):
         raise NotImplementedError
     def refresh_session(self, ):
@@ -3142,22 +3159,23 @@ class Agent:
 
 
 
-    def clear_now_playing(self, ) -> None:
+    def clear_now_playing(self, ) -> "WriteResult":
         """
         Delete the actor's now-playing status singleton.
         """
 
-        _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_clear_now_playing,self._uniffi_clone_pointer(),)
+        return _UniffiConverterTypeWriteResult.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_clear_now_playing,self._uniffi_clone_pointer(),)
+        )
 
 
 
 
 
-
-    def create_album(self, input: "AlbumInput") -> "str":
+    def create_album(self, input: "AlbumInput") -> "RecordWriteResult":
         _UniffiConverterTypeAlbumInput.check_lower(input)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_create_album,self._uniffi_clone_pointer(),
         _UniffiConverterTypeAlbumInput.lower(input))
         )
@@ -3166,10 +3184,10 @@ class Agent:
 
 
 
-    def create_artist(self, input: "ArtistInput") -> "str":
+    def create_artist(self, input: "ArtistInput") -> "RecordWriteResult":
         _UniffiConverterTypeArtistInput.check_lower(input)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_create_artist,self._uniffi_clone_pointer(),
         _UniffiConverterTypeArtistInput.lower(input))
         )
@@ -3178,10 +3196,10 @@ class Agent:
 
 
 
-    def create_song(self, input: "SongInput") -> "str":
+    def create_song(self, input: "SongInput") -> "RecordWriteResult":
         _UniffiConverterTypeSongInput.check_lower(input)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_create_song,self._uniffi_clone_pointer(),
         _UniffiConverterTypeSongInput.lower(input))
         )
@@ -3199,14 +3217,14 @@ class Agent:
 
 
 
-    def follow(self, did: "str") -> "str":
+    def follow(self, did: "str") -> "RecordWriteResult":
         """
         Follow an account by DID. Returns the follow URI.
         """
 
         _UniffiConverterString.check_lower(did)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_follow,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(did))
         )
@@ -3228,7 +3246,7 @@ class Agent:
 
 
 
-    def like(self, uri: "str",cid: "str") -> "str":
+    def like(self, uri: "str",cid: "str") -> "RecordWriteResult":
         """
         Like a record by strong reference. Returns the like URI.
         """
@@ -3237,10 +3255,24 @@ class Agent:
         
         _UniffiConverterString.check_lower(cid)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_like,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(uri),
         _UniffiConverterString.lower(cid))
+        )
+
+
+
+
+
+    def pds_write_rate_limit(self, ) -> "typing.Optional[PdsWriteRateLimit]":
+        """
+        Latest actual write response, also available after a failed write.
+        Reads and dedup hits leave it unchanged. Unknown policies return None.
+        """
+
+        return _UniffiConverterOptionalTypePdsWriteRateLimit.lift(
+            _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_pds_write_rate_limit,self._uniffi_clone_pointer(),)
         )
 
 
@@ -3268,7 +3300,7 @@ class Agent:
 
 
 
-    def reply_shout(self, subject_uri: "str",subject_cid: "str",parent_uri: "str",parent_cid: "str",message: "str") -> "str":
+    def reply_shout(self, subject_uri: "str",subject_cid: "str",parent_uri: "str",parent_cid: "str",message: "str") -> "RecordWriteResult":
         """
         Reply to a shout. Returns the shout URI.
         """
@@ -3283,7 +3315,7 @@ class Agent:
         
         _UniffiConverterString.check_lower(message)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_reply_shout,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(subject_uri),
         _UniffiConverterString.lower(subject_cid),
@@ -3296,7 +3328,7 @@ class Agent:
 
 
 
-    def reply_shout_with_gif(self, subject_uri: "str",subject_cid: "str",parent_uri: "str",parent_cid: "str",message: "typing.Optional[str]",gif: "typing.Optional[ShoutGifInput]") -> "str":
+    def reply_shout_with_gif(self, subject_uri: "str",subject_cid: "str",parent_uri: "str",parent_cid: "str",message: "typing.Optional[str]",gif: "typing.Optional[ShoutGifInput]") -> "RecordWriteResult":
         """
         Reply to a shout with an optional GIF/sticker/clip attachment. Pass at
         least one of `message` / `gif`. Returns the shout URI.
@@ -3314,7 +3346,7 @@ class Agent:
         
         _UniffiConverterOptionalTypeShoutGifInput.check_lower(gif)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_reply_shout_with_gif,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(subject_uri),
         _UniffiConverterString.lower(subject_cid),
@@ -3361,22 +3393,23 @@ class Agent:
 
 
 
-    def set_now_playing(self, track: "NowPlayingInput") -> None:
+    def set_now_playing(self, track: "NowPlayingInput") -> "WriteResult":
         """
         Set the actor's now-playing status singleton.
         """
 
         _UniffiConverterTypeNowPlayingInput.check_lower(track)
         
-        _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_set_now_playing,self._uniffi_clone_pointer(),
+        return _UniffiConverterTypeWriteResult.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_set_now_playing,self._uniffi_clone_pointer(),
         _UniffiConverterTypeNowPlayingInput.lower(track))
+        )
 
 
 
 
 
-
-    def shout(self, subject_uri: "str",subject_cid: "str",message: "str") -> "str":
+    def shout(self, subject_uri: "str",subject_cid: "str",message: "str") -> "RecordWriteResult":
         """
         Post a shout on a subject. Returns the shout URI.
         """
@@ -3387,7 +3420,7 @@ class Agent:
         
         _UniffiConverterString.check_lower(message)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_shout,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(subject_uri),
         _UniffiConverterString.lower(subject_cid),
@@ -3398,7 +3431,7 @@ class Agent:
 
 
 
-    def shout_with_gif(self, subject_uri: "str",subject_cid: "str",message: "typing.Optional[str]",gif: "typing.Optional[ShoutGifInput]") -> "str":
+    def shout_with_gif(self, subject_uri: "str",subject_cid: "str",message: "typing.Optional[str]",gif: "typing.Optional[ShoutGifInput]") -> "RecordWriteResult":
         """
         Post a shout with an optional GIF/sticker/clip attachment. Pass at least
         one of `message` / `gif`. Returns the shout URI.
@@ -3412,7 +3445,7 @@ class Agent:
         
         _UniffiConverterOptionalTypeShoutGifInput.check_lower(gif)
         
-        return _UniffiConverterString.lift(
+        return _UniffiConverterTypeRecordWriteResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_shout_with_gif,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(subject_uri),
         _UniffiConverterString.lower(subject_cid),
@@ -3439,23 +3472,25 @@ class Agent:
 
 
 
-    def unfollow(self, did: "str") -> None:
+    def unfollow(self, did: "str") -> "WriteResult":
         _UniffiConverterString.check_lower(did)
         
-        _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unfollow,self._uniffi_clone_pointer(),
+        return _UniffiConverterTypeWriteResult.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unfollow,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(did))
+        )
 
 
 
 
 
-
-    def unlike(self, uri: "str") -> None:
+    def unlike(self, uri: "str") -> "WriteResult":
         _UniffiConverterString.check_lower(uri)
         
-        _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unlike,self._uniffi_clone_pointer(),
+        return _UniffiConverterTypeWriteResult.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unlike,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(uri))
-
+        )
 
 
 
@@ -8626,6 +8661,60 @@ class _UniffiConverterTypeNowPlayingInput(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.recording_mb_id, buf)
 
 
+class PdsWriteRateLimit:
+    """
+    Server-reported PDS record-write point budget. Reset time is Unix seconds.
+    """
+
+    limit: "int"
+    remaining: "int"
+    reset_at: "int"
+    policy: "str"
+    def __init__(self, *, limit: "int", remaining: "int", reset_at: "int", policy: "str"):
+        self.limit = limit
+        self.remaining = remaining
+        self.reset_at = reset_at
+        self.policy = policy
+
+    def __str__(self):
+        return "PdsWriteRateLimit(limit={}, remaining={}, reset_at={}, policy={})".format(self.limit, self.remaining, self.reset_at, self.policy)
+
+    def __eq__(self, other):
+        if self.limit != other.limit:
+            return False
+        if self.remaining != other.remaining:
+            return False
+        if self.reset_at != other.reset_at:
+            return False
+        if self.policy != other.policy:
+            return False
+        return True
+
+class _UniffiConverterTypePdsWriteRateLimit(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return PdsWriteRateLimit(
+            limit=_UniffiConverterUInt64.read(buf),
+            remaining=_UniffiConverterUInt64.read(buf),
+            reset_at=_UniffiConverterUInt64.read(buf),
+            policy=_UniffiConverterString.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterUInt64.check_lower(value.limit)
+        _UniffiConverterUInt64.check_lower(value.remaining)
+        _UniffiConverterUInt64.check_lower(value.reset_at)
+        _UniffiConverterString.check_lower(value.policy)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterUInt64.write(value.limit, buf)
+        _UniffiConverterUInt64.write(value.remaining, buf)
+        _UniffiConverterUInt64.write(value.reset_at, buf)
+        _UniffiConverterString.write(value.policy, buf)
+
+
 class Profile:
     """
     The locally-cached identity after login.
@@ -8818,6 +8907,49 @@ class _UniffiConverterTypePutRsvpResult(_UniffiConverterRustBuffer):
     def write(value, buf):
         _UniffiConverterString.write(value.uri, buf)
         _UniffiConverterString.write(value.status, buf)
+
+
+class RecordWriteResult:
+    uri: "str"
+    pds_write_rate_limit: "typing.Optional[PdsWriteRateLimit]"
+    written: "bool"
+    def __init__(self, *, uri: "str", pds_write_rate_limit: "typing.Optional[PdsWriteRateLimit]", written: "bool"):
+        self.uri = uri
+        self.pds_write_rate_limit = pds_write_rate_limit
+        self.written = written
+
+    def __str__(self):
+        return "RecordWriteResult(uri={}, pds_write_rate_limit={}, written={})".format(self.uri, self.pds_write_rate_limit, self.written)
+
+    def __eq__(self, other):
+        if self.uri != other.uri:
+            return False
+        if self.pds_write_rate_limit != other.pds_write_rate_limit:
+            return False
+        if self.written != other.written:
+            return False
+        return True
+
+class _UniffiConverterTypeRecordWriteResult(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return RecordWriteResult(
+            uri=_UniffiConverterString.read(buf),
+            pds_write_rate_limit=_UniffiConverterOptionalTypePdsWriteRateLimit.read(buf),
+            written=_UniffiConverterBool.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.uri)
+        _UniffiConverterOptionalTypePdsWriteRateLimit.check_lower(value.pds_write_rate_limit)
+        _UniffiConverterBool.check_lower(value.written)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.uri, buf)
+        _UniffiConverterOptionalTypePdsWriteRateLimit.write(value.pds_write_rate_limit, buf)
+        _UniffiConverterBool.write(value.written, buf)
 
 
 class RemoteDevice:
@@ -9693,14 +9825,18 @@ class ScrobbleResult:
     album_uri: "str"
     song_uri: "str"
     scrobble_uri: "str"
-    def __init__(self, *, artist_uri: "str", album_uri: "str", song_uri: "str", scrobble_uri: "str"):
+    pds_write_rate_limit: "typing.Optional[PdsWriteRateLimit]"
+    written: "bool"
+    def __init__(self, *, artist_uri: "str", album_uri: "str", song_uri: "str", scrobble_uri: "str", pds_write_rate_limit: "typing.Optional[PdsWriteRateLimit]", written: "bool"):
         self.artist_uri = artist_uri
         self.album_uri = album_uri
         self.song_uri = song_uri
         self.scrobble_uri = scrobble_uri
+        self.pds_write_rate_limit = pds_write_rate_limit
+        self.written = written
 
     def __str__(self):
-        return "ScrobbleResult(artist_uri={}, album_uri={}, song_uri={}, scrobble_uri={})".format(self.artist_uri, self.album_uri, self.song_uri, self.scrobble_uri)
+        return "ScrobbleResult(artist_uri={}, album_uri={}, song_uri={}, scrobble_uri={}, pds_write_rate_limit={}, written={})".format(self.artist_uri, self.album_uri, self.song_uri, self.scrobble_uri, self.pds_write_rate_limit, self.written)
 
     def __eq__(self, other):
         if self.artist_uri != other.artist_uri:
@@ -9710,6 +9846,10 @@ class ScrobbleResult:
         if self.song_uri != other.song_uri:
             return False
         if self.scrobble_uri != other.scrobble_uri:
+            return False
+        if self.pds_write_rate_limit != other.pds_write_rate_limit:
+            return False
+        if self.written != other.written:
             return False
         return True
 
@@ -9721,6 +9861,8 @@ class _UniffiConverterTypeScrobbleResult(_UniffiConverterRustBuffer):
             album_uri=_UniffiConverterString.read(buf),
             song_uri=_UniffiConverterString.read(buf),
             scrobble_uri=_UniffiConverterString.read(buf),
+            pds_write_rate_limit=_UniffiConverterOptionalTypePdsWriteRateLimit.read(buf),
+            written=_UniffiConverterBool.read(buf),
         )
 
     @staticmethod
@@ -9729,6 +9871,8 @@ class _UniffiConverterTypeScrobbleResult(_UniffiConverterRustBuffer):
         _UniffiConverterString.check_lower(value.album_uri)
         _UniffiConverterString.check_lower(value.song_uri)
         _UniffiConverterString.check_lower(value.scrobble_uri)
+        _UniffiConverterOptionalTypePdsWriteRateLimit.check_lower(value.pds_write_rate_limit)
+        _UniffiConverterBool.check_lower(value.written)
 
     @staticmethod
     def write(value, buf):
@@ -9736,6 +9880,8 @@ class _UniffiConverterTypeScrobbleResult(_UniffiConverterRustBuffer):
         _UniffiConverterString.write(value.album_uri, buf)
         _UniffiConverterString.write(value.song_uri, buf)
         _UniffiConverterString.write(value.scrobble_uri, buf)
+        _UniffiConverterOptionalTypePdsWriteRateLimit.write(value.pds_write_rate_limit, buf)
+        _UniffiConverterBool.write(value.written, buf)
 
 
 class ScrobbleView:
@@ -10678,6 +10824,42 @@ class _UniffiConverterTypeUpdateSeenResult(_UniffiConverterRustBuffer):
     @staticmethod
     def write(value, buf):
         _UniffiConverterInt64.write(value.unread_count, buf)
+
+
+class WriteResult:
+    pds_write_rate_limit: "typing.Optional[PdsWriteRateLimit]"
+    written: "bool"
+    def __init__(self, *, pds_write_rate_limit: "typing.Optional[PdsWriteRateLimit]", written: "bool"):
+        self.pds_write_rate_limit = pds_write_rate_limit
+        self.written = written
+
+    def __str__(self):
+        return "WriteResult(pds_write_rate_limit={}, written={})".format(self.pds_write_rate_limit, self.written)
+
+    def __eq__(self, other):
+        if self.pds_write_rate_limit != other.pds_write_rate_limit:
+            return False
+        if self.written != other.written:
+            return False
+        return True
+
+class _UniffiConverterTypeWriteResult(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return WriteResult(
+            pds_write_rate_limit=_UniffiConverterOptionalTypePdsWriteRateLimit.read(buf),
+            written=_UniffiConverterBool.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalTypePdsWriteRateLimit.check_lower(value.pds_write_rate_limit)
+        _UniffiConverterBool.check_lower(value.written)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalTypePdsWriteRateLimit.write(value.pds_write_rate_limit, buf)
+        _UniffiConverterBool.write(value.written, buf)
 
 
 
@@ -12096,6 +12278,33 @@ class _UniffiConverterOptionalTypeNotificationSubject(_UniffiConverterRustBuffer
 
 
 
+class _UniffiConverterOptionalTypePdsWriteRateLimit(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiConverterTypePdsWriteRateLimit.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiConverterTypePdsWriteRateLimit.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiConverterTypePdsWriteRateLimit.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
+
+
 class _UniffiConverterOptionalTypeProfile(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -12772,9 +12981,11 @@ __all__ = [
     "NotificationSubject",
     "NotificationView",
     "NowPlayingInput",
+    "PdsWriteRateLimit",
     "Profile",
     "ProfileView",
     "PutRsvpResult",
+    "RecordWriteResult",
     "RemoteDevice",
     "RemoteNowPlaying",
     "RemoteQueueItem",
@@ -12790,6 +13001,7 @@ __all__ = [
     "SpotifyUserView",
     "UnreadCount",
     "UpdateSeenResult",
+    "WriteResult",
     "album_hash",
     "artist_hash",
     "song_hash",

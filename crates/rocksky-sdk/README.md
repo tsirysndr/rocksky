@@ -253,3 +253,5 @@ cargo install jacquard-lexgen   # provides `jacquard-codegen`
 ## License
 
 MIT
+
+PDS writes return quota-bearing response types. See the [response definitions and migration](../../sdk/PDS_WRITE_RATE_LIMITS.md).

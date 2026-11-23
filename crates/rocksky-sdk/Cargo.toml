@@ -19,6 +19,7 @@ jacquard = { version = "0.12", default-features = false, features = [
     "loopback",
 ] }
 jacquard-common = "0.12"
+http = "1"
 # Needed by the generated app.rocksky.* bindings (lexicon schema types + derives).
 jacquard-lexicon = "0.12"
 jacquard-derive = "0.12"

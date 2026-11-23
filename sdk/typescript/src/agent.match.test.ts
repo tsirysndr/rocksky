@@ -15,7 +15,7 @@ function setup(status: number, body: unknown) {
   const agent = new (Agent as unknown as new (...args: unknown[]) => Agent)(
     {}, "did:plc:test", {}, "https://pds.example.com",
   );
-  const write = spyOn(agent, "scrobble").mockResolvedValue("at://dry-run/scrobble/1");
+  const write = spyOn(agent, "scrobble").mockResolvedValue({ uri: "at://dry-run/scrobble/1", pdsWriteRateLimit: null, written: true });
   return { agent, write };
 }
 for (const status of [400, 404]) {

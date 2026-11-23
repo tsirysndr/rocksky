@@ -439,6 +439,14 @@ unsafe fn with_agent<'a>(agent: *mut Agent) -> &'a RockskyAgent {
     &(*agent).0
 }
 
+/// Latest PDS record-write quota, including failures, as an optional JSON object.
+/// # Safety
+/// `agent` must be a live handle from `rocksky_agent_login`.
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_agent_pds_write_rate_limit(agent: *mut Agent) -> *mut c_char {
+    respond(Ok(with_agent(agent).pds_write_rate_limit()))
+}
+
 /// Scrobble a play. `scrobble_json` is a `ScrobbleDraft` (camelCase). Returns the
 /// four record URIs.
 ///

@@ -231,6 +231,12 @@ defmodule Rocksky do
         to_bin(dedup_path)
       )
 
+  @type pds_write_rate_limit :: %{binary() => non_neg_integer() | binary()}
+  @type record_write_result :: %{binary() => binary() | boolean() | pds_write_rate_limit() | nil}
+
+  @doc "Latest PDS write point quota (also available after failures); nil if unknown."
+  def pds_write_rate_limit(agent), do: :rocksky.agent_pds_write_rate_limit(agent)
+
   @doc "Scrobble a play (fans out to artist/album/song/scrobble). Returns the URIs."
   def scrobble(agent, track), do: :rocksky.agent_scrobble(agent, track)
 

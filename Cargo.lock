@@ -6326,6 +6326,7 @@ dependencies = [
  "chrono",
  "cid",
  "futures",
+ "http 1.4.2",
  "ipld-core",
  "jacquard",
  "jacquard-common",

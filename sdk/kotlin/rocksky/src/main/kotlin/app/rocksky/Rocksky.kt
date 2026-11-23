@@ -23,6 +23,9 @@ package app.rocksky
 
 typealias AppView = uniffi.rocksky_uniffi.AppView
 typealias Agent = uniffi.rocksky_uniffi.Agent
+typealias PdsWriteRateLimit = uniffi.rocksky_uniffi.PdsWriteRateLimit
+typealias RecordWriteResult = uniffi.rocksky_uniffi.RecordWriteResult
+typealias WriteResult = uniffi.rocksky_uniffi.WriteResult
 typealias ScrobbleInput = uniffi.rocksky_uniffi.ScrobbleInput
 typealias ScrobbleMatchInput = uniffi.rocksky_uniffi.ScrobbleMatchInput
 typealias SongInput = uniffi.rocksky_uniffi.SongInput
