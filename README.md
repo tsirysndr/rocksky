@@ -153,6 +153,27 @@ Linux `.deb`, `.rpm` and `.AppImage` bundles are attached to each
 [`desktop-v*` release](https://github.com/tsirysndr/rocksky/releases). See
 [`desktop/README.md`](desktop/README.md) for details.
 
+### CLI
+
+Install the standalone CLI on Linux x86_64/aarch64 or macOS Apple Silicon:
+
+```sh
+curl -fsSL https://cli.rocksky.app | sh
+```
+
+The installer verifies the download's SHA-256 checksum and installs `rocksky` in
+`~/.local/bin`. Add that directory to your `PATH` if needed. Node.js and Bun are
+not required.
+
+```sh
+rocksky                  # open the terminal music player
+rocksky --help           # list commands
+rocksky upgrade          # update to the latest CLI release
+```
+
+See the [CLI README](apps/cli/README.md) for authentication, keyboard shortcuts,
+and installation options.
+
 ### Nix installation
 
 Rocksky's Linux and macOS packages use the public [FluentCI binary cache](https://docs.fluentci.io/guides/build-cache/).
