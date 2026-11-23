@@ -3182,10 +3182,11 @@ a.weekly-entry:focus-visible {
 }
 .sdk-example-editor {
   min-width: 0;
-  background: #140d20;
+  background: #262335;
   border-left: 1px solid #ffffff0c;
 }
 .sdk-example-toolbar {
+  background: #241b2f;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3236,9 +3237,9 @@ a.weekly-entry:focus-visible {
     Menlo,
     monospace;
   tab-size: 2;
-  color: #e5d6f1;
+  color: #ffffff;
   scrollbar-width: thin;
-  scrollbar-color: #70557f transparent;
+  scrollbar-color: #8b5ba6 transparent;
 }
 .sdk-code-line {
   display: block;
@@ -3250,7 +3251,7 @@ a.weekly-entry:focus-visible {
   width: 48px;
   padding-right: 17px;
   text-align: right;
-  color: #786488;
+  color: #a695b8;
   user-select: none;
 }
 .sdk-copy-error {

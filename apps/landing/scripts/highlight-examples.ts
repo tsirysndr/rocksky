@@ -3,7 +3,7 @@ import { sdkExamples } from "../src/sdk-examples";
 
 // Keep grammars and the highlighting engine out of the browser bundle.
 const highlighter = await createHighlighter({
-  themes: ["rose-pine"],
+  themes: ["synthwave-84"],
   langs: sdkExamples.map((example) => example.id as BundledLanguage),
 });
 try {
@@ -13,7 +13,7 @@ try {
       highlighter
         .codeToTokens(example.code, {
           lang: example.id,
-          theme: "rose-pine",
+          theme: "synthwave-84",
         })
         .tokens.map((line) =>
           line.map(({ content, color, fontStyle }) => ({
