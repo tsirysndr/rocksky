@@ -9,7 +9,17 @@ version = "0.11.4"
 
 specs :: Array CommandSpec
 specs =
-  [ { "path": "login"
+  [ { path: "upgrade"
+    , description: "check GitHub releases and upgrade the standalone CLI"
+    , arguments: []
+    , options:
+        [ { flags: "--check", description: "check for updates without downloading", defaultValue: "" }
+        , { flags: "--force", description: "reinstall even if this version is already installed", defaultValue: "" }
+        , { flags: "--version <version>", description: "install a specific CLI release", defaultValue: "" }
+        , { flags: "--output <file>", description: "download to a specific path (also works from npm)", defaultValue: "" }
+        ]
+    }
+  , { "path": "login"
     , "description": "login with your AT Proto account and get a session token"
     , "arguments":
         [ { "flags": "<handle>"

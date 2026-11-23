@@ -14,6 +14,7 @@ import rocksky_cli/commands/upload
 import rocksky_cli/host
 import rocksky_cli/mpd/server
 import rocksky_cli/node
+import rocksky_cli/upgrade
 import rocksky_cli/tui
 import rocksky_cli/value
 
@@ -23,6 +24,7 @@ pub fn dispatch(
   options: Dynamic,
 ) -> promise.Promise(Nil) {
   case command {
+    "upgrade" -> upgrade.run(options, cli.version)
     "login" -> login.run(list.first(args) |> result.unwrap(""))
     "whoami"
     | "nowplaying"

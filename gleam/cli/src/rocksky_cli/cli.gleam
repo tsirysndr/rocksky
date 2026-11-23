@@ -25,6 +25,18 @@ pub fn specification() -> CommandSpec {
     [],
     [
       CommandSpec(
+        "upgrade",
+        "check GitHub releases and upgrade the standalone CLI",
+        [],
+        [
+          OptionSpec("--check", "check for updates without downloading", ""),
+          OptionSpec("--force", "reinstall even if this version is already installed", ""),
+          OptionSpec("--version <version>", "install a specific CLI release", ""),
+          OptionSpec("--output <file>", "download to a specific path (also works from npm)", ""),
+        ],
+        [],
+      ),
+      CommandSpec(
         "login",
         "login with your AT Proto account and get a session token",
         [#("<handle>", "your AT Proto handle (e.g., <username>.bsky.social)")],

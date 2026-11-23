@@ -105,3 +105,20 @@ python3 cli/test/terminal-smoke.py
 Live OAuth/PDS writes, physical audio playback, MPRIS, and physical NFC/cards
 require integration testing with the corresponding account or hardware. The
 terminal smoke test stubs native audio, remote control, and PC/SC so it can exercise the shared OpenTUI screens without account or hardware access.
+
+## Upgrade
+
+```sh
+rocksky upgrade --check              # check stable CLI releases on GitHub
+rocksky upgrade                      # replace an installed standalone binary
+rocksky upgrade --force              # reinstall the current release
+rocksky upgrade --version 0.11.4      # select a specific release
+# From an npm/source installation, choose a standalone binary destination:
+rocksky upgrade --output "$HOME/.local/bin/rocksky"
+```
+
+Downloads show progress, percentage, transferred size and total size. The command
+verifies SHA-256 and the expected size before atomically replacing the executable.
+Interrupted or invalid downloads leave the installed binary intact. PureScript
+binaries keep their variant when upgrading. Node/Bun package installations require
+`--output` to install a standalone binary, or can update with their package manager.

@@ -1,0 +1,13 @@
+{
+  "name": "@rocksky/installer",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.13.2"
+  }
+}

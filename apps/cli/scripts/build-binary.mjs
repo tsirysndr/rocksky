@@ -73,6 +73,7 @@ import {createHash} from "node:crypto";
 import {registerCompiledTui} from ${quote(path.join(ui, "compiled" + (variant === "purescript" ? ".js" : ".ts")))};
 import {tui} from ${quote(path.join(ui, "launch" + (variant === "purescript" ? ".js" : ".tsx")))};
 registerCompiledTui(tui);
+globalThis[Symbol.for("rocksky.cli.binary")] = {variant:${quote(variant)}};
 const bytes = fs.readFileSync(nativeLibrary);
 const hash = createHash("sha256").update(bytes).digest("hex");
 const nativeDirectory = path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "rocksky", "native", hash);

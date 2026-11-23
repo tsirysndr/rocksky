@@ -26,6 +26,7 @@ export const style = name => value => c[name](value);
 export const initializeDatabaseImpl = async () => (await import('../../cli/runtime/drizzle.js')).initializeDatabase();
 export const openBrowserImpl = url => async () => { await (await import('open')).default(url); };
 const commands = {
+ upgrade: async () => (await import('../../cli/runtime/cmd/upgrade.js')).upgrade,
  'scrobble-api': async () => (await import('../../cli/runtime/cmd/scrobble-api.js')).scrobbleApi,
  mcp: async () => (await import('../../cli/runtime/cmd/mcp.js')).mcp,
  mpd: async () => (await import('../../cli/runtime/cmd/mpd.js')).mpd,

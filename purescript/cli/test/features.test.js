@@ -26,7 +26,7 @@ test('CLI exposes every command and nested integration without initializing stat
  const main=run('--help');
  assert.equal(main.status,0,main.stderr);
  for(const command of ['login','whoami','nowplaying','scrobbles','search','stats','artists','albums','tracks','scrobble','create','mcp','sync','scrobble-api','mpd','nfc','card','import','upload','tui']) assert.ok(main.stdout.includes(command));
- for(const args of [['create','apikey'],['nfc','status'],['nfc','read'],['nfc','write'],['card','read'],['card','write'],['import'],['mcp'],['mpd'],['tui'],['upload']]) {
+ for(const args of [['upgrade'],['create','apikey'],['nfc','status'],['nfc','read'],['nfc','write'],['card','read'],['card','write'],['import'],['mcp'],['mpd'],['tui'],['upload']]) {
   const result=run(...args,'--help');assert.equal(result.status,0,result.stderr);assert.ok(result.stdout.includes('Usage: rocksky'));
  }
  assert.equal(run('--version').stdout.trim(),'0.11.4');

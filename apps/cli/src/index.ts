@@ -60,6 +60,28 @@ ${chalk.bold(c.primary("Join our Discord community:"))}        ${c.link("https:/
 );
 
 program
+  .command("upgrade")
+  .description("check GitHub releases and upgrade the standalone CLI")
+  .option("--check", "check for updates without downloading")
+  .option("--force", "reinstall even if this version is already installed")
+  .option("--version <version>", "install a specific CLI release")
+  .option(
+    "--output <file>",
+    "download to a specific path (also works from npm)",
+  )
+  .action(async (opts) => {
+    try {
+      const { upgrade } = await import("./cmd/upgrade.mjs");
+      await upgrade(opts, { currentVersion: version, variant: "typescript" });
+    } catch (error) {
+      console.error(
+        `rocksky: ${error instanceof Error ? error.message : error}`,
+      );
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command("login")
   .argument("<handle>", "your AT Proto handle (e.g., <username>.bsky.social)")
   .description("login with your AT Proto account and get a session token")

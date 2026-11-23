@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rocksky-installer",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-23",
+  "workers_dev": true
+}

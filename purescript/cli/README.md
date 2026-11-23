@@ -82,3 +82,20 @@ Linux x86_64/aarch64, and macOS aarch64 on `macos-latest`.
 
 Library tabs preload in the background and reuse saved metadata while refreshing,
 using the same indexed Navidrome album, artist and song reads as the web library.
+
+## Upgrade
+
+```sh
+rocksky upgrade --check              # check stable CLI releases on GitHub
+rocksky upgrade                      # replace an installed standalone binary
+rocksky upgrade --force              # reinstall the current release
+rocksky upgrade --version 0.11.4      # select a specific release
+# From an npm/source installation, choose a standalone binary destination:
+rocksky upgrade --output "$HOME/.local/bin/rocksky"
+```
+
+Downloads show progress, percentage, transferred size and total size. The command
+verifies SHA-256 and the expected size before atomically replacing the executable.
+Interrupted or invalid downloads leave the installed binary intact. PureScript
+binaries keep their variant when upgrading. Node/Bun package installations require
+`--output` to install a standalone binary, or can update with their package manager.

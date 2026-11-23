@@ -26,6 +26,7 @@ test("standalone CLI exposes every source command and nested option without init
   const help = run(["--help"]);
   assert.equal(help.status, 0, help.stderr);
   for (const command of [
+    "upgrade",
     "login",
     "whoami",
     "nowplaying",
@@ -49,6 +50,7 @@ test("standalone CLI exposes every source command and nested option without init
   ])
     assert.match(help.stdout, new RegExp(`\\b${command}\\b`));
   for (const args of [
+    ["upgrade", "--help"],
     ["create", "apikey", "--help"],
     ["nfc", "write", "--help"],
     ["card", "write", "--help"],

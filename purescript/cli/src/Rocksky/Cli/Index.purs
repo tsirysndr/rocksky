@@ -32,6 +32,7 @@ main = do
 
 dispatch :: Parser.Invocation -> Aff Unit
 dispatch invocation = case invocation.command of
+  "upgrade" -> Runtime.invoke "upgrade" [ invocation.options, F.toForeign { currentVersion: Commands.version, variant: "purescript" } ]
   "albums" -> Reads.ranked "albums" (arg 0) invocation.options
   "artists" -> Reads.ranked "artists" (arg 0) invocation.options
   "tracks" -> Reads.ranked "tracks" (arg 0) invocation.options
