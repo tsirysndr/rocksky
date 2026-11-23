@@ -143,3 +143,24 @@ describe("Jetstream scrobble SSE", () => {
     events.stop();
   });
 });
+
+test("standalone SSE root serves the Rocksky SSE banner as plain text", async () => {
+  const { banner, scrobblesStreamApp } = await import("./stream-app");
+  const events = new ScrobbleEvents({
+    feed: async () => [],
+    existing: async () => new Set(),
+  });
+  const app = scrobblesStreamApp(events);
+  const response = await app.request("/");
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toContain("text/plain");
+  expect(await response.text()).toBe(banner);
+  expect(banner).toContain(
+    String.raw`  / /_/ / __ \/ ___/ //_/ ___/ //_/ / / /   \__ \\__ \/ __/`,
+  );
+  expect((await app.request("/health")).status).toBe(503);
+  events.upstreamConnected = true;
+  events.databaseHealthy = true;
+  expect((await app.request("/health")).status).toBe(200);
+  events.stop();
+});

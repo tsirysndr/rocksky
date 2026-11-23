@@ -1,17 +1,9 @@
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { scrobbleEventsApp } from "./scrobbles/events";
 import { createScrobbleRuntime } from "./scrobbles/runtime";
+import { scrobblesStreamApp } from "./scrobbles/stream-app";
 
 const runtime = createScrobbleRuntime();
-const app = new Hono();
-app.route("/", scrobbleEventsApp(runtime.events));
-app.get("/health", (c) =>
-  c.json(
-    { healthy: runtime.events.healthy, clients: runtime.events.clients },
-    runtime.events.healthy ? 200 : 503,
-  ),
-);
+const app = scrobblesStreamApp(runtime.events);
 runtime.start();
 const server = serve({
   fetch: app.fetch,
