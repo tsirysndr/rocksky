@@ -65,8 +65,22 @@ case "$version" in rocksky-cli-v*) tag=$version ;; v*) tag=rocksky-cli-$version 
 case "$tag" in *[!A-Za-z0-9._-]*|rocksky-cli-v) fail 'Invalid version' ;; esac
 asset=$prefix-$platform-$arch
 printf 'Downloading %s (%s)…\n' "$asset" "$tag"
-fetch "$repository/releases/download/$tag/$asset" "$temporary/$asset"
-fetch "$repository/releases/download/$tag/$asset.sha256" "$temporary/checksum"
+fetch_asset() {
+  attempt=1
+  while [ "$attempt" -le 5 ]; do
+    # Releases become visible before their asset uploads finish. A fresh query
+    # avoids reusing a cached 404 from that window on subsequent attempts.
+    url="$repository/releases/download/$tag/$1?download=1&rocksky=$(date +%s)-$attempt"
+    if fetch "$url" "$2"; then return 0; fi
+    [ "$attempt" -lt 5 ] || break
+    printf 'Release asset not available yet; retrying…\n' >&2
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+  fail "Could not download $1 from $tag"
+}
+fetch_asset "$asset" "$temporary/$asset"
+fetch_asset "$asset.sha256" "$temporary/checksum"
 expected=$(awk 'NR==1 {print $1}' "$temporary/checksum")
 [ "${#expected}" -eq 64 ] || fail 'Invalid SHA-256 checksum'
 case "$expected" in *[!0-9a-fA-F]*) fail 'Invalid SHA-256 checksum' ;; esac
