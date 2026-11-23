@@ -147,17 +147,32 @@ changed s ctx payload = do
       let raw = fromMaybe undefined (path "track" payload)
       let key = fromMaybe "" (readStringAt "name" raw) <> ":" <> Info.artist raw
       let source = Info.source raw
+      let inferredStart = readNumberAt "started_at" raw
+      current <- liftEffect now
       last <- liftEffect (Map.lookup did <$> Ref.read s.last)
       let unchanged = case last of
             Just (Just previous) -> previous.key == key && previous.source == source
+              && (source /= "scrobble" || inferredStart == Just previous.startedAt)
             _ -> false
-      unless unchanged do
+      let inferredStale = source == "scrobble" && case inferredStart of
+            Nothing -> true
+            Just started ->
+              not (Number.isFinite started) || started > current
+              || started + fromMaybe 0.0 (readNumberAt "duration_ms" raw) <= current
+              || case last of
+                  Just (Just previous) -> previous.startedAt > started
+                    || (previous.source /= "scrobble" && previous.startedAt + previous.durationMs > current)
+                  _ -> false
+      unless (unchanged || inferredStale) do
         resolved <- sequential $ { agent: _, info: _ }
           <$> parallel (createAgent ctx did)
           <*> parallel (Info.resolveTrackInfo ctx raw)
         case resolved.agent of
           Nothing -> liftEffect (Log.warn ("[status] No agent for " <> did <> ", skipping song.changed"))
-          Just agent -> writeStatus s ctx did agent raw resolved.info
+          Just agent -> do
+            afterResolve <- liftEffect now
+            unless (source == "scrobble" && fromMaybe 0.0 inferredStart + fromMaybe 0.0 (readNumberAt "duration_ms" raw) <= afterResolve)
+              (writeStatus s ctx did agent raw resolved.info)
   case result of
     Right _ -> pure unit
     Left e -> handleFailure s did "song.changed" (toForeign e)
@@ -168,11 +183,11 @@ writeStatus s ctx did agent raw info = do
   let duration = fromMaybe 0.0 (readNumberAt "durationMs" track)
   let source = Info.source raw
   let key = fromMaybe "" (readStringAt "name" raw) <> ":" <> Info.artist raw
-  started <- liftEffect now
+  current <- liftEffect now
+  let started = fromMaybe current (readNumberAt "started_at" raw)
   startedAt <- liftEffect (iso started)
   expiresAt <- if duration /= 0.0 then do
-    current <- liftEffect now
-    Just <$> liftEffect (iso (current + duration))
+    Just <$> liftEffect (iso (started + duration))
     else pure Nothing
   let record = omitNulls (toForeign { "$type": "app.rocksky.actor.status", track, startedAt, expiresAt: toNullable expiresAt })
   swap <- getSwapCid agent
@@ -183,10 +198,10 @@ writeStatus s ctx did agent raw info = do
     Ref.modify_ (Map.insert did (Just { token, key, source, startedAt: started, durationMs: duration })) s.last
     cancelPendingDelete s did
   when (source == "navidrome") (void (Redis.del ctx.redis ("ws_lastsong:" <> did)))
-  when (duration > 0.0) $ liftEffect $ void $ setTimeout (Int.floor (duration + 10000.0)) do
-    current <- Map.lookup did <$> Ref.read s.last
-    case current of
-      Just (Just entry) | entry.key == key && entry.source == source -> Ref.modify_ (Map.delete did) s.last
+  when (duration > 0.0) $ liftEffect $ void $ setTimeout (Int.floor (max 0.0 (started + duration - current) + 10000.0)) do
+    latest <- Map.lookup did <$> Ref.read s.last
+    case latest of
+      Just (Just entry) | entry.key == key && entry.source == source && entry.startedAt == started -> Ref.modify_ (Map.delete did) s.last
       _ -> pure unit
   liftEffect (Log.info ("[status] Updated status for " <> did <> ": " <> Info.artist raw <> " – " <> fromMaybe "" (readStringAt "name" raw)))
 

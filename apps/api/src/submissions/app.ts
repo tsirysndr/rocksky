@@ -12,6 +12,8 @@ import {
 } from "lib/scrobbleGuard";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { trackSchema } from "types/track";
+import { scrobbleStatus } from "lib/scrobbleStatus";
+import { JSONCodec } from "nats";
 
 import * as TealPlay from "lexicon/types/fm/teal/feed/play";
 import { publishTealRecord } from "tealfm/publication";
@@ -93,6 +95,9 @@ app.post("/process", async (c) => {
       rkey,
       skipTeal: body.skipTeal === true,
     });
+    const status = scrobbleStatus(body.did, track.data);
+    if (status)
+      ctx.nc.publish("rocksky.song.changed", JSONCodec().encode(status));
     return c.json({ status: "published", submissionId: body.submissionId });
   } catch (error) {
     if (error instanceof ScrobbleBotFlaggedError)

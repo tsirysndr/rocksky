@@ -22,6 +22,7 @@ interface SongChangedPayload {
     album?: { id: string; name: string; cover?: string } | string;
     duration_ms?: number;
     progress_ms?: number;
+    started_at?: number;
     // ListenBrainz / websocket: flat strings
     artist?: string;
     album_name?: string;
@@ -257,10 +258,26 @@ export function onSongChanged(ctx: Context) {
         const source =
           rawTrack.source ?? (rawTrack.artists ? "spotify" : "listenbrainz");
         const last = lastPushedStatus.get(did);
+        // Inferred playback must not replace an active live player's status or
+        // publish a listen that expired while waiting in the NATS queue.
+        if (
+          source === "scrobble" &&
+          (!rawTrack.started_at ||
+            rawTrack.started_at > Date.now() ||
+            rawTrack.started_at + (rawTrack.duration_ms ?? 0) <= Date.now() ||
+            (last && last.startedAt > rawTrack.started_at) ||
+            (last && last.source !== source && remainingMs(did) > 0))
+        )
+          continue;
         // Skip only when the same track was already written by the same source.
         // A different source (e.g. Navidrome after Rockbox) is always allowed through
         // so the active player can take ownership of the status record.
-        if (last && last.key === trackKey && last.source === source) {
+        if (
+          last &&
+          last.key === trackKey &&
+          last.source === source &&
+          (source !== "scrobble" || last.startedAt === rawTrack.started_at)
+        ) {
           consola.info(
             `[status] skip unchanged status for ${did}: ${rawTrack.name} (source: ${source})`,
           );
@@ -284,9 +301,12 @@ export function onSongChanged(ctx: Context) {
           albumArt,
           trackNumber,
         );
-        const startedAt = new Date().toISOString();
+        const started = rawTrack.started_at ?? Date.now();
+        if (source === "scrobble" && started + track.durationMs <= Date.now())
+          continue;
+        const startedAt = new Date(started).toISOString();
         const expiresAt = track.durationMs
-          ? new Date(Date.now() + track.durationMs).toISOString()
+          ? new Date(started + track.durationMs).toISOString()
           : undefined;
 
         const record: Status.Record = {
@@ -331,16 +351,20 @@ export function onSongChanged(ctx: Context) {
         if (track.durationMs > 0) {
           const keySnapshot = trackKey;
           const sourceSnapshot = source;
-          setTimeout(() => {
-            const current = lastPushedStatus.get(did);
-            if (
-              current &&
-              current.key === keySnapshot &&
-              current.source === sourceSnapshot
-            ) {
-              lastPushedStatus.delete(did);
-            }
-          }, track.durationMs + 10_000);
+          setTimeout(
+            () => {
+              const current = lastPushedStatus.get(did);
+              if (
+                current &&
+                current.key === keySnapshot &&
+                current.source === sourceSnapshot &&
+                current.startedAt === started
+              ) {
+                lastPushedStatus.delete(did);
+              }
+            },
+            Math.max(0, started + track.durationMs - Date.now()) + 10_000,
+          );
         }
 
         consola.info(

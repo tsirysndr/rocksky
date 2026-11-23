@@ -59,6 +59,7 @@ pub type RawTrack {
     position: Option(Int),
     isrc: Option(String),
     spotify: Option(String),
+    started_at: Option(Int),
   )
 }
 
@@ -89,6 +90,7 @@ pub fn raw_decoder() {
   use album_name <- opt("album_name", decode.string)
   use cover <- opt("albumCoverUrl", decode.string)
   use duration <- decode.optional_field("duration_ms", 0, decode.int)
+  use started_at <- opt("started_at", decode.int)
   use source <- opt("source", decode.string)
   use mbid <- opt("recording_mb_id", decode.string)
   use position <- opt("track_number", decode.int)
@@ -146,6 +148,7 @@ pub fn raw_decoder() {
         False -> None
       },
     ),
+    started_at,
   ))
 }
 
@@ -327,10 +330,31 @@ pub fn changed(
 ) {
   let key = raw.name <> ":" <> raw.artist
   let unchanged = case map.get(state.last, did) {
-    Some(Some(last)) -> last.key == key && last.source == raw.source
+    Some(Some(last)) ->
+      last.key == key
+      && last.source == raw.source
+      && { raw.source != "scrobble" || raw.started_at == Some(last.started_at) }
     _ -> False
   }
-  case is_rate_limited(state, did, js.now_ms()) || unchanged {
+  let inferred_stale = case raw.source, raw.started_at {
+    "scrobble", Some(started) -> {
+      let superseded = case map.get(state.last, did) {
+        Some(Some(last)) ->
+          last.started_at > started
+          || {
+            last.source != "scrobble"
+            && last.started_at + last.duration_ms > js.now_ms()
+          }
+        _ -> False
+      }
+      started > js.now_ms()
+      || started + raw.duration <= js.now_ms()
+      || superseded
+    }
+    "scrobble", None -> True
+    _, _ -> False
+  }
+  case is_rate_limited(state, did, js.now_ms()) || unchanged || inferred_stale {
     True -> task.ok(Nil)
     False ->
       change(ctx, state, did, raw, key, factory)
@@ -347,10 +371,15 @@ fn change(
   factory: fn(String) -> task.Task(Option(atproto.Agent)),
 ) {
   use resolved <- task.then(task.all2(factory(did), resolve(ctx, raw)))
+  let expired = case raw.source, raw.started_at {
+    "scrobble", Some(started) -> started + raw.duration <= js.now_ms()
+    _, _ -> False
+  }
   case resolved.0 {
     None -> task.ok(Nil)
+    Some(_) if expired -> task.ok(Nil)
     Some(agent) -> {
-      let started = js.now_ms()
+      let started = option.unwrap(raw.started_at, js.now_ms())
       let record =
         json.object(
           list.append(
@@ -412,14 +441,19 @@ fn change(
       case raw.duration > 0 {
         True -> {
           let _ =
-            timer.schedule(raw.duration + 10_000, fn() {
-              case map.get(state.last, did) {
-                Some(Some(current))
-                  if current.key == key && current.source == raw.source
-                -> map.remove(state.last, did)
-                _ -> Nil
-              }
-            })
+            timer.schedule(
+              int.max(0, started + raw.duration - js.now_ms()) + 10_000,
+              fn() {
+                case map.get(state.last, did) {
+                  Some(Some(current))
+                    if current.key == key
+                    && current.source == raw.source
+                    && current.started_at == started
+                  -> map.remove(state.last, did)
+                  _ -> Nil
+                }
+              },
+            )
           Nil
         }
         False -> Nil

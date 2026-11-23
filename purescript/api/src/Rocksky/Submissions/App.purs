@@ -13,11 +13,13 @@ import Effect.Aff (attempt)
 import Effect.Class (liftEffect)
 import Foreign (Foreign)
 import Hono as Hono
+import Nats as Nats
 import Rocksky.Context (Context)
 import Rocksky.Lib.Agent (createAgent, pdsSessionExpired)
 import Rocksky.Lib.DurableSubmission (submissionRecordKey, validSubmissionSecret)
 import Rocksky.Lib.Env (env)
-import Rocksky.Lib.Foreign (path, readBooleanAt, readStringAt, toForeign, undefined)
+import Rocksky.Lib.Foreign (path, readBooleanAt, readStringAt, stringify, toForeign, undefined)
+import Rocksky.Lib.ScrobbleStatus (scrobbleStatus)
 import Rocksky.Lib.Matching (matches)
 import Rocksky.Lib.Rest as Rest
 import Rocksky.Lib.ScrobbleGuard (ScrobbleGuardError(..), fromError)
@@ -79,7 +81,12 @@ app ctx = do
                 case maybeAgent of
                   Nothing -> Rest.json c 401 (toForeign pdsSessionExpired)
                   Just agent -> do
-                    result <- attempt (scrobbleTrack ctx track agent input.did false Nothing (Just { id: input.submissionId, rkey, skipTeal: readBooleanAt "skipTeal" body == Just true }))
+                    result <- attempt do
+                      scrobbleTrack ctx track agent input.did false Nothing (Just { id: input.submissionId, rkey, skipTeal: readBooleanAt "skipTeal" body == Just true })
+                      current <- liftEffect (Date.getTime <$> Date.now)
+                      case scrobbleStatus input.did track current of
+                        Nothing -> pure unit
+                        Just event -> liftEffect (Nats.publishString ctx.nc "rocksky.song.changed" (stringify event))
                     case result of
                       Right _ -> success c input.submissionId
                       Left e -> case fromError e of

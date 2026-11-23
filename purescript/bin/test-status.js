@@ -125,6 +125,29 @@ try {
   const info = await run(Info.resolveTrackInfo(h.ctx)({ ...raw, recording_mb_id: "provided", track_number: 0 }));
   assert.equal(info.recordingMbId.value0, "provided");
   assert.equal(info.trackNumber.constructor.name, "Nothing");
+  const inferred = harness();
+  const started = clock - 90000;
+  const listen = { ...raw, source: "scrobble", started_at: started };
+  await run(S.changed(inferred.state)(inferred.ctx)(payload(listen)));
+  assert.equal(inferred.writes.length, 1);
+  assert.equal(inferred.writes[0].record.startedAt, new Date(started).toISOString());
+  assert.equal(inferred.writes[0].record.expiresAt, new Date(started + raw.duration_ms).toISOString());
+  await run(S.changed(inferred.state)(inferred.ctx)(payload(listen)));
+  assert.equal(inferred.writes.length, 1, "Submission retries are deduplicated");
+  for (const change of [{ started_at: clock - 180001 }, { started_at: clock + 1 }, { started_at: undefined }, { name: "Older", started_at: started - 1000 }]) {
+    await run(S.changed(inferred.state)(inferred.ctx)(payload({ ...listen, ...change })));
+  }
+  assert.equal(inferred.writes.length, 1, "Expired, future, untimed and out-of-order listens cannot publish");
+  const previousExpiry = [...timers.values()].filter(t => t.delay === 100000).at(-1);
+  const repeat = { ...listen, started_at: clock - 1000 };
+  await run(S.changed(inferred.state)(inferred.ctx)(payload(repeat)));
+  assert.equal(inferred.writes.length, 2, "Same-song replay has a distinct start");
+  previousExpiry.fn();
+  await run(S.changed(inferred.state)(inferred.ctx)(payload(repeat)));
+  assert.equal(inferred.writes.length, 2, "Old expiry cannot clear a replay's dedup state");
+  await run(S.changed(inferred.state)(inferred.ctx)(payload({ ...raw, source: "navidrome" })));
+  await run(S.changed(inferred.state)(inferred.ctx)(payload({ ...listen, name: "Android", started_at: clock - 500 })));
+  assert.equal(inferred.writes.length, 3, "An active live source retains ownership");
   console.log("Verified status source ownership, stop snapshots, rate-limit backoff, failed-CID read guard, metadata normalization and expiry.");
 } finally {
   globalThis.Date = NativeDate;

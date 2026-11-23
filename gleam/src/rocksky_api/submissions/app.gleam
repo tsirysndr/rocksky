@@ -10,9 +10,11 @@ import rocksky_api/error
 import rocksky_api/lexicon/validation
 import rocksky_api/lib/agent
 import rocksky_api/lib/durable_submission
+import rocksky_api/lib/scrobble_status
 import rocksky_api/lib/track
 import rocksky_api/node/hono
 import rocksky_api/node/js
+import rocksky_api/node/nats
 import rocksky_api/node/pg
 import rocksky_api/nowplaying/service
 import rocksky_api/task
@@ -134,7 +136,7 @@ fn process(
             use agent <- task.then(factory(identity.0))
             let skip =
               decode.run(body, decode.at(["skipTeal"], decode.bool)) == Ok(True)
-            service.scrobble_track(
+            use _ <- task.map(service.scrobble_track(
               ctx,
               track,
               agent,
@@ -142,7 +144,16 @@ fn process(
               False,
               None,
               Some(service.Submission(identity.1, rkey, skip)),
-            )
+            ))
+            case scrobble_status.event(identity.0, track, js.now_ms()) {
+              None -> Nil
+              Some(event) ->
+                nats.publish(
+                  ctx.nc,
+                  "rocksky.song.changed",
+                  json.to_string(event),
+                )
+            }
           }
         })
         task.ok(identity.1)

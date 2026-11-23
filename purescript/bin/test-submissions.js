@@ -85,9 +85,11 @@ const sqliteDb = new Kysely({ dialect: {
   createDriver: () => new DummyDriver(), createQueryCompiler: () => new SqliteQueryCompiler(),
   createAdapter: () => new SqliteAdapter(), createIntrospector: db => new SqliteIntrospector(db),
 } });
-async function processWith({ isBot = false, ttl = -1, pds = "missing", revoked = false }) {
+const statusEvents = [];
+async function processWith({ isBot = false, ttl = -1, pds = "missing", revoked = false, track = stored }) {
   const route = app({
     sqliteDb, lexicons,
+    nc: { publish(subject, data) { statusEvents.push({ subject, payload: JSON.parse(Buffer.from(data).toString()) }); } },
     oauthClient: { async restore() {
       if (revoked) throw Object.assign(new Error("revoked"), { name: "AuthMethodUnsatisfiableError" });
       return { did: base.did, async fetchHandler() {
@@ -99,7 +101,7 @@ async function processWith({ isBot = false, ttl = -1, pds = "missing", revoked =
     db: { select() { const b = { from: () => b, where: () => b, limit: () => b, execute: async () => [{ isBot }] }; return b; } },
     redis: { async ttl() { return ttl; } },
   })();
-  return route.request("http://localhost/process", { method: "POST", headers: { "content-type": "application/json", "x-rocksky-submissions-secret": process.env.SUBMISSIONS_SECRET }, body: JSON.stringify({ ...base, track: stored }) });
+  return route.request("http://localhost/process", { method: "POST", headers: { "content-type": "application/json", "x-rocksky-submissions-secret": process.env.SUBMISSIONS_SECRET }, body: JSON.stringify({ ...base, track }) });
 }
 const bot = await processWith({ isBot: true });
 assert.equal(bot.status, 403);
@@ -111,5 +113,13 @@ assert.deepEqual(await temporary.json(), { error: "Scrobble temporarily blocked"
 assert.equal((await processWith({ pds: "failure" })).status, 503);
 assert.equal((await processWith({ revoked: true })).status, 401);
 assert.equal((await processWith({ pds: "exists" })).status, 200);
+assert.equal(statusEvents.length, 0, "Old stored history never emits status");
+const recent = { ...stored, duration: 200000, timestamp: Math.floor(Date.now() / 1000) - 100 };
+assert.equal((await processWith({ pds: "exists", track: recent })).status, 200);
+assert.equal(statusEvents.length, 1);
+assert.equal(statusEvents[0].subject, "rocksky.song.changed");
+assert.equal(statusEvents[0].payload.did, base.did);
+assert.equal(statusEvents[0].payload.track.started_at, recent.timestamp * 1000);
+assert.equal(statusEvents[0].payload.track.duration_ms, recent.duration);
 await sqliteDb.destroy();
 console.log("Verified real callback routing for bot blocks, Retry-After, PDS failures, expired sessions and durable recovery.");

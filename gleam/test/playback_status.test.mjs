@@ -35,3 +35,36 @@ test('Playback status handles source handoff, deferred stops, expiry and rate li
  const normalized=status.normalize(spotify,new None(),new Some('https://other'),new Some(2));assert.equal(normalized.source,'spotify');assert.equal(normalized.artist,'Band');assert.equal(normalized.albumCoverUrl,'https://cover');
  await status.changed(ctx,state,agent.did,spotify,factory);t.mock.timers.tick(11001);await settle();await status.changed(ctx,state,agent.did,spotify,factory);assert.equal(writes.length,5,'expired dedup allows replay');
 });
+
+
+test('timestamped scrobbles update the PDS status with original expiry and cannot replace newer playback', async t => {
+ t.mock.timers.enable({apis:['Date','setTimeout'],now:1800000000000});
+ const writes=[];
+ const agent={did:'did:plc:android',com:{atproto:{repo:{
+  getRecord:async()=>{throw {status:404};},
+  putRecord:async p=>{writes.push(p);return {data:{uri:'at://status',cid:'cid'}};}
+ }}}};
+ const factory=async()=>new Ok(new Some(agent));
+ const ctx={redis:{del:async()=>1},matching:axios.create({adapter:async config=>({status:200,headers:{},data:{status:'unmatched',policyVersion:'1',track:null,candidates:[]},config})})};
+ const parse=value=>{const r=run(value,status.raw_decoder());assert.ok(r instanceof Ok);return r[0];};
+ const state=status.new$();
+ const raw={name:'Song',artist:'Artist',album:'Album',source:'scrobble',duration_ms:200000,started_at:Date.now()-100000};
+ await status.changed(ctx,state,agent.did,parse(raw),factory);
+ assert.equal(writes.length,1);
+ assert.equal(writes[0].record.startedAt,new Date(raw.started_at).toISOString());
+ assert.equal(writes[0].record.expiresAt,new Date(raw.started_at+200000).toISOString());
+ await status.changed(ctx,state,agent.did,parse(raw),factory);
+ assert.equal(writes.length,1,'submission retries are deduplicated');
+ await status.changed(ctx,state,agent.did,parse({...raw,name:'Old',started_at:Date.now()-200001}),factory);
+ assert.equal(writes.length,1,'offline history cannot publish');
+ await status.changed(ctx,state,agent.did,parse({...raw,name:'Other',started_at:Date.now()-110000}),factory);
+ assert.equal(writes.length,1,'out of order listens cannot replace current playback');
+ await status.changed(ctx,state,agent.did,parse({...raw,name:'Live',source:'navidrome',started_at:undefined}),factory);
+ assert.equal(writes.length,2);
+ await status.changed(ctx,state,agent.did,parse({...raw,name:'Android',started_at:Date.now()-50000}),factory);
+ assert.equal(writes.length,2,'active live sources retain ownership');
+ const replayState=status.new$();
+ await status.changed(ctx,replayState,agent.did,parse(raw),factory);
+ await status.changed(ctx,replayState,agent.did,parse({...raw,started_at:Date.now()-10000}),factory);
+ assert.equal(writes.length,4,'a genuine repeat has a distinct start even with the same metadata');
+});

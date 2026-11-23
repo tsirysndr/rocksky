@@ -64,6 +64,14 @@ timestamp and rely on the API's existing timestamp-window duplicate protection.
 The API currently acknowledges ingestion before its asynchronous downstream
 pipeline completes; the client cannot guarantee downstream publication on a 2xx.
 
+The API infers `app.rocksky.actor.status` from a processed listen while its
+original timestamp plus duration is still in the future. This supports existing
+Android builds: status appears once the scrobble qualifies and is processed,
+and expires at the original track end. Expired offline history, unknown durations,
+and future timestamps do not publish live status. An active live playback source
+keeps priority. Immediate track-start and pause updates require a live reporting
+transport in the Android listener; the saved-listen upload does not provide them.
+
 ## Validation
 
 ```sh
