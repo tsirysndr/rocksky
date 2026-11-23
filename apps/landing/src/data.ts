@@ -32,7 +32,7 @@ export function useCommunity() {
   const feed = useQuery({
     queryKey: ["landing", "scrobbles"],
     queryFn: async () => {
-      const snapshot = (await client.scrobbleFeed(undefined, false, 12)).map(
+      const snapshot = (await client.scrobbleFeed(undefined, false, 15)).map(
         normalizeScrobble,
       );
       return reconcileScrobbles(

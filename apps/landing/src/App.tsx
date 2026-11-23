@@ -732,7 +732,7 @@ function LandingPage() {
               ) : tracks.length > 0 ? (
                 <div className="feed-list">
                   <AnimatePresence initial={false} mode="popLayout">
-                    {tracks.slice(0, 6).map((track, index) => (
+                    {tracks.slice(0, 15).map((track, index) => (
                       <motion.div
                         key={
                           track.id ||

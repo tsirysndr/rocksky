@@ -1,7 +1,7 @@
 # Public live scrobbles
 
 `GET /events/scrobbles` is an unauthenticated, CORS-enabled SSE stream.
-Each connection receives the latest 12 indexed scrobbles, followed by named
+Each connection receives the latest 15 indexed scrobbles, followed by named
 `scrobbles` events containing `{ "scrobbles": [...] }` when the feed changes.
 Named `heartbeat` events every 15 seconds contain `{ "healthy": true }` when
 both Jetstream and PostgreSQL are available. Clients should reconnect and keep

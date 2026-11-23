@@ -72,13 +72,13 @@ describe("live scrobble updates", () => {
       ),
     );
     const tracks = liveScrobbles({ scrobbles: [...rows, rows[19]] })!;
-    expect(tracks).toHaveLength(12);
+    expect(tracks).toHaveLength(15);
     expect(tracks.slice(0, 3).map((track) => track.id)).toEqual([
       "19",
       "18",
       "17",
     ]);
-    expect(new Set(tracks.map(scrobbleKey)).size).toBe(12);
+    expect(new Set(tracks.map(scrobbleKey)).size).toBe(15);
   });
   test("ignores malformed messages and supports an authoritative empty snapshot", () => {
     for (const message of [

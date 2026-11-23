@@ -24,7 +24,7 @@ export function createScrobbleRuntime() {
     async feed() {
       const { rows } = await pool.query(`WITH recent AS (
         SELECT xata_id, uri, timestamp, track_id, user_id FROM scrobbles
-        ORDER BY timestamp DESC, xata_id DESC LIMIT 12
+        ORDER BY timestamp DESC, xata_id DESC LIMIT 15
       ) SELECT s.xata_id AS id, s.uri, t.uri AS "trackUri", t.title, t.artist,
         t.album, t.album_art AS "albumArt", u.did, u.handle, u.avatar,
         s.timestamp AS "createdAt"

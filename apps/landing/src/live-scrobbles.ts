@@ -10,7 +10,7 @@ function string(value: unknown) {
   return typeof value === "string" ? value : undefined;
 }
 
-// The public websocket sends joined Drizzle rows; tolerate flat AppView rows too.
+// Accept flat SSE snapshots and legacy joined AppView rows.
 export function liveScrobbles(message: unknown): ScrobbleViewBasic[] | null {
   const rows = object(message)?.scrobbles;
   if (!Array.isArray(rows)) return null;
@@ -69,7 +69,7 @@ export function liveScrobbles(message: unknown): ScrobbleViewBasic[] | null {
         (Date.parse(b.createdAt || "") || 0) -
         (Date.parse(a.createdAt || "") || 0),
     )
-    .slice(0, 12);
+    .slice(0, 15);
 }
 
 export function scrobbleKey(track: ScrobbleViewBasic) {
