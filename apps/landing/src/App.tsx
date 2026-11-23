@@ -53,6 +53,7 @@ import {
   trackUrl,
   useCommunity,
 } from "./data";
+import SdkIntegrations from "./SdkIntegrations";
 import WeeklyCharts from "./WeeklyCharts";
 import SearchModal, { searchOpenAtom } from "./SearchModal";
 import LoginScreen from "./LoginScreen";
@@ -1115,24 +1116,21 @@ function LandingPage() {
               <h3>Build your own integration</h3>
               <p>
                 Use the Rocksky SDK to submit scrobbles, read listening stats,
-                or build a music app. Get started with the TypeScript package
-                and examples in the docs.
+                or build a music app. Explore SDKs for ten languages, with
+                examples to get your next idea started.
               </p>
               <div className="sdk-package">
-                <span>TypeScript</span>
-                <code>@rocksky/sdk</code>
+                <span>Made for your stack</span>
+                <code>10 languages</code>
               </div>
-              <a
-                className="text-link"
-                href="https://docs.rocksky.app/sdks/overview"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Read the SDK docs <ArrowUpRight size={18} />
+              <a className="text-link" href="#integrations">
+                Explore the SDKs <ArrowUpRight size={18} />
               </a>
             </Reveal>
           </div>
         </section>
+
+        <SdkIntegrations />
 
         <section
           id="music-player"
@@ -1141,7 +1139,7 @@ function LandingPage() {
         >
           <Reveal className="section-heading player-heading">
             <div>
-              <div className="eyebrow">07 / MUSIC-PLAYER</div>
+              <div className="eyebrow">08 / MUSIC-PLAYER</div>
               <h2 id="player-title">
                 A desktop player.
                 <br />
@@ -1206,7 +1204,7 @@ function LandingPage() {
         >
           <Reveal className="section-heading player-heading">
             <div>
-              <div className="eyebrow">08 / ROCKSKY CLI</div>
+              <div className="eyebrow">09 / ROCKSKY CLI</div>
               <h2 id="cli-title">
                 Your music.
                 <br />
@@ -1260,7 +1258,7 @@ function LandingPage() {
         >
           <Reveal className="section-heading player-heading">
             <div>
-              <div className="eyebrow">09 / @ROCKSKY/PLAYERD</div>
+              <div className="eyebrow">10 / @ROCKSKY/PLAYERD</div>
               <h2 id="playerd-title">
                 Music on your Raspberry Pi.
                 <br />
@@ -1382,6 +1380,9 @@ function LandingPage() {
           <p>Music scrobbling on AT Protocol.</p>
         </div>
         <nav aria-label="Footer navigation">
+          <a href="#integrations">
+            <Code2 size={17} aria-hidden="true" /> SDKs
+          </a>
           <a href="#cli">
             <Terminal size={17} aria-hidden="true" /> CLI
           </a>

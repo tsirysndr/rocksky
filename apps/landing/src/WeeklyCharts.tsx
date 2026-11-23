@@ -1,8 +1,20 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
-import { ArrowUpRight, Disc3, Music2, UserRound } from "lucide-react";
+import { ArrowUpRight, Disc3, Music2, UserRound, Users } from "lucide-react";
 import { appUrl, client, liveAtom } from "./data";
-import { weekStart } from "./weekly";
+import { periodStart, type ChartPeriod } from "./weekly";
+
+const periods = [
+  { id: "today", label: "Today", since: "Since midnight · your local time" },
+  { id: "week", label: "This week", since: "Since Monday · your local time" },
+  {
+    id: "month",
+    label: "This month",
+    since: "Since the first of the month · your local time",
+  },
+  { id: "all", label: "All time", since: "Across all listening history" },
+] as const;
 
 type Entry = {
   id?: string;
@@ -11,8 +23,10 @@ type Entry = {
   subtitle?: string;
   image?: string;
   listeners?: number;
+  scrobbles?: number;
+  href?: string;
 };
-type Kind = "tracks" | "albums" | "artists";
+type Kind = "tracks" | "albums" | "artists" | "listeners";
 
 function entryUrl(uri?: string) {
   const match = uri?.match(
@@ -23,12 +37,34 @@ function entryUrl(uri?: string) {
     : undefined;
 }
 
-function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
+function Chart({
+  kind,
+  startDate,
+  period,
+}: {
+  kind: Kind;
+  startDate: string | null;
+  period: ChartPeriod;
+}) {
   const live = useAtomValue(liveAtom);
   const query = useQuery({
-    queryKey: ["landing", "weekly", kind, startDate],
+    queryKey: ["landing", "charts", kind, period, startDate],
     queryFn: async (): Promise<Entry[]> => {
-      const interval = { startDate, endDate: new Date().toISOString() };
+      const interval = startDate
+        ? { startDate, endDate: new Date().toISOString() }
+        : {};
+      if (kind === "listeners") {
+        return (await client.topScrobblers(5, 0, interval)).map((listener) => ({
+          id: listener.did || listener.id,
+          title: listener.displayName || listener.handle || "Rocksky listener",
+          subtitle: listener.handle ? `@${listener.handle}` : undefined,
+          image: listener.avatar,
+          scrobbles: listener.scrobbles,
+          href: listener.did
+            ? `${appUrl}/${encodeURIComponent(listener.did)}`
+            : undefined,
+        }));
+      }
       if (kind === "artists") {
         return (await client.topArtistsInterval(5, 0, interval)).map(
           (artist) => ({
@@ -58,23 +94,33 @@ function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
     refetchInterval: live ? 300_000 : false,
   });
   const Icon =
-    kind === "artists" ? UserRound : kind === "albums" ? Disc3 : Music2;
+    kind === "listeners"
+      ? Users
+      : kind === "artists"
+        ? UserRound
+        : kind === "albums"
+          ? Disc3
+          : Music2;
   const title = `Top ${kind}`;
+  const periodLabel = periods.find((item) => item.id === period)!.label;
   return (
     <article
       className={`weekly-chart weekly-${kind}`}
-      aria-label={`${title} this week`}
+      aria-label={`${title}, ${periodLabel.toLowerCase()}`}
     >
       <div className="weekly-chart-heading">
         <h3>
           <Icon size={18} /> {title}
         </h3>
-        <span>THIS WEEK</span>
+        <span>{periodLabel.toUpperCase()}</span>
       </div>
       {query.data?.length ? (
         <ol className="weekly-list">
           {query.data.map((entry, index) => {
-            const href = entryUrl(entry.uri);
+            const href = entry.href || entryUrl(entry.uri);
+            const count =
+              kind === "listeners" ? entry.scrobbles : entry.listeners;
+            const unit = kind === "listeners" ? "scrobble" : "listener";
             const content = (
               <>
                 <span className="weekly-rank">
@@ -97,13 +143,9 @@ function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
                   <strong>{entry.title}</strong>
                   {entry.subtitle && <span>{entry.subtitle}</span>}
                 </span>
-                <span className="weekly-listeners">
-                  {entry.listeners === undefined
-                    ? "—"
-                    : entry.listeners.toLocaleString()}
-                  <span>
-                    {entry.listeners === 1 ? "listener" : "listeners"}
-                  </span>
+                <span className="weekly-count">
+                  {count === undefined ? "—" : count.toLocaleString()}
+                  <span>{count === 1 ? unit : `${unit}s`}</span>
                 </span>
               </>
             );
@@ -140,7 +182,7 @@ function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
           <p>
             {query.isError
               ? "This chart is taking a break."
-              : "A new week, a fresh chart."}
+              : "A fresh chart, waiting for listens."}
           </p>
           {query.isError ? (
             <button type="button" onClick={() => void query.refetch()}>
@@ -164,22 +206,24 @@ function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
 }
 
 export default function WeeklyCharts() {
-  // The lightweight timer also rolls the query keys over at a new UTC week.
+  const [period, setPeriod] = useState<ChartPeriod>("week");
+  // Refreshing the clock rolls the keys over at a new local day, week, or month.
   const clock = useQuery({
-    queryKey: ["landing", "week-start"],
-    queryFn: () => weekStart(),
-    initialData: () => weekStart(),
-    refetchInterval: 60_000,
+    queryKey: ["landing", "period-start", period],
+    queryFn: () => periodStart(period),
+    initialData: () => periodStart(period),
+    refetchInterval: period === "all" ? false : 60_000,
   });
+  const selection = periods.find((item) => item.id === period)!;
   return (
     <section id="this-week" className="container weekly-section section-space">
       <div className="section-heading weekly-heading">
         <div>
-          <div className="eyebrow">03 / THIS WEEK ON ROCKSKY</div>
+          <div className="eyebrow">03 / COMMUNITY CHARTS</div>
           <h2>
             On repeat.
             <br />
-            <span className="muted-heading">All week long.</span>
+            <span className="muted-heading">Find your next favorite.</span>
           </h2>
         </div>
         <div className="weekly-intro">
@@ -188,17 +232,38 @@ export default function WeeklyCharts() {
             by unique listeners: each person counts once per track, album, or
             artist.
           </p>
-          <span>Since Monday · UTC</span>
+          <span>{selection.since}</span>
           <a href={`${appUrl}/charts`}>
             Explore the charts <ArrowUpRight size={17} />
           </a>
         </div>
       </div>
-      <div className="weekly-grid">
-        {(["tracks", "albums", "artists"] as const).map((kind) => (
-          <Chart kind={kind} startDate={clock.data} key={kind} />
+      <div className="chart-periods" role="group" aria-label="Chart period">
+        {periods.map((item) => (
+          <button
+            type="button"
+            key={item.id}
+            aria-pressed={period === item.id}
+            onClick={() => setPeriod(item.id)}
+          >
+            {item.label}
+          </button>
         ))}
       </div>
+      <div className="weekly-grid">
+        {(["tracks", "albums", "artists", "listeners"] as const).map((kind) => (
+          <Chart
+            kind={kind}
+            startDate={clock.data}
+            period={period}
+            key={kind}
+          />
+        ))}
+      </div>
+      <p className="chart-ranking-note">
+        Music ranks by unique listeners. Top listeners ranks by scrobbles in the
+        selected period.
+      </p>
     </section>
   );
 }
