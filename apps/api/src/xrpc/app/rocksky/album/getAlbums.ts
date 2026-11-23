@@ -1,6 +1,6 @@
 import { consola } from "consola";
 import type { Context } from "context";
-import { count, desc, inArray, sql } from "drizzle-orm";
+import { and, count, desc, gte, inArray, lte, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { filteredPage } from "lib/filteredPage";
 import { queryCache } from "lib/queryCache";
@@ -97,13 +97,26 @@ export const retrieveAlbums = async (
       )
     : undefined;
   if (pageIds?.length === 0) return { data: [] };
+  const dates = [
+    params.startDate
+      ? gte(tables.scrobbles.timestamp, new Date(params.startDate))
+      : undefined,
+    params.endDate
+      ? lte(tables.scrobbles.timestamp, new Date(params.endDate))
+      : undefined,
+  ];
   const topAlbumsQb = db
     .select({
       albumId: tables.scrobbles.albumId,
       play_count: count().as("play_count"),
     })
     .from(tables.scrobbles)
-    .where(pageIds ? inArray(tables.scrobbles.albumId, pageIds) : undefined);
+    .where(
+      and(
+        ...dates,
+        pageIds ? inArray(tables.scrobbles.albumId, pageIds) : undefined,
+      ),
+    );
 
   const topAlbumsQuery = await topAlbumsQb
     .groupBy(tables.scrobbles.albumId)
@@ -142,7 +155,7 @@ export const retrieveAlbums = async (
         unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
       })
       .from(tables.scrobbles)
-      .where(inArray(tables.scrobbles.albumId, albumIds))
+      .where(and(...dates, inArray(tables.scrobbles.albumId, albumIds)))
       .groupBy(tables.scrobbles.albumId)
       .execute(),
   ]);

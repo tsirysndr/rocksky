@@ -48,6 +48,18 @@ const album = id => ({ id, uri: "at://did:plc:a/app.rocksky.album/" + id, title:
   assert.deepEqual(await run(Albums.retrieveAlbums(mock.db)({ filter: "title==Absent" })), { data: [] });
   mock.done();
 }
+{
+  const mock = mockDb([[{ albumId: "a", play_count: 1 }], [album("a")], [{ albumId: "a", unique_listeners: 1 }]]);
+  await run(Albums.retrieveAlbums(mock.db)({ startDate: "2026-11-23T00:00:00Z", endDate: "2026-11-24T00:00:00Z" }));
+  const conditions = mock.queries.filter(([kind]) => kind === "where").map(([, query]) => query);
+  for (const query of [conditions[0], conditions[2]]) {
+    assert.match(query.sql, /timestamp.*>=/);
+    assert.match(query.sql, /timestamp.*<=/);
+    assert.ok(query.params.some(value => value instanceof Date && value.toISOString().startsWith("2026-11-23")));
+    assert.ok(query.params.some(value => value instanceof Date && value.toISOString().startsWith("2026-11-24")));
+  }
+  mock.done();
+}
 const date = new Date("2026-10-18T00:00:00Z");
 const track = (id, number, lyrics) => ({ id, title: id, discNumber: 1, trackNumber: number, lyrics, createdAt: date, updatedAt: date });
 {

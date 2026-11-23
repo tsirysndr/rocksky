@@ -9622,12 +9622,21 @@ pub type GetAlbumsParams {
     offset: Option(Int),
     genre: Option(String),
     filter: Option(String),
+    start_date: Option(String),
+    end_date: Option(String),
   )
 }
 
 /// Construct with required fields; optional fields default to None.
 pub fn new_get_albums_params() -> GetAlbumsParams {
-  GetAlbumsParams(limit: None, offset: None, genre: None, filter: None)
+  GetAlbumsParams(
+    limit: None,
+    offset: None,
+    genre: None,
+    filter: None,
+    start_date: None,
+    end_date: None,
+  )
 }
 
 pub fn get_albums_params_decoder() -> decode.Decoder(GetAlbumsParams) {
@@ -9649,11 +9658,23 @@ pub fn get_albums_params_decoder() -> decode.Decoder(GetAlbumsParams) {
     None,
     decode.optional(decode.string),
   )
+  use start_date <- decode.optional_field(
+    "startDate",
+    None,
+    decode.optional(decode.string),
+  )
+  use end_date <- decode.optional_field(
+    "endDate",
+    None,
+    decode.optional(decode.string),
+  )
   decode.success(GetAlbumsParams(
     limit: limit,
     offset: offset,
     genre: genre,
     filter: filter,
+    start_date: start_date,
+    end_date: end_date,
   ))
 }
 
@@ -9670,6 +9691,14 @@ pub fn encode_get_albums_params(value: GetAlbumsParams) -> json.Json {
       },
       case value.genre {
         Some(v) -> [#("genre", json.string(v))]
+        None -> []
+      },
+      case value.start_date {
+        Some(v) -> [#("startDate", json.string(v))]
+        None -> []
+      },
+      case value.end_date {
+        Some(v) -> [#("endDate", json.string(v))]
         None -> []
       },
       case value.filter {

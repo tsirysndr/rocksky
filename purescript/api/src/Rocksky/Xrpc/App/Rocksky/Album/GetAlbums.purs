@@ -3,7 +3,10 @@ module Rocksky.Xrpc.App.Rocksky.Album.GetAlbums (register, retrieveAlbums, filte
 import Prelude
 import Atproto.XrpcServer as Xrpc
 import Control.Parallel (parallel, sequential)
-import Data.Array (mapMaybe, null)
+import Data.Array (catMaybes, mapMaybe, null)
+import Data.JSDate as Date
+import Data.Traversable (traverse)
+import Effect.Class (liftEffect)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, isNothing, maybe)
 import Data.Nullable (Nullable, toMaybe)
@@ -29,7 +32,7 @@ import Rocksky.Schema as T
 import Rocksky.Xrpc.App.Rocksky.Actor.GetActorAlbums (Album)
 import Rocksky.Xrpc.Util as Util
 
-type QueryParams = { limit :: Nullable Int, offset :: Nullable Int, filter :: Nullable String }
+type QueryParams = { limit :: Nullable Int, offset :: Nullable Int, filter :: Nullable String, startDate :: Nullable String, endDate :: Nullable String }
 type AlbumRow =
   { id :: String, uri :: Nullable String, title :: String, artist :: String, artistUri :: Nullable String
   , year :: Nullable Int, albumArt :: Nullable String, releaseDate :: Nullable String, sha256 :: String }
@@ -47,6 +50,10 @@ retrieveAlbums db params = do
   let size = fromMaybe 100 (toMaybe params.limit)
       start = fromMaybe 0 (toMaybe params.offset)
   filterWhere <- compileRsqlFilterParam (toMaybe params.filter) filterFields
+  dates <- liftEffect (traverse (\{ op, value } -> do
+    date <- Date.parse value
+    pure (SQL.template ["", " ", ""] [toSQL T.scrobblesC.timestamp, SQL.raw op, SQL.date date]))
+    (catMaybes [ (\value -> { op: ">=", value }) <$> toMaybe params.startDate, (\value -> { op: "<=", value }) <$> toMaybe params.endDate ]))
   pageIds <- case filterWhere of
     Nothing -> pure Nothing
     Just condition -> Just <$> filteredPage db (querySQL db
@@ -54,7 +61,7 @@ retrieveAlbums db params = do
   if pageIds == Just [] then pure { data: [] } else do
     topAlbums :: Array { albumId :: Nullable String, play_count :: Int } <- run db
       (selectFieldsFrom { albumId: toSQL T.scrobblesC.albumId, play_count: SQL.as "play_count" SQL.count } T.scrobbles
-        # maybe identity (\ids -> where_ (SQL.inArray (toSQL T.scrobblesC.albumId) (map SQL.string ids))) pageIds
+        # maybe identity where_ (SQL.andAll (dates <> maybe [] (\ids -> [SQL.inArray (toSQL T.scrobblesC.albumId) (map SQL.string ids)]) pageIds))
         # groupBy [toSQL T.scrobblesC.albumId] # orderBy [SQL.desc (SQL.raw "count(*)")]
         # limit size # offset (if isNothing pageIds then start else 0))
     if isNothing pageIds && null topAlbums then pure { data: [] } else do
@@ -66,7 +73,7 @@ retrieveAlbums db params = do
           , releaseDate: toSQL T.albumsC.releaseDate, sha256: toSQL T.albumsC.sha256 } T.albums
           # where_ (SQL.inArray (toSQL T.albumsC.id) (map SQL.string ids))) :: Aff (Array AlbumRow))
         <*> parallel (run db (selectFieldsFrom { albumId: toSQL T.scrobblesC.albumId, unique_listeners: SQL.countDistinct (toSQL T.scrobblesC.userId) } T.scrobbles
-          # where_ (SQL.inArray (toSQL T.scrobblesC.albumId) (map SQL.string ids))
+          # maybe identity where_ (SQL.andAll (dates <> [SQL.inArray (toSQL T.scrobblesC.albumId) (map SQL.string ids)]))
           # groupBy [toSQL T.scrobblesC.albumId]) :: Aff (Array { albumId :: Nullable String, unique_listeners :: Int }))
       let albums = Map.fromFoldable (map (\a -> Tuple a.id a) rows.albums)
           listeners = Map.fromFoldable (mapMaybe (\r -> (\id -> Tuple id r.unique_listeners) <$> toMaybe r.albumId) rows.listeners)

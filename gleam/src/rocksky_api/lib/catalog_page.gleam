@@ -3,13 +3,14 @@ import gleam/list
 import gleam/option.{None, Some}
 import rocksky_api/context.{type Context}
 import rocksky_api/drizzle/orm.{
-  aliased_field, all, count, count_distinct, desc, field, from, group_by,
+  aliased_field, all, and, count, count_distinct, desc, field, from, group_by,
   in_array, limit as db_limit, offset as db_offset, order_by, pair, reference,
   select, to_sql, where,
 }
 import rocksky_api/drizzle/schema/scrobbles as sc
 import rocksky_api/lib/filtered_page
 import rocksky_api/task
+import rocksky_api/xrpc/app/rocksky/charts/filters
 
 pub fn retrieve(
   ctx: Context,
@@ -23,7 +24,44 @@ pub fn retrieve(
   limit: Int,
   offset: Int,
 ) {
+  retrieve_interval(
+    ctx,
+    table,
+    id,
+    created,
+    get_id,
+    foreign,
+    filter,
+    rank_listeners,
+    limit,
+    offset,
+    None,
+    None,
+  )
+}
+
+pub fn retrieve_interval(
+  ctx: Context,
+  table,
+  id,
+  created,
+  get_id,
+  foreign,
+  filter,
+  rank_listeners: Bool,
+  limit: Int,
+  offset: Int,
+  start_date,
+  end_date,
+) {
   let scrobbles = sc.table()
+  use dates <- task.then(filters.conditions(
+    ctx,
+    scrobbles,
+    None,
+    start_date,
+    end_date,
+  ))
   use ids <- task.then(case filter {
     Some(condition) -> {
       let candidates =
@@ -47,6 +85,7 @@ pub fn retrieve(
         False -> count()
       }
       select(scrobbles, field("id", foreign))
+      |> where(and(dates))
       |> group_by([reference(foreign)])
       |> order_by([desc(ranking)])
       |> db_limit(limit)
@@ -70,7 +109,7 @@ pub fn retrieve(
             ),
           ),
         )
-          |> where(in_array(foreign, list.map(ids, Some)))
+          |> where(and([in_array(foreign, list.map(ids, Some)), ..dates]))
           |> group_by([reference(foreign)])
           |> all(ctx.read_db),
       ))

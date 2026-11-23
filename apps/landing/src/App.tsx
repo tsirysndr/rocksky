@@ -34,6 +34,7 @@ import {
   Server,
   Search,
   Smartphone,
+  Terminal,
   Globe2,
   Headphones,
   Menu,
@@ -52,6 +53,7 @@ import {
   trackUrl,
   useCommunity,
 } from "./data";
+import WeeklyCharts from "./WeeklyCharts";
 import SearchModal, { searchOpenAtom } from "./SearchModal";
 import LoginScreen from "./LoginScreen";
 import DiscordIcon from "./DiscordIcon";
@@ -305,6 +307,7 @@ function LandingPage() {
             <a href="#discover">Discover</a>
             <a href="#community">Community</a>
             <a href="#how-it-works">How it works</a>
+            <a href="#cli">CLI</a>
             <a
               href="https://docs.rocksky.app"
               target="_blank"
@@ -372,6 +375,7 @@ function LandingPage() {
               ["Discover", "#discover"],
               ["Community", "#community"],
               ["How it works", "#how-it-works"],
+              ["CLI", "#cli"],
               ["Get the Android app", googlePlayUrl],
               ["Docs", "https://docs.rocksky.app"],
               ["Discord", discordUrl],
@@ -871,12 +875,14 @@ function LandingPage() {
           </div>
         </section>
 
+        <WeeklyCharts />
+
         <section
           id="how-it-works"
           className="container how-section section-space"
         >
           <Reveal className="how-intro">
-            <div className="eyebrow">03 / GETTING STARTED</div>
+            <div className="eyebrow">04 / GETTING STARTED</div>
             <h2>
               Keep using
               <br />
@@ -951,7 +957,7 @@ function LandingPage() {
         >
           <Reveal className="section-heading">
             <div>
-              <div className="eyebrow">04 / MIRRORS & IMPORTS</div>
+              <div className="eyebrow">05 / MIRRORS & IMPORTS</div>
               <h2>
                 Already have years
                 <br />
@@ -1042,7 +1048,7 @@ function LandingPage() {
         >
           <Reveal className="section-heading">
             <div>
-              <div className="eyebrow">05 / YOUR LIBRARY & THE SDK</div>
+              <div className="eyebrow">06 / YOUR LIBRARY & THE SDK</div>
               <h2>
                 Have your own music?
                 <br />
@@ -1135,7 +1141,7 @@ function LandingPage() {
         >
           <Reveal className="section-heading player-heading">
             <div>
-              <div className="eyebrow">06 / MUSIC-PLAYER</div>
+              <div className="eyebrow">07 / MUSIC-PLAYER</div>
               <h2 id="player-title">
                 A desktop player.
                 <br />
@@ -1194,13 +1200,77 @@ function LandingPage() {
         </section>
 
         <section
+          id="cli"
+          className="container cli-section section-space"
+          aria-labelledby="cli-title"
+        >
+          <Reveal className="section-heading player-heading">
+            <div>
+              <div className="eyebrow">08 / ROCKSKY CLI</div>
+              <h2 id="cli-title">
+                Your music.
+                <br />
+                <span className="muted-heading">At your command.</span>
+              </h2>
+            </div>
+            <div className="player-intro">
+              <p>
+                A full music player, right in your terminal. Browse your
+                library, stream your favorites, shape your sound with the
+                equalizer, and keep your listening history in sync.
+              </p>
+              <InstallCommand
+                label="Install Rocksky CLI"
+                command="curl -fsSL https://cli.rocksky.app | sh"
+              />
+              <p className="cli-platforms">
+                Linux x86_64 &amp; aarch64 · macOS Apple Silicon
+              </p>
+              <a
+                className="text-link"
+                href="https://docs.rocksky.app/cli/overview"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Explore the CLI <ArrowUpRight size={17} />
+              </a>
+            </div>
+          </Reveal>
+          <Reveal className="cli-showcase">
+            <figure className="cli-window">
+              <div className="cli-window-bar" aria-hidden="true">
+                <div className="cli-window-controls">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <span className="cli-window-title">
+                  <Terminal size={14} /> rocksky
+                </span>
+              </div>
+              <img
+                src={`${import.meta.env.BASE_URL}rocksky-cli.png`}
+                width={2916}
+                height={1568}
+                loading="lazy"
+                decoding="async"
+                alt="Rocksky CLI showing the global scrobble feed, library navigation, and a playing track with pink and violet accents"
+              />
+              <figcaption className="sr-only">
+                Rocksky’s terminal music player in a macOS-style window.
+              </figcaption>
+            </figure>
+          </Reveal>
+        </section>
+
+        <section
           id="playerd"
           className="container playerd-section section-space"
           aria-labelledby="playerd-title"
         >
           <Reveal className="section-heading player-heading">
             <div>
-              <div className="eyebrow">07 / @ROCKSKY/PLAYERD</div>
+              <div className="eyebrow">09 / @ROCKSKY/PLAYERD</div>
               <h2 id="playerd-title">
                 Music on your Raspberry Pi.
                 <br />
@@ -1322,6 +1392,9 @@ function LandingPage() {
           <p>Music scrobbling on AT Protocol.</p>
         </div>
         <nav aria-label="Footer navigation">
+          <a href="#cli">
+            <Terminal size={17} aria-hidden="true" /> CLI
+          </a>
           <a href={googlePlayUrl} target="_blank" rel="noopener noreferrer">
             <Smartphone size={17} aria-hidden="true" /> Android app
           </a>

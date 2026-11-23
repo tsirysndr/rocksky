@@ -10,6 +10,8 @@ import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskyAlbumDefs from "./defs";
 
 export interface QueryParams {
+  startDate?: string;
+  endDate?: string;
   /** The maximum number of albums to return */
   limit?: number;
   /** The offset for pagination */

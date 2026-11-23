@@ -81,3 +81,23 @@ describe("authenticated request headers", () => {
 		expect(cap.only().headers.get("authorization")).toBeNull();
 	});
 });
+
+describe("album listening intervals", () => {
+  test("passes date bounds and pagination to the public album ranking", async () => {
+    const cap = captureFetch();
+    restore = cap.restore;
+    const client = new RockskyClient("https://appview.test");
+    await client.topAlbumsInterval(5, 2, {
+      startDate: "2026-11-23T00:00:00.000Z",
+      endDate: "2026-11-24T12:00:00.000Z",
+    });
+    const request = cap.only();
+    const url = new URL(request.url);
+    expect(url.pathname).toBe("/xrpc/app.rocksky.album.getAlbums");
+    expect(url.searchParams.get("startDate")).toBe("2026-11-23T00:00:00.000Z");
+    expect(url.searchParams.get("endDate")).toBe("2026-11-24T12:00:00.000Z");
+    expect(url.searchParams.get("limit")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("2");
+    expect(request.headers.get("authorization")).toBeNull();
+  });
+});

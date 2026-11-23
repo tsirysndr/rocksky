@@ -144,6 +144,27 @@ describe.skipIf(!url)("RSQL catalog query regressions (PostgreSQL)", () => {
     expect(rows.find((r) => r.id === "a")?.play_count).toBe(4);
     expect(rows.find((r) => r.id === "a")?.unique_listeners).toBe(2);
   });
+  it("ranks albums and counts listeners within the requested listening dates", async () => {
+    const interval = {
+      startDate: "2024-01-02T00:00:00.000Z",
+      endDate: "2024-01-03T00:00:00.000Z",
+    };
+    const weekly = (await albums(db, interval)).data;
+    expect(weekly.map((row) => row.id)).toEqual(["al"]);
+    expect(weekly[0].play_count).toBe(2);
+    expect(weekly[0].unique_listeners).toBe(2);
+    const filtered = (
+      await albums(db, { ...interval, filter: 'artist=="Metallica"' })
+    ).data;
+    expect(filtered[0].play_count).toBe(2);
+    expect(filtered[0].unique_listeners).toBe(2);
+    expect(
+      (await albums(db, { startDate: "2025-01-01T00:00:00.000Z" })).data,
+    ).toEqual([]);
+    expect(
+      (await albums(db, {})).data.find((row) => row.id === "al")?.play_count,
+    ).toBe(3);
+  });
   it("playlist predicates match the same track and do not multiply results", async () => {
     for (const filter of [
       'track.artist=="Metallica"',

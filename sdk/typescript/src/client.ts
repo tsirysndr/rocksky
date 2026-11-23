@@ -292,6 +292,19 @@ export class RockskyClient {
     return out.artists ?? [];
   }
 
+  /** Global albums ranked by plays within a listening date interval. */
+  async topAlbumsInterval(
+    limit: number,
+    offset: number,
+    interval: DateInterval,
+  ): Promise<AlbumViewBasic[]> {
+    const out = await this.query<{ albums?: AlbumViewBasic[] }>(
+      "app.rocksky.album.getAlbums",
+      { limit, offset, ...interval },
+    );
+    return out.albums ?? [];
+  }
+
   /** Scrobbles grouped by the release decade of the music, over a typed
    * {@link DateInterval}. Pass `did` to scope it to one actor. */
   async decades(

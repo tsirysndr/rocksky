@@ -1403,6 +1403,8 @@ export interface GetAlbumsOutput {
 }
 
 export interface GetAlbumsParams {
+  startDate?: string;
+  endDate?: string;
   /** The maximum number of albums to return */
   limit?: number;
   /** The offset for pagination */

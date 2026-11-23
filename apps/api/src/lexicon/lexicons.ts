@@ -1451,6 +1451,18 @@ export const schemaDict = {
         parameters: {
           type: "params",
           properties: {
+            startDate: {
+              type: "string",
+              format: "datetime",
+              description:
+                "The earliest listening timestamp for album rankings (inclusive)",
+            },
+            endDate: {
+              type: "string",
+              format: "datetime",
+              description:
+                "The latest listening timestamp for album rankings (inclusive)",
+            },
             limit: {
               type: "integer",
               description: "The maximum number of albums to return",

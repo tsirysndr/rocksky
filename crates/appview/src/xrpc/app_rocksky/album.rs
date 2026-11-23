@@ -92,6 +92,8 @@ pub struct AlbumParams {
     pub limit: Option<i64>,
     #[serde(default)]
     pub offset: Option<i64>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
 }
 
 // ------------------------------------------------------------------- detail
@@ -347,7 +349,7 @@ async fn get_albums(
     // it is one of the few reads that can tolerate a replica's lag.
     match top_albums(
         &db.reads_may_lag(),
-        &Scope::global(),
+        &Scope::global().between(params.start_date, params.end_date),
         clamp_limit_or(params.limit, ALBUM_DEFAULT_LIMIT),
         clamp_offset(params.offset),
     )

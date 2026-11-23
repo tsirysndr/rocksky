@@ -50,7 +50,7 @@ pub fn register(server: Server, ctx: Context) -> Nil {
               cache,
               models.encode_get_albums_params(params) |> json.to_string,
               fn() {
-                use rows <- task.map(catalog_page.retrieve(
+                use rows <- task.map(catalog_page.retrieve_interval(
                   ctx,
                   table,
                   a.id(table),
@@ -61,6 +61,8 @@ pub fn register(server: Server, ctx: Context) -> Nil {
                   False,
                   option.unwrap(params.limit, 100),
                   option.unwrap(params.offset, 0),
+                  params.start_date,
+                  params.end_date,
                 ))
                 let albums =
                   list.map(rows, fn(r) {
