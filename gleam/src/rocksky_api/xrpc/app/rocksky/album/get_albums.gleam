@@ -58,7 +58,7 @@ pub fn register(server: Server, ctx: Context) -> Nil {
                   fn(row) { row.id },
                   sc.album_id(sc.table()),
                   filter,
-                  False,
+                  params.sort_by == Some("listeners"),
                   option.unwrap(params.limit, 100),
                   option.unwrap(params.offset, 0),
                   params.start_date,

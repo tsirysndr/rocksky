@@ -9622,6 +9622,7 @@ pub type GetAlbumsParams {
     offset: Option(Int),
     genre: Option(String),
     filter: Option(String),
+    sort_by: Option(String),
     start_date: Option(String),
     end_date: Option(String),
   )
@@ -9634,6 +9635,7 @@ pub fn new_get_albums_params() -> GetAlbumsParams {
     offset: None,
     genre: None,
     filter: None,
+    sort_by: None,
     start_date: None,
     end_date: None,
   )
@@ -9668,11 +9670,17 @@ pub fn get_albums_params_decoder() -> decode.Decoder(GetAlbumsParams) {
     None,
     decode.optional(decode.string),
   )
+  use sort_by <- decode.optional_field(
+    "sortBy",
+    None,
+    decode.optional(decode.string),
+  )
   decode.success(GetAlbumsParams(
     limit: limit,
     offset: offset,
     genre: genre,
     filter: filter,
+    sort_by: sort_by,
     start_date: start_date,
     end_date: end_date,
   ))
@@ -9699,6 +9707,10 @@ pub fn encode_get_albums_params(value: GetAlbumsParams) -> json.Json {
       },
       case value.end_date {
         Some(v) -> [#("endDate", json.string(v))]
+        None -> []
+      },
+      case value.sort_by {
+        Some(v) -> [#("sortBy", json.string(v))]
         None -> []
       },
       case value.filter {

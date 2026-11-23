@@ -165,6 +165,25 @@ describe.skipIf(!url)("RSQL catalog query regressions (PostgreSQL)", () => {
       (await albums(db, {})).data.find((row) => row.id === "al")?.play_count,
     ).toBe(3);
   });
+  it("counts each listener once in weekly rankings, even after 100 repeat plays", async () => {
+    await client.query("BEGIN");
+    try {
+      await client.query(`INSERT INTO scrobbles (xata_id,track_id,album_id,artist_id,user_id,timestamp)
+        SELECT 'repeat-' || n,'t2','al2','b','u','2024-01-02' FROM generate_series(1,100) n`);
+      const params = {
+        startDate: "2024-01-01T00:00:00.000Z",
+        endDate: "2024-01-03T00:00:00.000Z",
+        limit: 1,
+      };
+      const result = (await albums(db, { ...params, sortBy: "listeners" }))
+        .data;
+      expect(result[0].id).toBe("al");
+      expect(result[0].unique_listeners).toBe(2);
+      expect((await albums(db, params)).data[0].id).toBe("al2");
+    } finally {
+      await client.query("ROLLBACK");
+    }
+  });
   it("playlist predicates match the same track and do not multiply results", async () => {
     for (const filter of [
       'track.artist=="Metallica"',

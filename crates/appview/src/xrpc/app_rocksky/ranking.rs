@@ -105,6 +105,44 @@ pub async fn by_plays(
     limit: i64,
     offset: i64,
 ) -> Result<Vec<(String, i64)>, sqlx::Error> {
+    by_metric(
+        db,
+        column,
+        scope,
+        limit,
+        offset,
+        Func::count(Expr::col(Asterisk)),
+    )
+    .await
+}
+
+/// Rank by distinct listeners; repeated plays never break ties.
+pub async fn by_listeners(
+    db: &Backend,
+    column: &str,
+    scope: &Scope,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<(String, i64)>, sqlx::Error> {
+    by_metric(
+        db,
+        column,
+        scope,
+        limit,
+        offset,
+        Func::count_distinct(Expr::col(Scrobbles::UserId)),
+    )
+    .await
+}
+
+async fn by_metric(
+    db: &Backend,
+    column: &str,
+    scope: &Scope,
+    limit: i64,
+    offset: i64,
+    metric: FunctionCall,
+) -> Result<Vec<(String, i64)>, sqlx::Error> {
     if scope.is_empty() {
         return Ok(Vec::new());
     }
@@ -113,7 +151,7 @@ pub async fn by_plays(
     let mut query = Query::select();
     query
         .expr_as(Expr::col(col.clone()), Alias::new("id"))
-        .expr_as(Func::count(Expr::col(Asterisk)), Alias::new("plays"))
+        .expr_as(metric, Alias::new("plays"))
         .from(Scrobbles::Table)
         .and_where(Expr::col(col.clone()).is_not_null());
     scope.push_conditions(db, &mut query, column);

@@ -36,6 +36,14 @@
             "type": "string",
             "format": "datetime",
             "description": "The latest listening timestamp for album rankings (inclusive)"
+          },
+          "sortBy": {
+            "type": "string",
+            "enum": [
+              "plays",
+              "listeners"
+            ],
+            "description": "Rank albums by total plays or unique listeners. Defaults to plays."
           }
         }
       },

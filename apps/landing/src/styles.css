@@ -1314,83 +1314,13 @@ h3 {
   position: relative;
   padding: 12px 0 0;
 }
-.cli-showcase::before {
-  content: "";
-  position: absolute;
-  inset: 12% -5% -8%;
-  z-index: -1;
-  background: radial-gradient(ellipse, #b876cb26, transparent 68%);
-  pointer-events: none;
-}
-.cli-window {
+.cli-preview {
   margin: 0;
-  overflow: hidden;
-  border: 1px solid #4c3b59;
-  border-radius: 14px;
-  background: #101116;
-  box-shadow:
-    0 28px 80px #08030f66,
-    0 4px 16px #08030f40;
 }
-.cli-window-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 10px 80px;
-  border-bottom: 1px solid #ffffff0d;
-  background: linear-gradient(#28252e, #211e27);
-}
-.cli-window-controls {
-  position: absolute;
-  left: 16px;
-  display: flex;
-  gap: 8px;
-}
-.cli-window-controls span {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #ff5f57;
-  box-shadow: inset 0 0 0 1px #00000012;
-}
-.cli-window-controls span:nth-child(2) {
-  background: #febc2e;
-}
-.cli-window-controls span:nth-child(3) {
-  background: #28c840;
-}
-.cli-window-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: #b9b1c5;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-}
-.cli-window > img {
+.cli-preview > img {
   display: block;
   width: 100%;
   height: auto;
-}
-@media (max-width: 600px) {
-  .cli-window {
-    border-radius: 10px;
-  }
-  .cli-window-bar {
-    min-height: 36px;
-    padding-top: 7px;
-    padding-bottom: 7px;
-  }
-  .cli-window-controls {
-    left: 12px;
-    gap: 6px;
-  }
-  .cli-window-controls span {
-    width: 9px;
-    height: 9px;
-  }
 }
 
 .playerd-source {
@@ -3037,7 +2967,7 @@ a.weekly-entry:focus-visible {
   color: var(--muted);
   font-size: 11px;
 }
-.weekly-plays {
+.weekly-listeners {
   display: grid;
   text-align: right;
   gap: 4px;
@@ -3045,7 +2975,7 @@ a.weekly-entry:focus-visible {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.weekly-plays > span {
+.weekly-listeners > span {
   color: var(--muted);
   font-size: 10px;
 }

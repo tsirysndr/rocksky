@@ -96,6 +96,7 @@ describe("album listening intervals", () => {
     expect(url.pathname).toBe("/xrpc/app.rocksky.album.getAlbums");
     expect(url.searchParams.get("startDate")).toBe("2026-11-23T00:00:00.000Z");
     expect(url.searchParams.get("endDate")).toBe("2026-11-24T12:00:00.000Z");
+    expect(url.searchParams.get("sortBy")).toBe("listeners");
     expect(url.searchParams.get("limit")).toBe("5");
     expect(url.searchParams.get("offset")).toBe("2");
     expect(request.headers.get("authorization")).toBeNull();

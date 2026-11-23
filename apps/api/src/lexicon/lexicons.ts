@@ -1451,6 +1451,12 @@ export const schemaDict = {
         parameters: {
           type: "params",
           properties: {
+            sortBy: {
+              type: "string",
+              enum: ["plays", "listeners"],
+              description:
+                "Rank albums by total plays or unique listeners. Defaults to plays.",
+            },
             startDate: {
               type: "string",
               format: "datetime",

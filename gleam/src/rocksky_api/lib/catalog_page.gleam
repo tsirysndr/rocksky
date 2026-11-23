@@ -3,9 +3,9 @@ import gleam/list
 import gleam/option.{None, Some}
 import rocksky_api/context.{type Context}
 import rocksky_api/drizzle/orm.{
-  aliased_field, all, and, count, count_distinct, desc, field, from, group_by,
-  in_array, limit as db_limit, offset as db_offset, order_by, pair, reference,
-  select, to_sql, where,
+  aliased_field, all, and, asc, count, count_distinct, desc, field, from,
+  group_by, in_array, limit as db_limit, offset as db_offset, order_by, pair,
+  reference, select, to_sql, where,
 }
 import rocksky_api/drizzle/schema/scrobbles as sc
 import rocksky_api/lib/filtered_page
@@ -87,7 +87,7 @@ pub fn retrieve_interval(
       select(scrobbles, field("id", foreign))
       |> where(and(dates))
       |> group_by([reference(foreign)])
-      |> order_by([desc(ranking)])
+      |> order_by([desc(ranking), asc(foreign)])
       |> db_limit(limit)
       |> db_offset(offset)
       |> all(ctx.read_db)

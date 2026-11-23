@@ -1403,6 +1403,7 @@ export interface GetAlbumsOutput {
 }
 
 export interface GetAlbumsParams {
+  sortBy?: "plays" | "listeners";
   startDate?: string;
   endDate?: string;
   /** The maximum number of albums to return */

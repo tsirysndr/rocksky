@@ -17,7 +17,8 @@ function mockDb(responses, raw = []) {
   const db = {
     select() {
       const q = {};
-      for (const key of ["from", "innerJoin", "leftJoin", "where", "orderBy", "groupBy", "limit", "offset"]) q[key] = value => {
+      for (const key of ["from", "innerJoin", "leftJoin", "where", "orderBy", "groupBy", "limit", "offset"]) q[key] = (...values) => {
+        const value = key === "orderBy" ? values : values[0];
         queries.push([key, key === "where" ? dialect.sqlToQuery(value) : value]); return q;
       };
       q.getSQL = () => sql.raw('select xata_id as id, xata_createdat as created_at from albums');
@@ -58,6 +59,15 @@ const album = id => ({ id, uri: "at://did:plc:a/app.rocksky.album/" + id, title:
     assert.ok(query.params.some(value => value instanceof Date && value.toISOString().startsWith("2026-11-23")));
     assert.ok(query.params.some(value => value instanceof Date && value.toISOString().startsWith("2026-11-24")));
   }
+  mock.done();
+}
+{
+  const mock = mockDb([[{ albumId: "b", play_count: 2 }], [album("b")], [{ albumId: "b", unique_listeners: 2 }]]);
+  await run(Albums.retrieveAlbums(mock.db)({ sortBy: "listeners", limit: 1 }));
+  const order = mock.queries.find(([kind]) => kind === "orderBy")[1];
+  const dialect = new PgDialect();
+  assert.match(dialect.sqlToQuery(order[0]).sql, /count\(distinct.*user_id.*desc/i);
+  assert.match(dialect.sqlToQuery(order[1]).sql, /album_id.*asc/i);
   mock.done();
 }
 const date = new Date("2026-10-18T00:00:00Z");

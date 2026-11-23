@@ -32,7 +32,7 @@ import Rocksky.Schema as T
 import Rocksky.Xrpc.App.Rocksky.Actor.GetActorAlbums (Album)
 import Rocksky.Xrpc.Util as Util
 
-type QueryParams = { limit :: Nullable Int, offset :: Nullable Int, filter :: Nullable String, startDate :: Nullable String, endDate :: Nullable String }
+type QueryParams = { limit :: Nullable Int, offset :: Nullable Int, filter :: Nullable String, sortBy :: Nullable String, startDate :: Nullable String, endDate :: Nullable String }
 type AlbumRow =
   { id :: String, uri :: Nullable String, title :: String, artist :: String, artistUri :: Nullable String
   , year :: Nullable Int, albumArt :: Nullable String, releaseDate :: Nullable String, sha256 :: String }
@@ -62,7 +62,7 @@ retrieveAlbums db params = do
     topAlbums :: Array { albumId :: Nullable String, play_count :: Int } <- run db
       (selectFieldsFrom { albumId: toSQL T.scrobblesC.albumId, play_count: SQL.as "play_count" SQL.count } T.scrobbles
         # maybe identity where_ (SQL.andAll (dates <> maybe [] (\ids -> [SQL.inArray (toSQL T.scrobblesC.albumId) (map SQL.string ids)]) pageIds))
-        # groupBy [toSQL T.scrobblesC.albumId] # orderBy [SQL.desc (SQL.raw "count(*)")]
+        # groupBy [toSQL T.scrobblesC.albumId] # orderBy [SQL.desc (if toMaybe params.sortBy == Just "listeners" then SQL.countDistinct (toSQL T.scrobblesC.userId) else SQL.count), SQL.asc (toSQL T.scrobblesC.albumId)]
         # limit size # offset (if isNothing pageIds then start else 0))
     if isNothing pageIds && null topAlbums then pure { data: [] } else do
       let ids = fromMaybe (mapMaybe (toMaybe <<< _.albumId) topAlbums) pageIds

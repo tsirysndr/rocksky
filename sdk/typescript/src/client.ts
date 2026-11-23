@@ -292,7 +292,7 @@ export class RockskyClient {
     return out.artists ?? [];
   }
 
-  /** Global albums ranked by plays within a listening date interval. */
+  /** Global albums ranked by distinct listeners within a listening date interval. */
   async topAlbumsInterval(
     limit: number,
     offset: number,
@@ -300,7 +300,7 @@ export class RockskyClient {
   ): Promise<AlbumViewBasic[]> {
     const out = await this.query<{ albums?: AlbumViewBasic[] }>(
       "app.rocksky.album.getAlbums",
-      { limit, offset, ...interval },
+      { limit, offset, ...interval, sortBy: "listeners" },
     );
     return out.albums ?? [];
   }

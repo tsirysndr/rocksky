@@ -92,6 +92,7 @@ pub struct AlbumParams {
     pub limit: Option<i64>,
     #[serde(default)]
     pub offset: Option<i64>,
+    pub sort_by: Option<String>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
 }
@@ -347,11 +348,12 @@ async fn get_albums(
 
     // The global chart is cached and has no read-after-write expectation, so
     // it is one of the few reads that can tolerate a replica's lag.
-    match top_albums(
+    match rank_albums(
         &db.reads_may_lag(),
         &Scope::global().between(params.start_date, params.end_date),
         clamp_limit_or(params.limit, ALBUM_DEFAULT_LIMIT),
         clamp_offset(params.offset),
+        params.sort_by.as_deref() == Some("listeners"),
     )
     .await
     {
@@ -373,7 +375,21 @@ pub async fn top_albums(
     limit: i64,
     offset: i64,
 ) -> anyhow::Result<Vec<AlbumViewBasic>> {
-    let ranked = ranking::by_plays(db, "album_id", scope, limit, offset).await?;
+    rank_albums(db, scope, limit, offset, false).await
+}
+
+async fn rank_albums(
+    db: &Backend,
+    scope: &Scope,
+    limit: i64,
+    offset: i64,
+    by_listeners: bool,
+) -> anyhow::Result<Vec<AlbumViewBasic>> {
+    let ranked = if by_listeners {
+        ranking::by_listeners(db, "album_id", scope, limit, offset).await?
+    } else {
+        ranking::by_plays(db, "album_id", scope, limit, offset).await?
+    };
     if ranked.is_empty() {
         return Ok(Vec::new());
     }
@@ -381,13 +397,19 @@ pub async fn top_albums(
     let ids: Vec<String> = ranked.iter().map(|(id, _)| id.clone()).collect();
     let listeners = ranking::unique_listeners(db, "album_id", &ids, scope).await?;
 
+    let plays = if by_listeners {
+        ranking::play_counts(db, "album_id", &ids, scope).await?
+    } else {
+        ranked.iter().cloned().collect()
+    };
+
     // The shared batch loader, which is this exact query.
     let by_id = crate::db::loaders::albums_by_id(db, ids.iter().cloned().map(Some)).await?;
 
-    // Walked in ranking order so the response is ordered by plays.
+    // Preserve the requested ranking order.
     Ok(ranked
         .iter()
-        .filter_map(|(id, plays)| {
+        .filter_map(|(id, _)| {
             let album = by_id.get(id.as_str())?;
             Some(AlbumViewBasic {
                 id: album.id.clone(),
@@ -399,7 +421,7 @@ pub async fn top_albums(
                 sha256: album.sha256.clone(),
                 year: album.year,
                 release_date: album.release_date.clone(),
-                play_count: *plays,
+                play_count: plays.get(id.as_str()).copied().unwrap_or(0),
                 unique_listeners: listeners.get(id.as_str()).copied().unwrap_or(0),
             })
         })

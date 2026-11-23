@@ -120,7 +120,14 @@ export const retrieveAlbums = async (
 
   const topAlbumsQuery = await topAlbumsQb
     .groupBy(tables.scrobbles.albumId)
-    .orderBy(desc(sql`count(*)`))
+    .orderBy(
+      desc(
+        params.sortBy === "listeners"
+          ? sql`count(distinct ${tables.scrobbles.userId})`
+          : sql`count(*)`,
+      ),
+      tables.scrobbles.albumId,
+    )
     .limit(limit)
     .offset(pageIds ? 0 : offset)
     .execute();

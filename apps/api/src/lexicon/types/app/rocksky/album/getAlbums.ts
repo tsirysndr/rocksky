@@ -10,6 +10,7 @@ import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskyAlbumDefs from "./defs";
 
 export interface QueryParams {
+  sortBy?: "plays" | "listeners";
   startDate?: string;
   endDate?: string;
   /** The maximum number of albums to return */

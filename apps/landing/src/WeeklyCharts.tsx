@@ -10,7 +10,7 @@ type Entry = {
   title: string;
   subtitle?: string;
   image?: string;
-  plays?: number;
+  listeners?: number;
 };
 type Kind = "tracks" | "albums" | "artists";
 
@@ -36,7 +36,7 @@ function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
             uri: artist.uri,
             title: artist.name || "Unknown artist",
             image: artist.picture,
-            plays: artist.playCount,
+            listeners: artist.uniqueListeners,
           }),
         );
       }
@@ -51,7 +51,7 @@ function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
           item.title || `Untitled ${kind === "tracks" ? "track" : "album"}`,
         subtitle: item.artist,
         image: item.albumArt,
-        plays: item.playCount,
+        listeners: item.uniqueListeners,
       }));
     },
     staleTime: 300_000,
@@ -97,11 +97,13 @@ function Chart({ kind, startDate }: { kind: Kind; startDate: string }) {
                   <strong>{entry.title}</strong>
                   {entry.subtitle && <span>{entry.subtitle}</span>}
                 </span>
-                <span className="weekly-plays">
-                  {entry.plays === undefined
+                <span className="weekly-listeners">
+                  {entry.listeners === undefined
                     ? "—"
-                    : entry.plays.toLocaleString()}
-                  <span>{entry.plays === 1 ? "play" : "plays"}</span>
+                    : entry.listeners.toLocaleString()}
+                  <span>
+                    {entry.listeners === 1 ? "listener" : "listeners"}
+                  </span>
                 </span>
               </>
             );
@@ -182,8 +184,9 @@ export default function WeeklyCharts() {
         </div>
         <div className="weekly-intro">
           <p>
-            The tracks, albums, and artists soundtracking the community.
-            Discover your next obsession.
+            The tracks, albums, and artists soundtracking the community. Ranked
+            by unique listeners: each person counts once per track, album, or
+            artist.
           </p>
           <span>Since Monday · UTC</span>
           <a href={`${appUrl}/charts`}>

@@ -1237,21 +1237,11 @@ function LandingPage() {
             </div>
           </Reveal>
           <Reveal className="cli-showcase">
-            <figure className="cli-window">
-              <div className="cli-window-bar" aria-hidden="true">
-                <div className="cli-window-controls">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <span className="cli-window-title">
-                  <Terminal size={14} /> rocksky
-                </span>
-              </div>
+            <figure className="cli-preview">
               <img
                 src={`${import.meta.env.BASE_URL}rocksky-cli.png`}
-                width={2916}
-                height={1568}
+                width={2682}
+                height={1672}
                 loading="lazy"
                 decoding="async"
                 alt="Rocksky CLI showing the global scrobble feed, library navigation, and a playing track with pink and violet accents"
