@@ -53,7 +53,13 @@ printf '\n'
 
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT HUP INT TERM
-fetch() { curl --fail --show-error --silent --location --retry 3 --proto '=https' --tlsv1.2 "$1" --output "$2"; }
+fetch() {
+  # Binary downloads enable curl's meter: percentage, size, speed and ETA.
+  # Abort stalled connections instead of leaving the installer waiting forever.
+  curl --fail --show-error --silent --location --retry 2 \
+    --connect-timeout 15 --max-time 900 --speed-limit 1024 --speed-time 30 \
+    --proto '=https' --tlsv1.2 "${3:---silent}" "$1" --output "$2"
+}
 repository=https://github.com/tsirysndr/rocksky
 if [ "$version" = latest ]; then
   # This monorepo also releases other products. Select the newest stable CLI tag.
@@ -71,7 +77,7 @@ fetch_asset() {
     # Releases become visible before their asset uploads finish. A fresh query
     # avoids reusing a cached 404 from that window on subsequent attempts.
     url="$repository/releases/download/$tag/$1?download=1&rocksky=$(date +%s)-$attempt"
-    if fetch "$url" "$2"; then return 0; fi
+    if fetch "$url" "$2" "${3:---silent}"; then return 0; fi
     [ "$attempt" -lt 5 ] || break
     printf 'Release asset not available yet; retrying…\n' >&2
     sleep 2
@@ -79,7 +85,7 @@ fetch_asset() {
   done
   fail "Could not download $1 from $tag"
 }
-fetch_asset "$asset" "$temporary/$asset"
+fetch_asset "$asset" "$temporary/$asset" --no-silent
 fetch_asset "$asset.sha256" "$temporary/checksum"
 expected=$(awk 'NR==1 {print $1}' "$temporary/checksum")
 [ "${#expected}" -eq 64 ] || fail 'Invalid SHA-256 checksum'
