@@ -3182,11 +3182,11 @@ a.weekly-entry:focus-visible {
 }
 .sdk-example-editor {
   min-width: 0;
-  background: #262335;
+  background: #100b19;
   border-left: 1px solid #ffffff0c;
 }
 .sdk-example-toolbar {
-  background: #241b2f;
+  background: #0c0813;
   display: flex;
   align-items: center;
   justify-content: space-between;
