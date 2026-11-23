@@ -3273,3 +3273,310 @@ a.weekly-entry:focus-visible {
     gap: 10px;
   }
 }
+
+.hero-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 80px);
+}
+.hero-scrobbles {
+  align-self: center;
+  min-width: 0;
+  width: 100%;
+  max-width: 500px;
+  justify-self: end;
+  padding: 24px;
+  border: 1px solid #ffffff1a;
+  border-radius: 20px;
+  background: #120925d9;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 64px #08031440;
+}
+.hero-scrobbles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.hero-scrobbles-header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ff9dca;
+}
+.hero-scrobbles-header h2 {
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  color: #fff0f8;
+}
+.hero-scrobbles-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.hero-scrobbles-status i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.hero-scrobbles-status.is-live {
+  color: #ff9dca;
+}
+.hero-scrobbles-list {
+  display: grid;
+  gap: 8px;
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 390px;
+  overflow: hidden;
+}
+.hero-scrobble {
+  position: relative;
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+  width: 100%;
+  border-bottom: 1px solid #ffffff0c;
+}
+.hero-scrobble-art-link {
+  display: block;
+}
+.hero-scrobble-art {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  background: #2b1a3d;
+  color: #d7addf;
+  overflow: hidden;
+}
+.hero-scrobble-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-scrobble-info {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.hero-scrobble-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff0f8;
+  font-size: 14px;
+  font-weight: 700;
+}
+a.hero-scrobble-title:hover {
+  color: #ffadd2;
+}
+.hero-scrobble-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #d0bbdf;
+  font-size: 12px;
+}
+.hero-scrobble-listener {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #f5add5;
+}
+.hero-scrobble-listener > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hero-scrobble-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: #352141;
+  color: #e7c7ed;
+}
+.hero-scrobble-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-scrobble-info time {
+  margin-top: 1px;
+  color: #a68eb8;
+  font-size: 10px;
+}
+.hero-scrobble-equalizer {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 2px;
+  height: 24px;
+  color: #ff83b7;
+}
+.hero-scrobble-equalizer i {
+  display: block;
+  width: 3px;
+  height: 20px;
+  background: currentColor;
+  transform-origin: center bottom;
+  animation: hero-equalize 0.75s ease-in-out infinite alternate;
+}
+.hero-scrobble-equalizer i:nth-child(2) {
+  height: 14px;
+  animation-duration: 0.6s;
+  animation-delay: -0.3s;
+}
+.hero-scrobble-equalizer i:nth-child(3) {
+  height: 24px;
+  animation-duration: 0.9s;
+  animation-delay: -0.5s;
+}
+.hero-scrobble-equalizer i:nth-child(4) {
+  height: 16px;
+  animation-duration: 0.65s;
+  animation-delay: -0.15s;
+}
+.hero-scrobble-equalizer i:nth-child(5) {
+  height: 11px;
+  animation-duration: 0.8s;
+  animation-delay: -0.4s;
+}
+.hero-scrobbles[data-live="false"] .hero-scrobble-equalizer i {
+  animation-play-state: paused;
+}
+@keyframes hero-equalize {
+  from {
+    transform: scaleY(0.35);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.hero-scrobbles-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: #a68eb8;
+  font-size: 10px;
+  margin-top: 18px;
+}
+.hero-scrobbles-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #f5add5;
+  white-space: nowrap;
+}
+.hero-scrobbles-footer button,
+.hero-scrobbles-empty button {
+  color: #f5add5;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.hero-scrobbles-loading {
+  min-height: 390px;
+}
+.hero-scrobble-placeholder {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 14px;
+  height: 130px;
+}
+.hero-scrobble-placeholder span {
+  background: #ffffff08;
+  border-radius: 3px;
+  height: 12px;
+}
+.hero-scrobble-placeholder span:first-child {
+  height: 80px;
+  grid-row: span 2;
+}
+.hero-scrobbles-empty {
+  min-height: 390px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hero-scrobble a:focus-visible,
+.hero-scrobbles-footer a:focus-visible {
+  outline: 2px solid #ff9dca;
+  outline-offset: 4px;
+}
+@media (max-width: 1100px) {
+  .hero-content {
+    gap: 28px;
+  }
+  .hero-scrobbles {
+    padding: 20px;
+  }
+  .hero-scrobble {
+    grid-template-columns: 64px minmax(0, 1fr) 20px;
+    gap: 10px;
+  }
+  .hero-scrobble-art {
+    width: 64px;
+    height: 64px;
+  }
+}
+@media (max-width: 800px) {
+  .hero-content {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .hero-scrobbles {
+    max-width: 600px;
+    justify-self: start;
+  }
+  .hero-scrobble {
+    grid-template-columns: 80px minmax(0, 1fr) 22px;
+    gap: 14px;
+  }
+  .hero-scrobble-art {
+    width: 80px;
+    height: 80px;
+  }
+}
+@media (max-width: 400px) {
+  .hero-scrobbles {
+    padding: 16px;
+  }
+  .hero-scrobble {
+    grid-template-columns: 60px minmax(0, 1fr) 18px;
+    gap: 10px;
+  }
+  .hero-scrobble-art {
+    width: 60px;
+    height: 60px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-scrobble-equalizer i {
+    animation: none;
+  }
+}

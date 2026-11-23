@@ -49,6 +49,7 @@ import {
   trackUrl,
   useCommunity,
 } from "./data";
+import HeroScrobbles from "./HeroScrobbles";
 import HeroBackground from "./HeroBackground";
 import SdkIntegrations from "./SdkIntegrations";
 import WeeklyCharts from "./WeeklyCharts";
@@ -257,7 +258,7 @@ function InstallCommand({
 
 function LandingPage() {
   const [, setSearchOpen] = useAtom(searchOpenAtom);
-  const { stats, feed, live } = useCommunity();
+  const { stats, feed, live, connected } = useCommunity();
   const [, setLive] = useAtom(liveAtom);
   const [menu, setMenu] = useAtom(menuAtom);
   const reduce = useReducedMotion();
@@ -483,6 +484,15 @@ function LandingPage() {
                 </a>
               </p>
             </div>
+
+            <HeroScrobbles
+              tracks={tracks.slice(0, 3)}
+              pending={feed.isPending}
+              failed={feed.isError}
+              live={live}
+              connected={connected}
+              retry={() => void feed.refetch()}
+            />
 
             <div className="hero-bottom">
               <span>SCROBBLES, STATS & MUSIC</span>

@@ -2,6 +2,7 @@ import { RockskyClient } from "@rocksky/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { atom, useAtomValue } from "jotai";
 import { normalizeScrobble } from "./normalize";
+import { useLiveScrobbles } from "./useLiveScrobbles";
 
 export const appUrl = (
   import.meta.env.VITE_ROCKSKY_APP_URL || "https://rocksky.app"
@@ -16,6 +17,7 @@ export const menuAtom = atom(false);
 // polling in background tabs and refreshes when the browser reconnects.
 export function useCommunity() {
   const live = useAtomValue(liveAtom);
+  const connected = useLiveScrobbles(live);
   const stats = useQuery({
     queryKey: ["landing", "stats"],
     queryFn: () => client.globalStats(),
@@ -25,9 +27,11 @@ export function useCommunity() {
     queryKey: ["landing", "scrobbles"],
     queryFn: async () =>
       (await client.scrobbleFeed(undefined, false, 12)).map(normalizeScrobble),
-    refetchInterval: live ? 15_000 : false,
+    refetchInterval: live && !connected ? 15_000 : false,
+    refetchOnWindowFocus: !connected,
+    refetchOnReconnect: !connected,
   });
-  return { stats, feed, live };
+  return { stats, feed, live, connected };
 }
 
 export function relativeTime(value?: string) {
