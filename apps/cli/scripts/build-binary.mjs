@@ -45,10 +45,14 @@ const prebuilt = path.join(
   "prebuilds",
   platform === "darwin" ? "darwin-x64+arm64" : `linux-${architecture}`,
 );
-const binding = path.join(
-  prebuilt,
-  (await readdir(prebuilt)).find((file) => file.endsWith(".node")),
+// Linux x64 ships both glibc and musl prebuilds. Directory order is not an
+// ABI selector: this release targets glibc, as does the OpenTUI library below.
+const bindings = (await readdir(prebuilt)).filter(
+  (file) => file.endsWith(".node") && !file.includes(".musl."),
 );
+if (bindings.length !== 1)
+  throw new Error(`Expected one compatible LevelDB binding in ${prebuilt}`);
+const binding = path.join(prebuilt, bindings[0]);
 const buildDirectory = path.join(directory, ".binary-build", target);
 await mkdir(buildDirectory, { recursive: true });
 await mkdir(path.dirname(output), { recursive: true });

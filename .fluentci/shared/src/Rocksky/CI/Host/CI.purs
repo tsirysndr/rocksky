@@ -153,7 +153,12 @@ buildCli variant asset = do
   void $ S.run false directory ["bun", "install", "--frozen-lockfile", "--ignore-scripts"]
   when (variant == "purescript") do
     void $ S.run false (root <> "/purescript") ["bun", "install", "--frozen-lockfile", "--ignore-scripts"]
-    void $ S.run false directory ["bun", "run", "build"]
+    -- Bun scripts prepend node_modules/.bin, where --ignore-scripts leaves
+    -- the npm purs installer stub. Invoke FluentCI's pinned tools directly.
+    void $ S.run false (root <> "/purescript") ["purs", "--version"]
+    void $ S.run false (root <> "/purescript") ["spago", "--version"]
+    void $ S.run false (root <> "/purescript") ["spago", "build", "-p", "rocksky-cli"]
+    void $ S.run false (root <> "/purescript") ["node", "bin/build-cli-ui.js"]
   void $ S.run false directory ["bun", "run", "build:binary", "--target", target, "--outfile", binary]
   void $ S.run false temporary ["file", binary]
   cpu <- S.arch
