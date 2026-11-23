@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { heroBackgrounds } from "./hero-backgrounds";
 
 export default function HeroBackground() {
-  const [variant] = useState(() => Math.floor(Math.random() * 3) + 1);
+  const [background] = useState(
+    () => heroBackgrounds[Math.floor(Math.random() * heroBackgrounds.length)],
+  );
   const [ready, setReady] = useState(false);
   const image = useRef<HTMLImageElement>(null);
-  const src = `${import.meta.env.BASE_URL}hero-albums-${variant}.webp`;
+  const src = `${import.meta.env.BASE_URL}${background}`;
 
   useEffect(() => {
     const element = image.current;

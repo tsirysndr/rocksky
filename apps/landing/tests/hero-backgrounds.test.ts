@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { heroBackgrounds } from "../src/hero-backgrounds";
 import backgrounds from "../src/hero-album-sources.json";
 
 describe("hero album background assets", () => {
-  test("ships three transparent images with no repeated covers or placeholder artwork", async () => {
-    expect(backgrounds).toHaveLength(3);
+  test("ships six transparent images with no repeated covers or placeholder artwork", async () => {
+    expect(backgrounds).toHaveLength(6);
+    expect(heroBackgrounds).toEqual(
+      backgrounds.map((background) => background.file),
+    );
     const albums = backgrounds.flatMap((background) => background.albums);
     expect(new Set(albums.map((album) => album.sha256)).size).toBe(
       albums.length,
