@@ -23,7 +23,8 @@
     "jotai": "^2.11.3",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "recharts": "^2.15.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",

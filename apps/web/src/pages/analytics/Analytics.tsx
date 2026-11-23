@@ -1,3 +1,4 @@
+import ScrobblesTimeline from "../../../../shared/browser/ScrobblesTimeline";
 import ListeningCalendar from "../../../../shared/browser/ListeningCalendar";
 import ListeningPie from "../../../../shared/browser/ListeningPie";
 import { listeningShare } from "../../../../shared/listeningShare";
@@ -10,8 +11,6 @@ import { useAtomValue } from "jotai";
 import numeral from "numeral";
 import { useMemo, useState } from "react";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -607,59 +606,7 @@ function Analytics() {
           {loading || !hasData ? (
             <Empty>{loading ? "Loading…" : "Nothing scrobbled in this range."}</Empty>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                <defs>
-                  <linearGradient id="viz-area" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={SERIES_1} stopOpacity={0.45} />
-                    <stop offset="100%" stopColor={SERIES_1} stopOpacity={0} />
-                  </linearGradient>
-                  <filter
-                    id="viz-area-glow"
-                    x="-50%"
-                    y="-50%"
-                    width="200%"
-                    height="200%"
-                  >
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                <CartesianGrid stroke={GRID} vertical={false} />
-                <XAxis
-                  dataKey="key"
-                  tickFormatter={(v) => dayjs(v).format("D MMM")}
-                  tick={{ fill: AXIS, fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={28}
-                />
-                <YAxis
-                  tick={{ fill: AXIS, fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={52}
-                  allowDecimals={false}
-                  tickFormatter={compact}
-                />
-                <Tooltip
-                  cursor={{ stroke: SERIES_1, strokeWidth: 1 }}
-                  content={<VizTooltip unit="scrobbles" />}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  stroke={SERIES_1}
-                  strokeWidth={2}
-                  fill="url(#viz-area)"
-                  filter={darkMode ? "url(#viz-area-glow)" : undefined}
-                  activeDot={{ r: 4, strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <ScrobblesTimeline points={points} darkMode={darkMode} />
           )}
         </Panel>
 

@@ -6,6 +6,9 @@ export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
   // Bun links local SDK files back to their source checkout. Resolve their
   // dependencies from this app's node_modules, where Bun installs them.
-  resolve: { preserveSymlinks: true },
+  resolve: {
+    preserveSymlinks: true,
+    dedupe: ["react", "react-dom", "recharts"],
+  },
   base: command === "build" ? "/_landing/" : "/",
 }));

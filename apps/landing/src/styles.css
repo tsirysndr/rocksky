@@ -3201,3 +3201,75 @@ a.weekly-entry:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 4px;
 }
+
+.community-timeline {
+  --viz-series-1: #fb3d80;
+  --viz-grid: #ffffff14;
+  --viz-axis: #bfaec3a6;
+  --viz-tooltip-bg: #1b0d33;
+  --viz-tooltip-border: #493052;
+  margin-top: 40px;
+  margin-bottom: 12px;
+  padding: 24px 24px 16px;
+  border: 1px solid #ffffff12;
+  border-radius: 16px;
+  background: #180d29a6;
+}
+.community-timeline-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.community-timeline-heading h2 {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+}
+.community-timeline-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.community-timeline-heading > span {
+  margin-top: 3px;
+  white-space: nowrap;
+  color: #f5add5;
+  font:
+    10px ui-monospace,
+    monospace;
+  letter-spacing: 0.1em;
+}
+.community-timeline-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  color: var(--muted);
+  gap: 12px;
+  font-size: 13px;
+}
+.community-timeline-state button,
+.community-timeline-stale button {
+  color: #ffacd4;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.community-timeline-stale {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 14px;
+}
+@media (max-width: 600px) {
+  .community-timeline {
+    padding: 20px 10px 12px;
+    margin-top: 24px;
+  }
+  .community-timeline-heading {
+    padding-inline: 6px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}

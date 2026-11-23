@@ -1,4 +1,6 @@
 import {
+  Suspense,
+  lazy,
   useEffect,
   useState,
   useSyncExternalStore,
@@ -55,6 +57,8 @@ import LoginScreen from "./LoginScreen";
 import DiscordIcon from "./DiscordIcon";
 import { authGateway, authUrl } from "./auth";
 import { ATPASSPORT_CALLBACK_PATH } from "../../shared/homepage-routing";
+
+const CommunityTimeline = lazy(() => import("./CommunityTimeline"));
 
 const googlePlayUrl =
   "https://play.google.com/store/apps/details?id=app.rocksky";
@@ -536,6 +540,19 @@ function LandingPage() {
             )}
           </div>
         </section>
+
+        <Suspense
+          fallback={
+            <div
+              className="container community-timeline community-timeline-state"
+              role="status"
+            >
+              Loading community listening…
+            </div>
+          }
+        >
+          <CommunityTimeline />
+        </Suspense>
 
         <section
           id="discover"
