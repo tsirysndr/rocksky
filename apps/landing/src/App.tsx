@@ -13,13 +13,7 @@ import {
   buttonVariants,
 } from "@heroui/react";
 import { useAtom } from "jotai";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
   ArrowRight,
@@ -53,6 +47,7 @@ import {
   trackUrl,
   useCommunity,
 } from "./data";
+import HeroBackground from "./HeroBackground";
 import SdkIntegrations from "./SdkIntegrations";
 import WeeklyCharts from "./WeeklyCharts";
 import SearchModal, { searchOpenAtom } from "./SearchModal";
@@ -262,13 +257,7 @@ function LandingPage() {
   const [, setLive] = useAtom(liveAtom);
   const [menu, setMenu] = useAtom(menuAtom);
   const reduce = useReducedMotion();
-  const { scrollY } = useScroll();
-  const rotate = useTransform(scrollY, [0, 1000], [-15, 30]);
-  const y = useTransform(scrollY, [0, 900], [0, 95]);
   const tracks = feed.data ?? [];
-  const featured = tracks.find((track) => track.albumArt) ?? tracks[0];
-  const featuredUrl = trackUrl(featured?.trackUri);
-  const RecentCard = featuredUrl ? "a" : "div";
   const covers = [
     ...new Map(
       tracks
@@ -406,167 +395,98 @@ function LandingPage() {
       <SearchModal />
 
       <main id="main">
-        <section className="hero container" aria-labelledby="hero-title">
-          <div className="hero-copy">
-            <div className="eyebrow">
-              <span className="tiny-star">✳</span> MUSIC SCROBBLING ON AT
-              PROTOCOL
-            </div>
-            <h1 id="hero-title">
-              A record of
-              <br />
-              what you
-              <br />
-              <span className="pink-word">
-                listen to.
-                <svg
-                  viewBox="0 0 460 25"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
+        <section className="hero" aria-labelledby="hero-title">
+          <HeroBackground />
+          <div className="hero-content container">
+            <div className="hero-copy">
+              <div className="eyebrow">
+                <span className="tiny-star">✳</span> MUSIC SCROBBLING ON
+                <a
+                  className="hero-protocol-link"
+                  href="https://atproto.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  <path d="M5 18 Q205 -3 451 10 M48 23 Q267 8 408 16" />
-                </svg>
-              </span>
-            </h1>
-            <p className="hero-description">
-              Track what you play, see your listening stats, and find music
-              through other listeners. Rocksky keeps your listening history
-              together across the services you connect.
-            </p>
-            <div className="hero-actions">
-              <a
-                href="#sign-in"
-                className={
-                  buttonVariants({ size: "lg" }) + " cta-link main-cta"
-                }
-              >
-                Start scrobbling <ArrowUpRight size={18} />
-              </a>
-              <a href="#community" className="text-link">
-                Recent listens <ArrowDown size={17} />
-              </a>
-              <a
-                href={googlePlayUrl}
-                className="google-play-badge"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Download Rocksky for Android on Google Play"
-              >
-                <img
-                  src={`${import.meta.env.BASE_URL}google-play-badge.png`}
-                  width={194}
-                  height={75}
-                  alt="Get it on Google Play"
-                />
-              </a>
+                  AT PROTOCOL
+                </a>
+              </div>
+              <h1 id="hero-title">
+                A record of
+                <br />
+                what you
+                <br />
+                <span className="pink-word">
+                  listen to.
+                  <svg
+                    viewBox="0 0 460 25"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 18 Q205 -3 451 10 M48 23 Q267 8 408 16" />
+                  </svg>
+                </span>
+              </h1>
+              <p className="hero-description">
+                Track what you play, see your listening stats, and find music
+                through other listeners. Rocksky keeps your listening history
+                together across the services you connect.
+              </p>
+              <div className="hero-actions">
+                <a
+                  href="#sign-in"
+                  className={
+                    buttonVariants({ size: "lg" }) + " cta-link main-cta"
+                  }
+                >
+                  Start scrobbling <ArrowUpRight size={18} />
+                </a>
+                <a href="#community" className="text-link">
+                  Recent listens <ArrowDown size={17} />
+                </a>
+                <a
+                  href={googlePlayUrl}
+                  className="google-play-badge"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Download Rocksky for Android on Google Play"
+                >
+                  <img
+                    src={`${import.meta.env.BASE_URL}google-play-badge.png`}
+                    width={194}
+                    height={75}
+                    alt="Get it on Google Play"
+                  />
+                </a>
+              </div>
+              <p className="hero-note">
+                <Check size={14} /> Free to join <span>·</span>{" "}
+                <a
+                  href="https://tangled.org/rocksky.app/rocksky"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  Open source
+                </a>{" "}
+                <span>·</span>{" "}
+                <a
+                  href="https://atproto.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  Built on AT Protocol
+                </a>
+              </p>
             </div>
-            <p className="hero-note">
-              <Check size={14} /> Free to join <span>·</span>{" "}
-              <a
-                href="https://tangled.org/rocksky.app/rocksky"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                Open source
-              </a>{" "}
-              <span>·</span>{" "}
-              <a
-                href="https://atproto.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                Built on AT Protocol
-              </a>
-            </p>
-          </div>
 
-          <div className="hero-art" aria-label="Rocksky record illustration">
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
-            <span className="art-star star-one" aria-hidden="true">
-              ✦
-            </span>
-            <span className="art-star star-two" aria-hidden="true">
-              ✳
-            </span>
-            <span className="vertical-caption">
-              ROCKSKY / LISTENING HISTORY
-            </span>
-            <motion.div
-              className="record-sleeve"
-              style={reduce ? undefined : { rotate, y }}
-            >
-              <div className="sleeve-top">
-                <AudioLines size={24} />
-                <span>
-                  LISTENING
-                  <br />
-                  HISTORY.
-                </span>
-                <span className="sleeve-edition">
-                  VOL.
-                  <br />
-                  001
-                </span>
-              </div>
-              <div className="vinyl">
-                <div className="vinyl-label">
-                  <AudioLines size={38} />
-                  <span>rocksky</span>
-                  <div className="spindle" />
-                  <small>SIDE A</small>
-                </div>
-              </div>
-              <div className="sleeve-bottom">
-                <span>ROCKSKY RECORDS</span>
-                <span>33⅓ RPM ↗</span>
-              </div>
-            </motion.div>
-            <div className="floating-tag">
-              <span className="live-dot" /> WHAT’S ON YOUR ROTATION?
+            <div className="hero-bottom">
+              <span>SCROBBLES, STATS & MUSIC</span>
+              <a href="#discover" aria-label="Explore Rocksky">
+                <ArrowDown size={19} />
+              </a>
+              <span>FROM YOUR FIRST SCROBBLE ON</span>
             </div>
-            <RecentCard
-              className="now-card"
-              href={featuredUrl}
-              aria-label={
-                featuredUrl && featured
-                  ? `View ${featured.title || "song"} by ${featured.artist || "unknown artist"} on Rocksky`
-                  : undefined
-              }
-            >
-              <div className="now-card-label">
-                <span className="equalizer">
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </span>
-                {featured ? "A RECENT COMMUNITY LISTEN" : "RECENT LISTENS"}
-              </div>
-              <div className="now-card-track">
-                <Artwork
-                  src={featured?.albumArt}
-                  title={featured?.album || "Record artwork"}
-                />
-                <div>
-                  <strong>{featured?.title || "No recent listens yet"}</strong>
-                  <span>
-                    {featured?.artist ||
-                      "Tracks from Rocksky listeners appear here"}
-                  </span>
-                </div>
-                <Music2 size={21} />
-              </div>
-            </RecentCard>
-          </div>
-          <div className="hero-bottom">
-            <span>SCROBBLES, STATS & MUSIC</span>
-            <a href="#discover" aria-label="Explore Rocksky">
-              <ArrowDown size={19} />
-            </a>
-            <span>FROM YOUR FIRST SCROBBLE ON</span>
           </div>
         </section>
 

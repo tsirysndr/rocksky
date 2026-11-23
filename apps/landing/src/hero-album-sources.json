@@ -1,0 +1,1537 @@
+[
+  {
+    "file": "hero-albums-1.webp",
+    "width": 2560,
+    "height": 1440,
+    "hasAlpha": true,
+    "albums": [
+      {
+        "title": "DELTARUNE Chapter 1: Original Game Soundtrack",
+        "artist": "Toby Fox",
+        "uri": "at://did:web:vessel.darkworld.download/app.rocksky.album/3mndbfwrrj224",
+        "source": "https://i.scdn.co/image/ab67616d0000b27306f2539e9993e43ae9adcc69",
+        "sha256": "f95ba8b9945dbd28e664adbbd37f67117e6b337672dd95ae3730d736f9cc0675"
+      },
+      {
+        "title": "Steven Universe, Vol. 1 (Original Soundtrack)",
+        "artist": "Steven Universe",
+        "uri": "at://did:plc:5amoelshbjx4rmg4g5jpepl7/app.rocksky.album/3lqjikg3xtk2z",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e18ff29a2fe8e9c0df309fa6",
+        "sha256": "19a7a6d9949633587b563ea1ef2dae706dbcd7124c51ee1a14d03449a141ffeb"
+      },
+      {
+        "title": "The Fame",
+        "artist": "Lady Gaga",
+        "uri": "at://did:plc:fgvx5xqinqoqgpfhito5er3s/app.rocksky.album/3lo5srtl7e22k",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e691217483df8798445c82e2",
+        "sha256": "f3f6742491031d06c7138dc67f81dfa4c60f3f448c2c0dd4ace43ee82e24d1ef"
+      },
+      {
+        "title": "Honeymoon",
+        "artist": "Beach Bunny",
+        "uri": "at://did:plc:4hwwn4wptmbyzeyuwqjs5amv/app.rocksky.album/3lxak5gltis2x",
+        "source": "https://i.scdn.co/image/ab67616d0000b27318350a1dd3b708d94b1362a7",
+        "sha256": "5df901195a2b77dd80f209385d903fcd6818eee5be2b10ad6c77d21ca3402dbf"
+      },
+      {
+        "title": "racine carrée",
+        "artist": "Stromae",
+        "uri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.album/3llirmpcyac26",
+        "source": "https://i.scdn.co/image/ab67616d0000b273ab580fab750cc9baf0d52b5c",
+        "sha256": "7e6665fa95b2ee06944bd855ff345c5545e074476b45f31a706ee97068337e77"
+      },
+      {
+        "title": "Constant Companions (Deluxe Edition)",
+        "artist": "Jamie Paige",
+        "uri": "at://did:web:jb.waf.moe/app.rocksky.album/3mh47ngglqf2d",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733998f8ff5bc6c886f7064f0c",
+        "sha256": "878a1e072f82a00c90c25f2fd4e6850c888edad48abc69678f5ec4328a49a1cd"
+      },
+      {
+        "title": "10,000 gecs",
+        "artist": "100 gecs",
+        "uri": "at://did:plc:5amoelshbjx4rmg4g5jpepl7/app.rocksky.album/3lppccqyzq225",
+        "source": "https://i.scdn.co/image/ab67616d0000b27323c7a7224c1378fc3e6427cb",
+        "sha256": "76e55f9a119182a7a995bcb36d635c08e234f1ad8f3049e87f63acfee563cade"
+      },
+      {
+        "title": "Speak Now (Taylor's Version)",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmfs5u6xgk2m",
+        "source": "https://i.scdn.co/image/ab67616d0000b2730b04da4f224b51ff86e0a481",
+        "sha256": "eed4000cf73413524bfff40a9185bfefc1cc5f6fe0220643f3a881dc131ab83f"
+      },
+      {
+        "title": "Jack In The Box (HOPE Edition)",
+        "artist": "j-hope",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mb5vfz3fyk2u",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e58c1f0d918bea50ad7b2de6",
+        "sha256": "bb0fb5d79e148021f7dfa3623f62cc5b112f9d20be8b9d82da66c72fd3cb4413"
+      },
+      {
+        "title": "You’re Dead!",
+        "artist": "Flying Lotus",
+        "uri": "at://did:plc:oca7rgyzqmqny2zhgsxehq23/app.rocksky.album/3mwo5yxakat2r",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d7c4a4148cdd06da03368ae5",
+        "sha256": "cf7e404909079eed54a10b54a81ae7cff6815c1f2a32159ff09f361884fee9fb"
+      },
+      {
+        "title": "Am",
+        "artist": "Ovlov",
+        "uri": "at://did:plc:2cra4ikkavc2fmdien47dpzh/app.rocksky.album/3mqlgz26qa22g",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d667a3a44279d1b376862805",
+        "sha256": "2a3961798986c718c88a97b10830ac3068f580c752b60fc6af3d50ee8de0844e"
+      },
+      {
+        "title": "Vessel (with Bonus Tracks)",
+        "artist": "Twenty One Pilots",
+        "uri": "at://did:plc:gndwmc2lp65v2pot7alz2m4c/app.rocksky.album/3mgmzdywluc2u",
+        "source": "https://i.scdn.co/image/ab67616d0000b27328302ceade7600d1fbbe298a",
+        "sha256": "cb67774c2a80a6689bc9632f74a75f6f8a7b89c97b713daef43f0d200645a13c"
+      },
+      {
+        "title": "[Movements]",
+        "artist": "Solar Fields",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3msbwxnexcs22",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733a77642c39043051742eb543",
+        "sha256": "7136675463beb426032b44eca594644972e723be12642acdf08f38122c11cee4"
+      },
+      {
+        "title": "Absolution",
+        "artist": "Muse",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3ljklvq6sqc25",
+        "source": "https://i.scdn.co/image/ab67616d0000b2738cb690f962092fd44bbe2bf4",
+        "sha256": "7f6464774b8db652f045807eebb6a4641eaa48ea8df07fe2ac33f432859950ad"
+      },
+      {
+        "title": "Taylor Swift",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmfoapg7qc2m",
+        "source": "https://i.scdn.co/image/ab67616d0000b2732f8c0fd72a80a93f8c53b96c",
+        "sha256": "9bac8c0b25390acb990e8b733aca8ee1bce851657640b0a4062ff7b5679dcd8c"
+      },
+      {
+        "title": "Life In Cartoon Motion",
+        "artist": "MIKA",
+        "uri": "at://did:plc:eukcx4amfqmhfrnkix7zwm34/app.rocksky.album/3mathpo4s622u",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733408a925e0bcb7940f864a0e",
+        "sha256": "c7ed57dfb4877219bb70f536eabaf5d4c74c11b19854d4ededd0daf88231a519"
+      },
+      {
+        "title": "RAGNAROK Online Complete Soundtrack",
+        "artist": "soundTeMP",
+        "uri": "at://did:plc:bqcalqdf4xis6fxioidi46ro/app.rocksky.album/3mxwhevyats2m",
+        "source": "https://lastfm-img.freetls.fastly.net/i/u/300x300/253e44c9ae16e8ec66ad654a2be84ec1.jpg",
+        "sha256": "16b89175083396a3a599b46b4c965b8c5510dfebc9cdcbccafd4b24bf905959f"
+      },
+      {
+        "title": "KISS N TELL",
+        "artist": "aespa",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mrd7ctz4gs2g",
+        "source": "https://i.scdn.co/image/ab67616d0000b273304c46fde5f5244a66f7317b",
+        "sha256": "8d7647a0cb300f60af53bb1c2fb30b93d8fe73b1b02f191e1337f840334241fa"
+      },
+      {
+        "title": "For Long Tomorrow",
+        "artist": "toe",
+        "uri": "at://did:plc:t5xmf33p5kqgkbznx22p7d7g/app.rocksky.album/3m2a2mkvl3s24",
+        "source": "https://i.scdn.co/image/ab67616d0000b273218f23e309df278d5b04748c",
+        "sha256": "54457b16e3cafa1965b8bf0022a9b5207a72d626e99c85d7b8002d5d7a1c79f7"
+      },
+      {
+        "title": "Future Nostalgia",
+        "artist": "Dua Lipa",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3logotdnrpk2w",
+        "source": "https://i.scdn.co/image/ab67616d0000b2734bc66095f8a70bc4e6593f4f",
+        "sha256": "0b93f9f15e905843f00ed077a5b8f3937de45c949f4767bb5dc0b30f996dba64"
+      },
+      {
+        "title": "2016 - 2018",
+        "artist": "Népal",
+        "uri": "at://did:plc:ybx6os5vaaksppbxwvqqciaf/app.rocksky.album/3mtblobki4o2p",
+        "source": "https://cdn-images.dzcdn.net/images/cover/097ae32a12fa665e9472afc6c7c5b798/1000x1000-000000-80-0-0.jpg",
+        "sha256": "209bb58cb4adf23614f3f52bdad1948bc8fc0f3bec1d841525c66f36314df19b"
+      },
+      {
+        "title": "In Rainbows",
+        "artist": "Radiohead",
+        "uri": "at://did:plc:5amoelshbjx4rmg4g5jpepl7/app.rocksky.album/3lsgnxv3w2k2f",
+        "source": "https://i.scdn.co/image/ab67616d0000b273de3c04b5fc750b68899b20a9",
+        "sha256": "4c64c6d563800b3c2b037ada5799aae823feecb1f54858a257d4aa946c879757"
+      },
+      {
+        "title": "Fearless",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:w7s4dmiq62rvd5eriiazzfq7/app.rocksky.album/3mglszcyshs2o",
+        "source": "https://i.scdn.co/image/ab67616d0000b2737b25c072237f29ee50025fdc",
+        "sha256": "7b01dc722c1cee0bf3f78a0215ac177a3a27827402a757d93bad11a81fc0222f"
+      },
+      {
+        "title": "Avengers: Infinity War",
+        "artist": "Alan Silvestri",
+        "uri": "at://did:plc:s63rvnxw37nv4dwnnxrpe7jb/app.rocksky.album/3msscosb7gc2l",
+        "source": "https://cdn-images.dzcdn.net/images/cover/5dde7faeaa5f3ba7f0ef5dee92cffce9/1000x1000-000000-80-0-0.jpg",
+        "sha256": "bff67a45017b91f2294ba68b06f6246c68cc19d9c3d7616c256a0b9a317ed11f"
+      },
+      {
+        "title": "NCT 2018 EMPATHY",
+        "artist": "NCT",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3m6uqujp2mt2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b1d944dd406d5b0e461ad155",
+        "sha256": "3fa4407680f5c243f43aa0587212bc45365e8f81c76b1aff2ddb530fb2b916c5"
+      },
+      {
+        "title": "Furious Angels",
+        "artist": "Rob Dougan",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3mrqgk7vhqs22",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b79da89a2397ebad09b01c5e",
+        "sha256": "c82671eca65161222be4a5ef6e3eb97393808383e70cf7745efef354fe9dc695"
+      },
+      {
+        "title": "WHEN WE ALL FALL ASLEEP, WHERE DO WE GO?",
+        "artist": "Billie Eilish",
+        "uri": "at://did:plc:67ck67oi5mejpysgqcgl4lds/app.rocksky.album/3llwvwgaqes2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b27350a3147b4edd7701a876c6ce",
+        "sha256": "1035fd44993ad1fecc42ec1442f9eccb6fc3d7f730a111ef3807cde717749906"
+      },
+      {
+        "title": "The Wall",
+        "artist": "Pink Floyd",
+        "uri": "at://did:plc:5fyfskntvw6jltxmdu2we7nw/app.rocksky.album/3m5meuxh4bk2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273cbf8b2cd89b54a021db51e75",
+        "sha256": "dd736efb00715fc0c08d512b0076dc98fda6f7c451161ad3d993849d82579aff"
+      },
+      {
+        "title": "The Avengers",
+        "artist": "Alan Silvestri",
+        "uri": "at://did:plc:yrwiktdu7vcdrpoky6fblyss/app.rocksky.album/3mrvwlq5pxp24",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b0b9aaf0ef903add8f96ff6e",
+        "sha256": "310431f4bda08cf4988c660bdc90db4fe743034c5a2ad8c84c121881b8d95061"
+      },
+      {
+        "title": "Harm",
+        "artist": "Infinity Girl",
+        "uri": "at://did:plc:zu5u2xou7jcckvwjnniffrxn/app.rocksky.album/3mtlm7l3msi23",
+        "source": "https://i.scdn.co/image/ab67616d0000b27374ae65e72650184ec7bf24cf",
+        "sha256": "8b71919cd616f6c38a5b15aa11f54d58a7e366d08d5be18018b3b19c5001c284"
+      },
+      {
+        "title": "A Color Map of the Sun",
+        "artist": "Pretty Lights",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3ms74l7c5uk22",
+        "source": "https://cdn-images.dzcdn.net/images/cover/efd7498a3f421b683999c4fa4cc9d8d1/1000x1000-000000-80-0-0.jpg",
+        "sha256": "61f3c1f9c36a3899e07245eab029829456fdfdea37dff7b2a71ac3c73edc5024"
+      },
+      {
+        "title": "reputation",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmikwsimts2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b273da5d5aeeabacacc1263c0f4b",
+        "sha256": "faeb20ff65a8e911000736c0d31d338418395c1ab0b17124a24eea6a58ba4460"
+      },
+      {
+        "title": "Donuts",
+        "artist": "J Dilla",
+        "uri": "at://did:plc:fwoq4y4ddxuoye2io4peagju/app.rocksky.album/3m45zxch4322p",
+        "source": "https://i.scdn.co/image/ab67616d0000b27383bb78285449998bb974da45",
+        "sha256": "d326bdb05ab0f5aa5933c757a9f3078e149b01f6c605b6314dc8dfb6218c655b"
+      },
+      {
+        "title": "Midnight Sun",
+        "artist": "Zara Larsson",
+        "uri": "at://did:plc:w7s4dmiq62rvd5eriiazzfq7/app.rocksky.album/3lzqyas3ls22y",
+        "source": "https://i.scdn.co/image/ab67616d0000b27339905bfc6729b13ec7a7fead",
+        "sha256": "1d33cede02c1ca249bed85df25237af35ca3799719cc2fd1da82158c3d246cfb"
+      },
+      {
+        "title": "BLINGY - The 7th Album",
+        "artist": "NCT 127",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mttp7ge4ps23",
+        "source": "https://i.scdn.co/image/ab67616d0000b273820da6a43295fcb80ac9a1b3",
+        "sha256": "1e82c2d44b4a456b6d92c55e1a627d0a33699a3cc02b123cc1a22fb9c0ef6908"
+      },
+      {
+        "title": "The Rokstarr Hits Collection",
+        "artist": "Taio Cruz",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lxtzkdkuyk2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b27366c3eb32692a0ae487079cf1",
+        "sha256": "438778b4da20e868db740692fd6e14f6d27fa48d8b556db3f40727197a21e7d7"
+      },
+      {
+        "title": "LONG.LIVE.A$AP (Deluxe Version)",
+        "artist": "A$AP Rocky",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lj2wxd3dts2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733265ed162fa2dd5ec6434ee4",
+        "sha256": "a73d664625e3bf8a69c361b1274edb41e6e638a5acae008897f8e24d33226f55"
+      },
+      {
+        "title": "Infiniment",
+        "artist": "Jacques Brel",
+        "uri": "at://did:plc:ybx6os5vaaksppbxwvqqciaf/app.rocksky.album/3mtblqdwiem2j",
+        "source": "https://cdn-images.dzcdn.net/images/cover/d61b65b271612da7fd80712411eba49a/1000x1000-000000-80-0-0.jpg",
+        "sha256": "09806cc7a3523e9f7b63b96f9c3e715fb35a450c68ba242f337efc6626df3893"
+      },
+      {
+        "title": "Speak Now",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:4jrld6fwpnwqehtce56qshzv/app.rocksky.album/3mrupsl4v7s22",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d0eae3c1661a96570f0ca7bd",
+        "sha256": "60387866a026f6af9bc8cac4ca0b870c042aec87aa151adb624cdbd69fd125d8"
+      },
+      {
+        "title": "Octahedron",
+        "artist": "The Mars Volta",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3mryjr5f5yc22",
+        "source": "https://cdn-images.dzcdn.net/images/cover/cc3d4695a4f659423a24adbfa3b0b346/1000x1000-000000-80-0-0.jpg",
+        "sha256": "c71b371efdee85ee97ca1788ef79df1d74ac1a4fc3cb8bf8dd190e080e4132bf"
+      },
+      {
+        "title": "Cosmic Egg Deluxe Edition",
+        "artist": "Wolfmother",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3mrx7z4bems22",
+        "source": "https://i.scdn.co/image/ab67616d0000b27337824f5d9998d7863bc88d4f",
+        "sha256": "ad7595cc016302e7bd492516d020c689500fe343a8dcc732c020f4dcc155436a"
+      },
+      {
+        "title": "Music Has The Right To Children",
+        "artist": "Boards of Canada",
+        "uri": "at://did:plc:t5xmf33p5kqgkbznx22p7d7g/app.rocksky.album/3m2zpznysr22v",
+        "source": "https://i.scdn.co/image/ab67616d0000b2739effb26eea559ce6f3fed751",
+        "sha256": "34997f23e6084d86f94745120e9050f8fa5b8d9c110482b212e401152aa2b8de"
+      },
+      {
+        "title": "2022 Winter SMTOWN : SMCU PALACE",
+        "artist": "SMTOWN",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3m6x76ak3zl2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f184dfda8eaeac06fff5e14e",
+        "sha256": "0ae11e6d4b99b2d5062deb9eec25b6eea4a75ebebe7c45e7e49c26ed9f3ec0e7"
+      },
+      {
+        "title": "First Impressions Of Earth",
+        "artist": "The Strokes",
+        "uri": "at://did:plc:cquyzralksaniwgfbt6l665s/app.rocksky.album/3lt2wmjnan22f",
+        "source": "https://i.scdn.co/image/ab67616d0000b2736898a982ff3c6049ba52586c",
+        "sha256": "f40b4f678837438ab6fd0cf97baa6fa524af446d4e238e03c0a7e246f54262e9"
+      },
+      {
+        "title": "USA",
+        "artist": "Surkin",
+        "uri": "at://did:plc:x3vmjwgkuytaql7idajzkkg6/app.rocksky.album/3mnvgtccsq42i",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733e40ff2b67a0edb767f84965",
+        "sha256": "5941e55f29fa29aa6a5d578d2dd9d8fa54f95cca50b8f9ed7af63ce967076e77"
+      },
+      {
+        "title": "ICEMAN",
+        "artist": "Drake",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3mlwwxcrkoc2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b2738e76f09489ebfa31ac920f08",
+        "sha256": "dbd35f7c1d74f4b4f67bc79c45f22f64f9dad1df1a10c597c72df2b8a82b6600"
+      },
+      {
+        "title": "Invaders Must Die",
+        "artist": "The Prodigy",
+        "uri": "at://did:plc:kocuiy5x4bxtjcj7hrs6frh6/app.rocksky.album/3m7iag46rik23",
+        "source": "https://i.scdn.co/image/ab67616d0000b273bce53a924b756cbaf8aa245c",
+        "sha256": "55f074a3acc9c9fa315e2bdf318c60ba4c04c2afe3b03ddc8c949c0a9841de1f"
+      },
+      {
+        "title": "Stronger (Deluxe Version)",
+        "artist": "Kelly Clarkson",
+        "uri": "at://did:plc:w7s4dmiq62rvd5eriiazzfq7/app.rocksky.album/3mhjf5cgvy22r",
+        "source": "https://i.scdn.co/image/ab67616d0000b273253e3f8fce535f72a6b2c4ba",
+        "sha256": "4f5d941ace91b286716b617ca0a03bb1125bfface6fb0459ec6e59b6be9edc79"
+      },
+      {
+        "title": "THE TORTURED POETS DEPARTMENT: THE ANTHOLOGY",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmsmdhmows2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b2735076e4160d018e378f488c33",
+        "sha256": "e1b59e4a76ea6560e579095aecd3f12408f67ca68a0fdc2d7fc97ff963f6de38"
+      },
+      {
+        "title": "Young and Courageous",
+        "artist": "Tides Of Man",
+        "uri": "at://did:plc:q2ekeqsacb2n3quumssgwcuc/app.rocksky.album/3msiju3uh7k2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b886deb64bcb0bdd72947902",
+        "sha256": "c700d1160fdda331158ac470c0ae4b7fd67365c80f8eb08d80bf075eab589d46"
+      },
+      {
+        "title": "First Two Pages of Frankenstein",
+        "artist": "The National",
+        "uri": "at://did:plc:rlwgbwqdknilpxxep5gvzc3y/app.rocksky.album/3mqdlwiebze2b",
+        "source": "https://i.scdn.co/image/ab67616d0000b273364c819937072957a9220847",
+        "sha256": "97f4ce5e3bdd11a7d8b4c65f236f8842971039bb115ca6080a0186bc0ff9633b"
+      },
+      {
+        "title": "UNDERTALE: Soundtrack",
+        "artist": "Toby Fox",
+        "uri": "at://did:web:vessel.darkworld.download/app.rocksky.album/3mncuu4yikk24",
+        "source": "https://i.scdn.co/image/ab67616d0000b27344ae29b7d531186cfc7c5113",
+        "sha256": "f033373c8d3658a8694a10090297766fa350de36666277efbb7dffa0a8beb36e"
+      },
+      {
+        "title": "Chinoiseries",
+        "artist": "Onra",
+        "uri": "at://did:plc:lbnyk22o2xnxxm5w7nqa6dcn/app.rocksky.album/3mrxdb3irlk2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273912ac6ffde4f05d2ecd076d2",
+        "sha256": "9eb20fbec55b6ae16649a012a3335347be16dbe45039c8cb80adbdaa9641ef16"
+      },
+      {
+        "title": "Heartbeats: Ten",
+        "artist": "Grum",
+        "uri": "at://did:web:didd.uk/app.rocksky.album/3mthydi6zqs2n",
+        "source": "https://cdn-images.dzcdn.net/images/cover/eadfcd46abf321db337a7876750f0e5b/1000x1000-000000-80-0-0.jpg",
+        "sha256": "ebbc5b0827d1bb410e272f7127604b1bfb47743ee0bad69ea2813ad09182d971"
+      },
+      {
+        "title": "Nurture",
+        "artist": "Porter Robinson",
+        "uri": "at://did:web:jb.waf.moe/app.rocksky.album/3mh476mcltc2d",
+        "source": "https://i.scdn.co/image/ab67616d0000b2737d6ac8b4a84ad4b342050d87",
+        "sha256": "a08096d75f7cbb2b09cf5630428cca02a073a1c97da3e61b8e0e15438bf1c9f3"
+      },
+      {
+        "title": "Minutes to Midnight",
+        "artist": "Linkin Park",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lht6sr3yl22e",
+        "source": "https://i.scdn.co/image/ab67616d0000b2736e996745f2c7b8036abef213",
+        "sha256": "367dd0c9e48ea054bd2065ad2f92a3d5aa09d7bfab51825afe995130f1c9e66c"
+      },
+      {
+        "title": "The Big Bang",
+        "artist": "Busta Rhymes",
+        "uri": "at://did:plc:ybx6os5vaaksppbxwvqqciaf/app.rocksky.album/3mtdgiw7o2m2j",
+        "source": "https://cdn-images.dzcdn.net/images/cover/debb61e9ff422113fed1e5e76aaa8fa2/1000x1000-000000-80-0-0.jpg",
+        "sha256": "7216faee69830c4c88e5b68b7d35c8c95f1b7dade07bb7f0a5dddca151804197"
+      },
+      {
+        "title": "Dive",
+        "artist": "Tycho",
+        "uri": "at://did:plc:hluqcgwbbxtglofzk53gmwbw/app.rocksky.album/3m4r4chfjys2v",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e3685463e9a139c239030e31",
+        "sha256": "f644995ecb590c0a8fba937fc44f212602fd0cb922d534c3ca96d812e0c646e0"
+      },
+      {
+        "title": "Spaces",
+        "artist": "Nils Frahm",
+        "uri": "at://did:plc:cx2r63k6sqpsr2e2squotz5n/app.rocksky.album/3mmhxni33pk2y",
+        "source": "https://i.scdn.co/image/ab67616d0000b27344beff2f0733508e7284acb3",
+        "sha256": "2ce62a2bcb21abc851d2c3788993a83e77c04a7a32b196a2180f4808771462b5"
+      },
+      {
+        "title": "Tron Legacy (Original Motion Picture Soundtrack)",
+        "artist": "Daft Punk",
+        "uri": "at://did:plc:v6nn36co2lrr6b3pyuniy2jh/app.rocksky.album/3mx7auocnej26",
+        "source": "https://i.scdn.co/image/ab67616d0000b27397020c0136e12bb33c7e2cb7",
+        "sha256": "3741063c962d18a5bec33fa6a5b7b065ab765d2d042057b3cfde9c0fab390480"
+      },
+      {
+        "title": "1989 (Taylor's Version)",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mbt6gn55yc2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273904445d70d04eb24d6bb79ac",
+        "sha256": "9d677dcfc13bae7bc8ec15fa2532cbd375e79e04ceb7b047da9c6a2446714490"
+      },
+      {
+        "title": "SOUR",
+        "artist": "Olivia Rodrigo",
+        "uri": "at://did:plc:aqvjmfhn3g2mwsj5srg2pod7/app.rocksky.album/3lpomfj43ss25",
+        "source": "https://i.scdn.co/image/ab67616d0000b273a91c10fe9472d9bd89802e5a",
+        "sha256": "bf85565d96e2a0d1b48215443e48ab004e225ebc53c57cd7e151e28a96aba03f"
+      },
+      {
+        "title": "Lover",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmmwnvrqnc2f",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e787cffec20aa2a396a61647",
+        "sha256": "e0278b1520f8d80eb4f9af3e6c7e0a73676fc9e1dc9298ff15bff6f7bd8c7d64"
+      },
+      {
+        "title": "Post",
+        "artist": "Björk",
+        "uri": "at://did:plc:hluqcgwbbxtglofzk53gmwbw/app.rocksky.album/3m4lpnqveid23",
+        "source": "https://i.scdn.co/image/ab67616d0000b273a865a9acd0169c7a014063b0",
+        "sha256": "146dae6121408bb8eb9afb4832465bc03ec34d1c755f73f5992d94e886f60116"
+      },
+      {
+        "title": "Audio, Video, Disco.",
+        "artist": "Justice",
+        "uri": "at://did:plc:4hwwn4wptmbyzeyuwqjs5amv/app.rocksky.album/3luvdei32lc2y",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f9171c2b7bab0956cdfbd1fa",
+        "sha256": "be2213b15965b584d5111e6a0f32d458a230a0a45f5be96698d2edd4f4bc62a3"
+      },
+      {
+        "title": "loveless",
+        "artist": "my bloody valentine",
+        "uri": "at://did:plc:xxkc3avlx2skvvmc2tofvv7u/app.rocksky.album/3maaedx5lz22w",
+        "source": "https://i.scdn.co/image/ab67616d0000b273db8e38addb58131f77b48377",
+        "sha256": "0ff89ced886790345ed196e63d7848b8d6e69de9042d36cbebd3dfdec8583350"
+      },
+      {
+        "title": "The Heist",
+        "artist": "Macklemore & Ryan Lewis",
+        "uri": "at://did:plc:ew3qowq4bsc67qohlxcbmsdb/app.rocksky.album/3luj6eylahs2t",
+        "source": "https://i.scdn.co/image/ab67616d0000b2732a6b364528b128a4a17d100d",
+        "sha256": "7d93ccf49627afdec6b935bdc039314469d7ce809044c1316e94e967a0c7fb6b"
+      },
+      {
+        "title": "1989",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lmmy3a2xek2f",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb72",
+        "sha256": "5c80acf0963af4e92dd03051f77faa6a918c977dbb6c88d3e260c017817b7cfa"
+      },
+      {
+        "title": "1492: Conquest of Paradise",
+        "artist": "Vangelis",
+        "uri": "at://did:plc:irs2tcoeuvuwj3m4yampbuco/app.rocksky.album/3mdjzuknzls2v",
+        "source": "https://i.scdn.co/image/ab67616d0000b27360de03184044e5f69745802f",
+        "sha256": "5068dd38b020d3650efe54f4a3a4fe334e35f0cee133cd29874e613472ea3346"
+      },
+      {
+        "title": "Stratosphere",
+        "artist": "Duster",
+        "uri": "at://did:plc:sjsifypmw7rafiie4x4qltrd/app.rocksky.album/3lmsx2osr322n",
+        "source": "https://i.scdn.co/image/ab67616d0000b2732241587c8ce3d9051f4d4f74",
+        "sha256": "0f62bf98f1a4657e9adf3da857cc59e67208a5fae323e271dfafc815fcb19919"
+      },
+      {
+        "title": "Tell All Your Friends",
+        "artist": "Taking Back Sunday",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3ltowifaox222",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e41ab4d24eda27f163409316",
+        "sha256": "4e3d0e3bdb5457905272702c099c1dc22ba54c0846e5f8e2a1e40bd9ca96be9c"
+      },
+      {
+        "title": "The Powers That B",
+        "artist": "Death Grips",
+        "uri": "at://did:plc:z5udahlpedl5my5bjmvxbz5u/app.rocksky.album/3mhrleh4o2k2u",
+        "source": "https://i.scdn.co/image/ab67616d0000b2734aea9bda43e44a0e07f7c0b6",
+        "sha256": "e0f81071b6be951f02c4e65cc3d8b249936cd4080ae6e7314bce092fce8ce8cb"
+      }
+    ]
+  },
+  {
+    "file": "hero-albums-2.webp",
+    "width": 2560,
+    "height": 1440,
+    "hasAlpha": true,
+    "albums": [
+      {
+        "title": "It's Album Time",
+        "artist": "Todd Terje",
+        "uri": "at://did:web:jb.waf.moe/app.rocksky.album/3mmy3uqllac2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b273ef57e636952c4099cf13c6b5",
+        "sha256": "57d353aae187ec137469c4abafe77822c5a0ddb4f10369170b60dc5dc87fa1a0"
+      },
+      {
+        "title": "Doom Days",
+        "artist": "Bastille",
+        "uri": "at://did:plc:yrwiktdu7vcdrpoky6fblyss/app.rocksky.album/3mruksbdkzt2g",
+        "source": "https://i.scdn.co/image/ab67616d0000b27324c39b52de69d4d017f7c7e3",
+        "sha256": "7b4df71964977413d124b6c7573686963260dff9e87843cc16e3bf1f5ee2be36"
+      },
+      {
+        "title": "Wild Ones",
+        "artist": "Flo Rida",
+        "uri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.album/3llr5oc2gls2j",
+        "source": "https://i.scdn.co/image/ab67616d0000b273871d85943145dde548f4ae09",
+        "sha256": "bd64255eb8f7405ad65eef127032013bff86279c41b905ab95bf4fbc6abc1c40"
+      },
+      {
+        "title": "Phi",
+        "artist": "Truckfighters",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3ms2fkemjus22",
+        "source": "https://i.scdn.co/image/ab67616d0000b2734e92b93ead6d14d39621119c",
+        "sha256": "4eb47e6292c3cc6d6e7ccfe53a091aec3bac626d1bb73a3a53ae784d86aac24d"
+      },
+      {
+        "title": "1000 gecs and The Tree of Clues",
+        "artist": "100 gecs",
+        "uri": "at://did:plc:t5xmf33p5kqgkbznx22p7d7g/app.rocksky.album/3m264ckwmp224",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f91a3040f0be854026ad2dd0",
+        "sha256": "d5c254659ad6a134b569e08092dbd5e8f664e4ff81521b24750b668796106268"
+      },
+      {
+        "title": "Trouble Will Find Me",
+        "artist": "The National",
+        "uri": "at://did:plc:miwsb7fv5wpwxlbcu2ol2ew6/app.rocksky.album/3m4lmox7jav23",
+        "source": "https://i.scdn.co/image/ab67616d0000b273a970b73f34155a90e04d6414",
+        "sha256": "9d8d7efafae8a9cf8a3aa1b05dcc891a945f33e91ebc0c4eb98d707450327b17"
+      },
+      {
+        "title": "Some Nights",
+        "artist": "fun.",
+        "uri": "at://did:plc:t5xmf33p5kqgkbznx22p7d7g/app.rocksky.album/3m3aeetx3722p",
+        "source": "https://i.scdn.co/image/ab67616d0000b27305fb4e9947c6edaf3836766e",
+        "sha256": "8bc2db2fac0df4c0f6fa4fb5f36badaafcede542825c62959b0b8b74cb005a64"
+      },
+      {
+        "title": "Delusion Moon",
+        "artist": "Meat Wave",
+        "uri": "at://did:plc:rlwgbwqdknilpxxep5gvzc3y/app.rocksky.album/3moolv4hq7v2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b27347aa109efd63ec414a43451c",
+        "sha256": "629dccacca59ea0c9f874e5104591ffb1c6b4472d7116a22cfed14ea918e58f0"
+      },
+      {
+        "title": "you seem pretty sad for a girl so in love",
+        "artist": "Olivia Rodrigo",
+        "uri": "at://did:plc:ukegsag5ikk7dykz4ciuejdx/app.rocksky.album/3mo2w57tyqi2i",
+        "source": "https://i.scdn.co/image/ab67616d0000b2735cf234eeb7a2edf44bf64a46",
+        "sha256": "20d6a4a2b27552e09ffe9446d3a5cc388bed274e854fcc89af4ea9dcb5be54d9"
+      },
+      {
+        "title": "Random Album Title",
+        "artist": "deadmau5",
+        "uri": "at://did:plc:x37ycyikezcyzjslp6inzq5c/app.rocksky.album/3mbq4tqbrts2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273ae441d94b99dc2dad3bcf6ab",
+        "sha256": "f3ee91acb4c9f3d4348edfb5905cce3192fa9533234de411c9afb8afcdc02f97"
+      },
+      {
+        "title": "Meteora 20th Anniversary Edition",
+        "artist": "Linkin Park",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhtdpslp4c2e",
+        "source": "https://i.scdn.co/image/ab67616d0000b273ca2e09fd52e6330146ea9550",
+        "sha256": "4b4e2e58eb0854d706bf7bb02c0ba0c86b8d0b458113d43383ffacdcb38418bc"
+      },
+      {
+        "title": "Hazbin Hotel: Season Two (Original Soundtrack)",
+        "artist": "Hazbin Hotel",
+        "uri": "at://did:plc:w7s4dmiq62rvd5eriiazzfq7/app.rocksky.album/3m663wbu3vk2m",
+        "source": "https://i.scdn.co/image/ab67616d0000b2736674dce8e8b91b1c591ccaca",
+        "sha256": "efb3229363c65a2fc03b002b351824e4055c257cf43c045e5b008713b5a6f414"
+      },
+      {
+        "title": "Spice",
+        "artist": "Spice Girls",
+        "uri": "at://did:plc:cquyzralksaniwgfbt6l665s/app.rocksky.album/3lqpnzfh2422z",
+        "source": "https://i.scdn.co/image/ab67616d0000b27363facc42e4a35eb3aa182b59",
+        "sha256": "6024de3042fea4e3294554716d71dc54b531b18bc6af55c1ca525d2d61617606"
+      },
+      {
+        "title": "She Won't Let Go",
+        "artist": "Sistra",
+        "uri": "at://did:plc:gwre3rmn25eerdabls33d4bk/app.rocksky.album/3mn5m5c4ixk2g",
+        "source": "https://lastfm.freetls.fastly.net/i/u/300x300/caf24a7f781efaf645751265c86e5222.png",
+        "sha256": "c754d6cb94f889beccf3dd219d08c10b6e26e6b9d3d458a41e59b6242bed37ce"
+      },
+      {
+        "title": "Something Good '08",
+        "artist": "Utah Saints",
+        "uri": "at://did:web:didd.uk/app.rocksky.album/3mt2r3qlqfd2c",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e273e10979a171f38691a939",
+        "sha256": "6e841eff10620fb6cb76ef3fef8615f1c8e847ded65cc497bce8646573dba112"
+      },
+      {
+        "title": "GUTS",
+        "artist": "Olivia Rodrigo",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mbta3dr2l22n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e85259a1cae29a8d91f2093d",
+        "sha256": "835311f95d32314446c80390c9c3cded8484c258b2ee148585efcc64707edb96"
+      },
+      {
+        "title": "Soar - The 2nd Album",
+        "artist": "DOYOUNG",
+        "uri": "at://did:plc:lvtp7ai6niemdpyxagobmnlv/app.rocksky.album/3m6qi2vradl2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f0882e143e25959fcdf0ff14",
+        "sha256": "680b0b2cee8d6375ae864375ed0b6a963b66392dce38e5fae0db759f5fdb5725"
+      },
+      {
+        "title": "The Rise and Fall of Ziggy Stardust and the Spiders From Mars",
+        "artist": "David Bowie",
+        "uri": "at://did:plc:rlwgbwqdknilpxxep5gvzc3y/app.rocksky.album/3mpvjcprr3c2b",
+        "source": "https://i.scdn.co/image/ab67616d0000b273c41f4e1133b0e6c5fcf58680",
+        "sha256": "0ae526a7e8c53d33dc379aac1ee99206ad451f844dfd2cf8f2fdfa0078f4158f"
+      },
+      {
+        "title": "Hamilton",
+        "artist": "Leslie Odom Jr.",
+        "uri": "at://did:plc:s63rvnxw37nv4dwnnxrpe7jb/app.rocksky.album/3msr4plgr322l",
+        "source": "https://cdn-images.dzcdn.net/images/cover/1caa88583f24c9477fbb680cf7b1b8e8/1000x1000-000000-80-0-0.jpg",
+        "sha256": "7786bdb7e695562c45d0265cf486a544fb2f6ad87433f6265dba2624ec162924"
+      },
+      {
+        "title": "Brand New Eyes",
+        "artist": "Paramore",
+        "uri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.album/3lno35r5j522z",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b9abbedc516dd297039977bd",
+        "sha256": "162945d352c3ab411b94171817de8541fe034007053f595cf87a8717e9e06053"
+      },
+      {
+        "title": "Days Are Gone",
+        "artist": "HAIM",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3ms6xgga2q222",
+        "source": "https://i.scdn.co/image/ab67616d0000b27338afe545e0e182bdecdce081",
+        "sha256": "5d247cb4ac3f4f57ff0b8396c9cae7e3677860600d1f0e868a6e5adafef43205"
+      },
+      {
+        "title": "In Silico",
+        "artist": "Pendulum",
+        "uri": "at://did:plc:nmc77zslrwafxn75j66mep6o/app.rocksky.album/3mh4prjj73s23",
+        "source": "https://i.scdn.co/image/ab67616d0000b27361d099fde6c64dc5a90742a4",
+        "sha256": "58d18e5fb74e4a2ee8ed471f146d05acd437d6a3795e54083aa49dc1bed9d639"
+      },
+      {
+        "title": "Turn Blue",
+        "artist": "The Black Keys",
+        "uri": "at://did:plc:miwsb7fv5wpwxlbcu2ol2ew6/app.rocksky.album/3m4lmozqovv23",
+        "source": "https://i.scdn.co/image/ab67616d0000b2731af8fb0d8859055d35d2290f",
+        "sha256": "6245ca792bfd8230427b27bf211450f34f3bfbdc9cf5b9fbd0984108cd97fd65"
+      },
+      {
+        "title": "1000 gecs",
+        "artist": "100 gecs",
+        "uri": "at://did:plc:5amoelshbjx4rmg4g5jpepl7/app.rocksky.album/3ln5y25pqcs2s",
+        "source": "https://i.scdn.co/image/ab67616d0000b2734123c0f9b6689205d20f350f",
+        "sha256": "8a27c6b0ea579908fa09b139739517291de21e1411606ed83312d17a1726a381"
+      },
+      {
+        "title": "ISAM",
+        "artist": "Amon Tobin",
+        "uri": "at://did:plc:lbnyk22o2xnxxm5w7nqa6dcn/app.rocksky.album/3mtf5zsedrx24",
+        "source": "https://cdn-images.dzcdn.net/images/cover/50bf0d5f60259f6a45ed6c6f71b69558/1000x1000-000000-80-0-0.jpg",
+        "sha256": "19ed13b5a9a6b53d62b30d7c881392edcdc09ca67e3200381f6b2ecc30899d48"
+      },
+      {
+        "title": "Honor The Light - EP",
+        "artist": "Zara Larsson",
+        "uri": "at://did:plc:yh5ml6nunwqr7xjrqcf3orkm/app.rocksky.album/3mwis5woslv2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e27076f4e1d54dd876c5b1cc",
+        "sha256": "9398c15e3c18702cd6db34df15a6395963e70875d6a5c8b1cd96b467516d1f6b"
+      },
+      {
+        "title": "マニフェスト",
+        "artist": "RHYMESTER",
+        "uri": "at://did:plc:v6nn36co2lrr6b3pyuniy2jh/app.rocksky.album/3mx47eiqlvl2v",
+        "source": "https://i.scdn.co/image/ab67616d0000b2730893185821a5f88cd42af67e",
+        "sha256": "ebc419de7ed0f6eb1189ff2a3d2fe502ebb156328203ff75f156f75de735032a"
+      },
+      {
+        "title": "Wishcat Magic Card - Wishing Star (Original Soundtrack)",
+        "artist": "NCT WISH",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mbv5v7ejyk2v",
+        "source": "https://i.scdn.co/image/ab67616d0000b273dc6df67afde9a4e286e47181",
+        "sha256": "641f034a3f42fe63ff1a6f5e3a2cafd2b2ba4af8600064979b5cae3ced6ca21f"
+      },
+      {
+        "title": "Love?",
+        "artist": "Jennifer Lopez",
+        "uri": "at://did:plc:irs2tcoeuvuwj3m4yampbuco/app.rocksky.album/3lr7biqpz7s2o",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d7b2aa3834b82b1cbe899a48",
+        "sha256": "eb8893fe7920beff6d41740761d959b5fb5ec72c0bdeba91a97613ea365b85f2"
+      },
+      {
+        "title": "Never Hungover Again",
+        "artist": "Joyce Manor",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmmzwwusec2f",
+        "source": "https://i.scdn.co/image/ab67616d0000b273831b901fe12744c3003ff901",
+        "sha256": "9656dc51686502be36b2acacc453cb2462ad74d509b5b42253f91126a7629ce2"
+      },
+      {
+        "title": "Waste No Time",
+        "artist": "XngHan&Xoul",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3meqjkood7k2m",
+        "source": "https://i.scdn.co/image/ab67616d0000b2732ae8f6118d83b79bbee33fed",
+        "sha256": "92e86f85c107a6e34ff32f1a2fdd16fae3a495e02b25700df20a1a7bb8f577d3"
+      },
+      {
+        "title": "Viva La Vida or Death and All His Friends",
+        "artist": "Coldplay",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lqys7vfppc2i",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e21cc1db05580b6f2d2a3b6e",
+        "sha256": "4fa0c0e7cfa32f8681ff28e29313f549bc4fd03a0a99d22fe4b21f6f44838f84"
+      },
+      {
+        "title": "The Firstfruit - The 1st Album",
+        "artist": "MARK",
+        "uri": "at://did:plc:lvtp7ai6niemdpyxagobmnlv/app.rocksky.album/3m6qle3wz3l2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273458a9f340084c41b7959205d",
+        "sha256": "0b34a3fb608072e675264dd14ac62aec1c964be32dfb3703b5a6e3303357237e"
+      },
+      {
+        "title": "Led Zeppelin IV",
+        "artist": "Led Zeppelin",
+        "uri": "at://did:plc:eukcx4amfqmhfrnkix7zwm34/app.rocksky.album/3mbj5pxhzis2u",
+        "source": "https://i.scdn.co/image/ab67616d0000b273cd25ce73e3eddeedb995fcee",
+        "sha256": "a5e9bd2ef96f148435b72aa3557dcd1dbe283f9593c7f355fc2e5dc45b96a555"
+      },
+      {
+        "title": "Dead Elvis",
+        "artist": "Death in Vegas",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3msrxp3e3422r",
+        "source": "https://cdn-images.dzcdn.net/images/cover/4116a736fd8b3cb262f06849d8aa6f92/1000x1000-000000-80-0-0.jpg",
+        "sha256": "925932f5eb5ca154d6b57b45fe8a70b87a76b2222f50e37400dd387c76bb368e"
+      },
+      {
+        "title": "Universe - The 3rd Album",
+        "artist": "NCT",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3m6sl7gc2bl2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b27349c71ac4515e7081e0767031",
+        "sha256": "1c2feaab8af1eb0b9436f1f711d1eb9a64f39ffb0f611b9801c7be2d65b2752d"
+      },
+      {
+        "title": "I Love My Computer",
+        "artist": "Ninajirachi",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lxtklvywr22n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e04b8c0b83df4247f25ac979",
+        "sha256": "69c9eb8748890468b7f0c5712d5006c2c5a84ed3306553b60a82653ab7402fc9"
+      },
+      {
+        "title": "PRISM",
+        "artist": "Katy Perry",
+        "uri": "at://did:plc:5amoelshbjx4rmg4g5jpepl7/app.rocksky.album/3lpku4qqju22i",
+        "source": "https://i.scdn.co/image/ab67616d0000b2731e9a057052d59004caf47e22",
+        "sha256": "0033b97773fcbff9e44cd155b4564d5dfdf9dfffea50e3f51cff2e864ceece2b"
+      },
+      {
+        "title": "Is This It",
+        "artist": "The Strokes",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lj66hxseu22l",
+        "source": "https://i.scdn.co/image/ab67616d0000b273a388a3f20d1bf2123249cc79",
+        "sha256": "7b9d16c4bac313498215f29d96e35339ca73647ea059626a57aa5b6aad3a22b7"
+      },
+      {
+        "title": "Circus (Deluxe Version)",
+        "artist": "Britney Spears",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mbnu2y6qp22x",
+        "source": "https://i.scdn.co/image/ab67616d0000b2731abb421ac1fbbe52c127015e",
+        "sha256": "3a55b4a88db032c4d8fbfd9c494e43e01240a991c511cc108e43edd1a2acbadc"
+      },
+      {
+        "title": "A Very 1999 Christmas",
+        "artist": "jschlatt",
+        "uri": "at://did:plc:sil5xxljlas23o3cfkfiis7x/app.rocksky.album/3mrbvntem2c2u",
+        "source": "https://i.scdn.co/image/ab67616d0000b273c7888c930f1e17fa39638d13",
+        "sha256": "427bfdbd1dd9ffbad7f99206c7122b6d1480bab8f7d198a53c4ab2815abc2e26"
+      },
+      {
+        "title": "Sepulcros de miel",
+        "artist": "Omar Rodríguez-López Quartet",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3mrqghymvac2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b27359f4276c7978b6e208b21a6d",
+        "sha256": "87199580db954424c46abb0a800281f25aca9c31198f6d27dcf22e471d3db85e"
+      },
+      {
+        "title": "FOCUS - The 1st Mini Album",
+        "artist": "Hearts2Hearts",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3m6tzci23zl2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b2737c887828b1a67202f0219857",
+        "sha256": "9411bd50a2f789a644bffbd2a4900fc5c12a02ca3a79e9c52c440c4ad6844bc6"
+      },
+      {
+        "title": "Dookie",
+        "artist": "Green Day",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lis7b32w6k2y",
+        "source": "https://i.scdn.co/image/ab67616d0000b273db89b08034de626ebee6823d",
+        "sha256": "932badd2798c9085680cad86fa07c9baddfb81c7e61ab7987711dbd30dca6f9d"
+      },
+      {
+        "title": "Ok. Respira",
+        "artist": "Elodie",
+        "uri": "at://did:plc:e2ay76vnl5oeolw6u3ei35fc/app.rocksky.album/3mq7vhfwmf524",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d5d0ce7489346daf125bd7ea",
+        "sha256": "937d7b3b841b4fe77c8b49b97060986d7eed88f4e9704420c30277a6293c87d4"
+      },
+      {
+        "title": "Night Visions",
+        "artist": "Imagine Dragons",
+        "uri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.album/3lmqyibc3ac2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273407bd04707c463bbb3410737",
+        "sha256": "b70596d2fa4b9bbf83a3e83465b2cef992b7fa8b8122b9d039317a1e8275c9ec"
+      },
+      {
+        "title": "The Singles",
+        "artist": "Basement Jaxx",
+        "uri": "at://did:plc:nz7k6syhmdbniyma5np5b3ka/app.rocksky.album/3mqed6rcqme2b",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d53da943ea2936e3a926a88e",
+        "sha256": "ff19107b5ed3feb74e0ffed9cb3fadeaf182fd32dd0e22de7e6a279a700680cc"
+      },
+      {
+        "title": "Fallen",
+        "artist": "Evanescence",
+        "uri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.album/3lljy4xcsk226",
+        "source": "https://i.scdn.co/image/ab67616d0000b27325f49ab23f0ec6332efef432",
+        "sha256": "7a6fc9520c25b074c326413082ea5972ae1c47ea8f3461a5a3e621cb7e220b5e"
+      },
+      {
+        "title": "白色定格 (Eternal White) - Winter Special Album",
+        "artist": "WayV",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3m7i5krpq4k23",
+        "source": "https://i.scdn.co/image/ab67616d0000b273697a7e266d2bd1b05e80b3e3",
+        "sha256": "73f35b6fd0848629c8eba7091e6d34f54adf6e7a418d49e4754f99a602b5e1d9"
+      },
+      {
+        "title": "De‐Loused in the Comatorium",
+        "artist": "The Mars Volta",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3ms25zfvuas22",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e4b4a8830f519fb5d35913b2",
+        "sha256": "6f0a86bd73698bee9a7c3e38888d7fde4af095931a26fe1495931417fcb0e39f"
+      },
+      {
+        "title": "Gravity X",
+        "artist": "Truckfighters",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3mrzcx5k7vs22",
+        "source": "https://cdn-images.dzcdn.net/images/cover/623a421f80c6f526f4b3182d00a3d6f5/1000x1000-000000-80-0-0.jpg",
+        "sha256": "b614ab78d73b802d747b55bb5cd43ce7b0a8db58ac3be873087a48685596e208"
+      },
+      {
+        "title": "Minecraft - Volume Alpha",
+        "artist": "C418",
+        "uri": "at://did:plc:67ck67oi5mejpysgqcgl4lds/app.rocksky.album/3lmbl3yxalc2s",
+        "source": "https://i.scdn.co/image/ab67616d0000b273aaeb5c9fb6131977995b7f0e",
+        "sha256": "ad814f698fa8c990bd18af844d0306307f9afbadb9cb8e35c1da2411a33b818c"
+      },
+      {
+        "title": "Discovery",
+        "artist": "Daft Punk",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlttyitus2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b2732c25dad9f8fd54652f7ba5df",
+        "sha256": "f3b0c980b802e4c5a1016365d785caf935d8c4fe6dcbb192823e4a6c58e3b7fd"
+      },
+      {
+        "title": "FEMULINE",
+        "artist": "Todrick Hall",
+        "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.album/3mthbngxmao2t",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733aebf50043e1bc12b8021efa",
+        "sha256": "a66c2a4830262788e14ae48b75684c2936dd65d611b82a8736e7c36b21645218"
+      },
+      {
+        "title": "街の14景",
+        "artist": "the band apart",
+        "source": "https://cdn-images.dzcdn.net/images/cover/b96978eabc8026a54b20c690e0a4bc0a/1000x1000-000000-80-0-0.jpg",
+        "sha256": "d0936c1652381b72caf28d912055154245871abf3cfbfd3f1b92c89431c48090"
+      },
+      {
+        "title": "Songs For The Deaf",
+        "artist": "Queens of the Stone Age",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3ljaeyax7ek2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b2739eec33b045d88f87b9b06e67",
+        "sha256": "7cb04340f59399eeeecf2cac45e0ef93d77b7bb4cf209e3ac2436b28801f27cf"
+      },
+      {
+        "title": "Oracular Spectacular",
+        "artist": "MGMT",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lj5jevmutc2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b2738b32b139981e79f2ebe005eb",
+        "sha256": "bec488fa3046f8d11f9782b3f0f8f0385aad1a46cc5614243951e10819bb1037"
+      },
+      {
+        "title": "Florescence",
+        "artist": "Maisie Peters",
+        "uri": "at://did:plc:wfyk6ochxegynulld7gflsx5/app.rocksky.album/3mmglqg2n6c2y",
+        "source": "https://i.scdn.co/image/ab67616d0000b273a89e013166461305e0365218",
+        "sha256": "a57f0d2d80aba04edcc9fceb38b5a6995fef0d8e9a9204c72e20777ad404a65e"
+      },
+      {
+        "title": "I AM...SASHA FIERCE",
+        "artist": "Beyoncé",
+        "uri": "at://did:plc:sjsifypmw7rafiie4x4qltrd/app.rocksky.album/3lmjpx4lpac2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e13de7b8662b085b0885ffef",
+        "sha256": "4de0ac6bc635aab90980914dee0cee2752b5178471b4ffd4f67c4397eefe299a"
+      },
+      {
+        "title": "Cozy Body",
+        "artist": "Mineral Girls",
+        "uri": "at://did:plc:zu5u2xou7jcckvwjnniffrxn/app.rocksky.album/3mtlw2crtu22z",
+        "source": "https://i.scdn.co/image/ab67616d0000b273abeb3bd4f15c1ce7fc9cbb1d",
+        "sha256": "f8805bf1a6916f8c290a73cfe000e852b5557c95c68d118635d733ad08c94135"
+      },
+      {
+        "title": "ii - the 2nd mini album",
+        "artist": "RIIZE",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3motqppzszg2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273458227e037c0bdb296f481d0",
+        "sha256": "65fe472349553aa589c595589dff42dff55ae2626c19c48219660deb84219f63"
+      },
+      {
+        "title": "Lightning At The Door",
+        "artist": "All Them Witches",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3msau4pm7bk22",
+        "source": "https://cdn-images.dzcdn.net/images/cover/68ef7c3604c840ea02e3990192c139d8/1000x1000-000000-80-0-0.jpg",
+        "sha256": "c9b1fcd5c83bc402c961e30c74a269056cee0820678e91fcae597528c32d0a0a"
+      },
+      {
+        "title": "Cannibal (Expanded Edition)",
+        "artist": "Kesha",
+        "uri": "at://did:plc:6ayddqghxhciedbaofoxkcbs/app.rocksky.album/3ls6hzdbg7s2b",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733556ff5e46e50eb27be71ebe",
+        "sha256": "cc1d6afdd26f508faf2a2da2b9df1988d6920eacf8d379a5d41fedbc8282d3c8"
+      },
+      {
+        "title": "Black Sands",
+        "artist": "Bonobo",
+        "uri": "at://did:plc:t5xmf33p5kqgkbznx22p7d7g/app.rocksky.album/3m25z4jizrk24",
+        "source": "https://i.scdn.co/image/ab67616d0000b2737da6d6787071a97593cfbcee",
+        "sha256": "7ee4c014e45862b6c0ec627ccc9b9996a84f235253d947f6ba9971441f6e2815"
+      },
+      {
+        "title": "Sad Songs for Dirty Lovers",
+        "artist": "The National",
+        "uri": "at://did:plc:s63rvnxw37nv4dwnnxrpe7jb/app.rocksky.album/3mtei2bx2j52l",
+        "source": "https://i.scdn.co/image/ab67616d0000b273ae8a73fbd72fa4fa654ab5de",
+        "sha256": "a668bcf7d901acddf8006156d1833c1244dd19f810a49153ae04337a16970c2e"
+      },
+      {
+        "title": "Red (Taylor's Version)",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmn3fzswr22f",
+        "source": "https://i.scdn.co/image/ab67616d0000b273318443aab3531a0558e79a4d",
+        "sha256": "81146e5e58b7275a8f986638df72b104076864c44b4cc7e5487902aa6dfad048"
+      },
+      {
+        "title": "Nevermind",
+        "artist": "Nirvana",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lkyda6xro22r",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d27b5404a8aa5b94856e24cc",
+        "sha256": "02b01186d4c6e5f7abce8ff1520cebc8acf92cca39468f05eb2c9400e40a1970"
+      },
+      {
+        "title": "Junior",
+        "artist": "Röyksopp",
+        "uri": "at://did:plc:t5xmf33p5kqgkbznx22p7d7g/app.rocksky.album/3m47rdz4t7k2s",
+        "source": "https://i.scdn.co/image/ab67616d0000b273061dfbdfdd7d963d1eac3194",
+        "sha256": "a0045a04967bdb8853dd66afbd4c4c965765da2a7c216da64e0ccd5cf250a48f"
+      },
+      {
+        "title": "Melodrama",
+        "artist": "Lorde",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmin25zkks2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f8553e18a11209d4becd0336",
+        "sha256": "871775bd096c483f35af0f8ce925b5dd4aeb5c4e8b7fd0c854bbdd7c4b927b8b"
+      },
+      {
+        "title": "Wild World - Complete Edition",
+        "artist": "Bastille",
+        "uri": "at://did:plc:s63rvnxw37nv4dwnnxrpe7jb/app.rocksky.album/3mu5sevvjgr2l",
+        "source": "https://cdn-images.dzcdn.net/images/cover/4d2e198bd9d44a9ff2b78f14dcfaa584/1000x1000-000000-80-0-0.jpg",
+        "sha256": "2fceeabfbc333fdc5b7404787ac0f8efc494fdd4a299d11382ab432edaac6a57"
+      },
+      {
+        "title": "Best Album『Fiction』",
+        "artist": "Maison book girl",
+        "uri": "at://did:plc:v6nn36co2lrr6b3pyuniy2jh/app.rocksky.album/3my53zibkb52p",
+        "source": "https://i.scdn.co/image/ab67616d0000b2731c813314a80d5cf731f21b09",
+        "sha256": "638b83e37f84f27d395bef29e78b65a2d0988f10d983ed539889d6b4bce18234"
+      },
+      {
+        "title": "Amnesiac",
+        "artist": "Radiohead",
+        "uri": "at://did:plc:ma7pr5kriopgmo6iuqbzhew4/app.rocksky.album/3me2zohxs5s26",
+        "source": "https://i.scdn.co/image/ab67616d0000b273863e0e305637100311c91aa7",
+        "sha256": "e303ffcd6a6c00355129f9b37f421bc5067f67d27bf530f034c5587381593569"
+      }
+    ]
+  },
+  {
+    "file": "hero-albums-3.webp",
+    "width": 2560,
+    "height": 1440,
+    "hasAlpha": true,
+    "albums": [
+      {
+        "title": "Enema Of The State",
+        "artist": "blink-182",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lj7v5z667s2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b2736da502e35a7a3e48de2b0f74",
+        "sha256": "344bd3792d261e4e02f8b92f6c88e5ea6cdb67b40017a5d788e0db0ca2a1a1e0"
+      },
+      {
+        "title": "TRON: Legacy",
+        "artist": "Daft Punk",
+        "uri": "at://did:plc:t5xmf33p5kqgkbznx22p7d7g/app.rocksky.album/3m47keidwus2s",
+        "source": "https://i.scdn.co/image/ab67616d0000b27366919acb93950333962467f8",
+        "sha256": "cbbd8d319b6fbde5572f73af8df4705160fafb7ae45a093717aafc32601f82bc"
+      },
+      {
+        "title": "Infinity On High",
+        "artist": "Fall Out Boy",
+        "uri": "at://did:plc:fgvx5xqinqoqgpfhito5er3s/app.rocksky.album/3lnjhk75bz22d",
+        "source": "https://i.scdn.co/image/ab67616d0000b273da071ae7564949fbbfc6904d",
+        "sha256": "d0443ae43ae6d4121aa4d98b64edda15a40ef986628b0ff0bfe9b5361c6d17eb"
+      },
+      {
+        "title": "True Blue...",
+        "artist": "dj TAKA",
+        "uri": "at://did:plc:v6nn36co2lrr6b3pyuniy2jh/app.rocksky.album/3mxipjyi3mx2j",
+        "source": "https://cdn-images.dzcdn.net/images/cover/b55d4b25cd112508350ebc4b3c0b8425/1000x1000-000000-80-0-0.jpg",
+        "sha256": "f1d29dd4652e12fdc2503759aa85449fa2628d551da60951faa0817707ef9c9f"
+      },
+      {
+        "title": "Boxer",
+        "artist": "The National",
+        "uri": "at://did:plc:praqlzd6u3s7hzgeqj7e77ro/app.rocksky.album/3mq4ztaz2yu24",
+        "source": "https://i.scdn.co/image/ab67616d0000b273c7a2d8675f75bc64fbf137d2",
+        "sha256": "5b1d6acc5a7cd4d1c36625aba53be7bcbf45fd862332dd4518bd9d48a29e72b8"
+      },
+      {
+        "title": "we fell in love in october / October Passed Me By",
+        "artist": "girl in red",
+        "uri": "at://did:plc:fgvx5xqinqoqgpfhito5er3s/app.rocksky.album/3lnfairb3t22p",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d6839051c4760457e1a60b2a",
+        "sha256": "dfdae9bb411d8dfe6008240046a67d2bd59f23fb608dae352e231dde9bd658f2"
+      },
+      {
+        "title": "GUTS (spilled)",
+        "artist": "Olivia Rodrigo",
+        "uri": "at://did:plc:ma7pr5kriopgmo6iuqbzhew4/app.rocksky.album/3mhw76ywbak2y",
+        "source": "https://i.scdn.co/image/ab67616d0000b2734063d624ebf8ff67bc3701ee",
+        "sha256": "af0b882a5476bf1eb17b61a4730f723c2e7f02b0ba36e9814bceef2afebc0859"
+      },
+      {
+        "title": "Glow - The 1st Mini Album",
+        "artist": "XngHan&Xoul",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mkj74xtcg22d",
+        "source": "https://i.scdn.co/image/ab67616d0000b2730d3f9d2d7d9b689318f337df",
+        "sha256": "7f4ac754b105879680a427b523589fcd8a5d72ded7dbc22723dc94bc431472a2"
+      },
+      {
+        "title": "West Ryder Pauper Lunatic Asylum",
+        "artist": "Kasabian",
+        "uri": "at://did:plc:eukcx4amfqmhfrnkix7zwm34/app.rocksky.album/3mbynwjqn7s2t",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d1bf4e4ffb53ba9dbcd781a4",
+        "sha256": "6ac52473aa1ce80b4c470b2e7d515529be5094c511aa8e082c14c7f05e3ff013"
+      },
+      {
+        "title": "1989 D.L.X.",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:3272gdrjsuikiff7qsgokgas/app.rocksky.album/3mwjmodwgq22a",
+        "source": "https://cdn-images.dzcdn.net/images/cover/68b4e986958b17f05b062ffa8d7ae114/1000x1000-000000-80-0-0.jpg",
+        "sha256": "986daca9c0a6ea6430ed6c234a06464cf42ab2e69885d4089e9949ddb3f7d504"
+      },
+      {
+        "title": "Debut",
+        "artist": "Björk",
+        "uri": "at://did:plc:miwsb7fv5wpwxlbcu2ol2ew6/app.rocksky.album/3m4liacgvz323",
+        "source": "https://i.scdn.co/image/ab67616d0000b2730bd598408bc507d070b7ba4c",
+        "sha256": "228b9757d9305ff594721fcaefb7f454e2c82e6611c5eb39499b0acbca76df42"
+      },
+      {
+        "title": "Rebirth",
+        "artist": "ivycomb",
+        "uri": "at://did:plc:w7ecjycqabh26vdpxytsadqd/app.rocksky.album/3mg6iwfpryc25",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e761660991c3cb458013e409",
+        "sha256": "b426993808917169da659d837f1af271267d35d394fb34d1351981b7a711c518"
+      },
+      {
+        "title": "True",
+        "artist": "Avicii",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhtyojevnc2h",
+        "source": "https://i.scdn.co/image/ab67616d0000b273e14f11f796cef9f9a82691a7",
+        "sha256": "0b52dd83121c3f4b5f1eb3d6461d2c2fe287d228a648f8644eae9ca3a076ca17"
+      },
+      {
+        "title": "Kessoku Band",
+        "artist": "kessoku band",
+        "uri": "at://did:plc:sbgxajlshb7vqtd4zuzjcnk5/app.rocksky.album/3msgq3acum22i",
+        "source": "https://cdn-images.dzcdn.net/images/cover/470cbcfbe4091bc44ae7da80e21f50c5/1000x1000-000000-80-0-0.jpg",
+        "sha256": "a57feca9afd6ca4dd2456a4822b06bb3fd5e31caa0cde6f4d857246cab8839c2"
+      },
+      {
+        "title": "LP4",
+        "artist": "Ratatat",
+        "uri": "at://did:plc:4hwwn4wptmbyzeyuwqjs5amv/app.rocksky.album/3lulfjffj5k2t",
+        "source": "https://i.scdn.co/image/ab67616d0000b273783b91454ffc29818cf3e846",
+        "sha256": "178bf52df9c42b0e89d085782302a33ead0d0b2346a55aeabc352803b1e8b400"
+      },
+      {
+        "title": "Origin of Symmetry",
+        "artist": "Muse",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3ljkmv3tqwc25",
+        "source": "https://i.scdn.co/image/ab67616d0000b2735225e9931a558f6d2f541a7d",
+        "sha256": "371c3c78ece6e209a2cf6797fb78703c128f59479f44a2fb254659d2dcdff299"
+      },
+      {
+        "title": "Gorillaz",
+        "artist": "Gorillaz",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lj5cwfxa3k2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f6c46838e4425ea96e2562fe",
+        "sha256": "c86105efc03149344e2a53af91fb34c61a5682738b44cb4ee5a0a44ec5a3dd91"
+      },
+      {
+        "title": "Ritorno Al Futuro / Back To The Future",
+        "artist": "Elisa",
+        "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.album/3mthgzjlx6g2x",
+        "source": "https://cdn-images.dzcdn.net/images/cover/aefbcd2c9c7acad38a065098fb7c249f/1000x1000-000000-80-0-0.jpg",
+        "sha256": "2960cd7ce5e3c412a9c2c13552f895e60ef837340ff0388bddd1202cb21b5273"
+      },
+      {
+        "title": "Confessions on a Dance Floor",
+        "artist": "Madonna",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3mbdsughpbs2b",
+        "source": "https://i.scdn.co/image/ab67616d0000b273aaa9d84415623c1e790cd07b",
+        "sha256": "2886900abc115926db850f657aec0ac377eb50068e3d5996794ba084bfefb999"
+      },
+      {
+        "title": "PTX",
+        "artist": "Pentatonix",
+        "uri": "at://did:plc:kocuiy5x4bxtjcj7hrs6frh6/app.rocksky.album/3mciiebwv222e",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b7c8f5fe522c41d590c8e4e5",
+        "sha256": "716319fafcc1786888aa208cff3cb4f2a1682533cc7b177e588a3af9a3c80565"
+      },
+      {
+        "title": "Lost In The Dream",
+        "artist": "The War On Drugs",
+        "uri": "at://did:plc:ma7pr5kriopgmo6iuqbzhew4/app.rocksky.album/3mgzriotqhk2g",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f34338e9270f9c0561cf4c7e",
+        "sha256": "ef2bc4281bcacc4fca34de55582e7b1b275c244e192087c8e3a8863a83eadbc4"
+      },
+      {
+        "title": "Red",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lmmybudlms2f",
+        "source": "https://i.scdn.co/image/ab67616d0000b27396384c98ac4f3e7c2440f5b5",
+        "sha256": "632df3f6c26cb2dabfa0ebecf8d7742b087067124a44eeba20928081050f841d"
+      },
+      {
+        "title": "Short n' Sweet",
+        "artist": "Sabrina Carpenter",
+        "uri": "at://did:plc:67ck67oi5mejpysgqcgl4lds/app.rocksky.album/3lmluzd6hnk2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b273fd8d7a8d96871e791cb1f626",
+        "sha256": "a80a14b5c29866e935cfdace2f6f0d2f6e938e31e299e669fecb67a820f642fc"
+      },
+      {
+        "title": "Good News For People Who Love Bad News",
+        "artist": "Modest Mouse",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3listmqauc22y",
+        "source": "https://i.scdn.co/image/ab67616d0000b273cc68329bfbf34037df965dc1",
+        "sha256": "849f3aac3801b6e611e41a5daad6b2554f7c40e1ba92cb635c35f99bbb72ddf4"
+      },
+      {
+        "title": "Dummy",
+        "artist": "Portishead",
+        "uri": "at://did:plc:xxkc3avlx2skvvmc2tofvv7u/app.rocksky.album/3maazmvxqv22w",
+        "source": "https://i.scdn.co/image/ab67616d0000b273dc20397b139223620af148f6",
+        "sha256": "b8347340f9d37c9ecf8314af74dafba66ca8d760c8a77bb9f36c3b4c8640e06e"
+      },
+      {
+        "title": "The Bedlam in Goliath",
+        "artist": "The Mars Volta",
+        "uri": "at://did:plc:k4o733vvyt5zrbcfzunxe6yz/app.rocksky.album/3mhi74fv5322w",
+        "source": "https://i.scdn.co/image/ab67616d0000b273ea1a0f3dfc81097971eca2a7",
+        "sha256": "f1a6da9d28462d45656adbf4fb9a44a4ce78334157e8e491bc34b356fc3dfec2"
+      },
+      {
+        "title": "Trench",
+        "artist": "Twenty One Pilots",
+        "uri": "at://did:plc:5amoelshbjx4rmg4g5jpepl7/app.rocksky.album/3lnjjo44sq22d",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d1d301e737da4324479c6660",
+        "sha256": "6c1a8209b0f13c1f7ffdd3a38ec43eac9bcbc4a7cac69c1cd914b3f40597389b"
+      },
+      {
+        "title": "VS. (Other People’s Heartache, Pt. III)",
+        "artist": "Bastille",
+        "uri": "at://did:plc:s63rvnxw37nv4dwnnxrpe7jb/app.rocksky.album/3msxhgr67s22l",
+        "source": "https://i.scdn.co/image/ab67616d0000b273aec5a0e1c5c8b1b57072396a",
+        "sha256": "99f23855045935166841704e5ebff299a58fb93c82457492d79fc28b3274e118"
+      },
+      {
+        "title": "One Of The Boys",
+        "artist": "Katy Perry",
+        "uri": "at://did:plc:foxemuxgrwgjfj4v75tjeynd/app.rocksky.album/3lzntk4cf5k25",
+        "source": "https://i.scdn.co/image/ab67616d0000b2733f97d4244eff5852477d9ee0",
+        "sha256": "61d9ed5d7680070042e0e760cf172986aa9d60d4679142fad66978d029345672"
+      },
+      {
+        "title": "What.",
+        "artist": "Bo Burnham",
+        "uri": "at://did:plc:fygmatksekl4d77lchupsh7r/app.rocksky.album/3mpgzufjsj22a",
+        "source": "https://i.scdn.co/image/ab67616d0000b2736d3fc541533e195beef83ffc",
+        "sha256": "e018930406c3b23196407da9f3f264c1cf2295e63713858e99c4039d3de401b7"
+      },
+      {
+        "title": "OK Computer",
+        "artist": "Radiohead",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lispzlilvs2y",
+        "source": "https://i.scdn.co/image/ab67616d0000b273c8b444df094279e70d0ed856",
+        "sha256": "75557625eec16165bbd7ad2a27c49ad76ba612232a9b38857e4167d3da646e86"
+      },
+      {
+        "title": "Beat It Up",
+        "artist": "NCT DREAM",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3m6sgo3i7jd2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b2737301b7dab27e3bd575725f41",
+        "sha256": "6ebaf7158027f9b52c04993319e09d316452c528aaaa8b5e1fe8f2cf18a5915a"
+      },
+      {
+        "title": "Disconnect",
+        "artist": "Robopup",
+        "uri": "at://did:plc:trovc5uebhjeowv5bu5xx6ta/app.rocksky.album/3m4jgadn7xs23",
+        "source": "https://i.scdn.co/image/ab67616d0000b273eb82410279ee5486798f753e",
+        "sha256": "83498b140f3b6dc8c2aafc3b7f83e7b659def71f420ed12db76c4b3ec2ed0214"
+      },
+      {
+        "title": "Man’s Best Friend",
+        "artist": "Sabrina Carpenter",
+        "uri": "at://did:plc:oin4mkn64lxd446uu2yzwrmt/app.rocksky.album/3lzfkn6fvek2d",
+        "source": "https://i.scdn.co/image/ab67616d0000b2731dca36b922254e846a06796a",
+        "sha256": "2e895cf55d0a7ecf626577e427e1a70e2e8cbec442c7aab126eaef42795220ef"
+      },
+      {
+        "title": "All This Bad Blood",
+        "artist": "Bastille",
+        "uri": "at://did:plc:fip3nyk6tjo3senpq4ei2cxw/app.rocksky.album/3lxiuzhmcc22x",
+        "source": "https://i.scdn.co/image/ab67616d0000b273faee7306ec2f36aeccc4bc98",
+        "sha256": "1b0c8dc20d61b950154f5307366c79ac2d3cb33c635a996db4ad79f15a03efac"
+      },
+      {
+        "title": "Animal (Expanded Edition)",
+        "artist": "Kesha",
+        "uri": "at://did:plc:5amoelshbjx4rmg4g5jpepl7/app.rocksky.album/3lpktpfswxc2i",
+        "source": "https://i.scdn.co/image/ab67616d0000b2737a6339d6ddfd579f77559b3c",
+        "sha256": "42a116b0419b6a1e2b35de9153d1cda63271833a1df6a6ff46bbd848606a2609"
+      },
+      {
+        "title": "Mania",
+        "artist": "Truckfighters",
+        "uri": "at://did:plc:6kdcfl5fa4fag2kkfjafjznc/app.rocksky.album/3mrzcuy26xk22",
+        "source": "https://cdn-images.dzcdn.net/images/cover/89cfde26e1722df0201a700eb0151e70/1000x1000-000000-80-0-0.jpg",
+        "sha256": "28b92e850ba2fb083e1dde21583f9a8e2134a7954a8463adfc4b803679661d97"
+      },
+      {
+        "title": "Depth",
+        "artist": "YUTA",
+        "uri": "at://did:plc:lvtp7ai6niemdpyxagobmnlv/app.rocksky.album/3m6qnf7cod32q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f325d89941ff2d17919d85f2",
+        "sha256": "6ff03c540c08143694c1eaf566a235a0e086c3f0a9bb0524fb7a27350cb16184"
+      },
+      {
+        "title": "The Greatest Showman (Original Motion Picture Soundtrack)",
+        "artist": "Hugh Jackman",
+        "uri": "at://did:plc:s63rvnxw37nv4dwnnxrpe7jb/app.rocksky.album/3mswtmorhms2l",
+        "source": "https://cdn-images.dzcdn.net/images/cover/ae1dd12d470530d41e9c2ea46772df1c/1000x1000-000000-80-0-0.jpg",
+        "sha256": "52d8d18eb62b830702f3bb6af485071da2241acc44ee8184bd463ec651f0c164"
+      },
+      {
+        "title": "Melody A.M.",
+        "artist": "Röyksopp",
+        "uri": "at://did:plc:ephkzpinhaqcabtkugtbzrwu/app.rocksky.album/3mgppmaqz7s2e",
+        "source": "https://i.scdn.co/image/ab67616d0000b2731e5655cd8db911dc48ea57df",
+        "sha256": "2e9640e766fbd08d2af70ef80c98a400d42beb776f795f5fd9064e7b325e7247"
+      },
+      {
+        "title": "Joe Dassin Éternel...",
+        "artist": "Joe Dassin",
+        "uri": "at://did:plc:ybx6os5vaaksppbxwvqqciaf/app.rocksky.album/3mtc3jknlxm2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b27364b5edd7ea82ed4f72cef69a",
+        "sha256": "e1e5c65bc4ea58622a04dc2a35ea3f6fd718fa4e0770384a7e66574f8f690fd2"
+      },
+      {
+        "title": "TORI.",
+        "artist": "Tori Kelly",
+        "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.album/3mvnv52oztc2i",
+        "source": "https://i.scdn.co/image/ab67616d0000b273cc32e086988faa3addab8e54",
+        "sha256": "3da36774a678959f0d19ead6b19ffab08d70790b0d2248f730ded2caefcb22c1"
+      },
+      {
+        "title": "The Rise and Fall of a Midwest Princess",
+        "artist": "Chappell Roan",
+        "uri": "at://did:web:jb.waf.moe/app.rocksky.album/3mh47f55v2s2d",
+        "source": "https://i.scdn.co/image/ab67616d0000b27396fa88fb1789be437d5cb4b6",
+        "sha256": "6e21632d323e8ebdda905d41bd77cd9feebddce1fa1c05ad579f4ed6aa7cc577"
+      },
+      {
+        "title": "The Sex Was Good Until It Wasn't",
+        "artist": "Xana",
+        "uri": "at://did:plc:uyhgqygc4ufc4yss2cpr5pnw/app.rocksky.album/3mmwwe4z3rk2k",
+        "source": "https://i.scdn.co/image/ab67616d0000b27371eb98291bfade6ceaf18d9b",
+        "sha256": "8668e599ca6eef49d93ed689f0c3035a14ac5956130e0ba8d91f843464d1e182"
+      },
+      {
+        "title": "FutureSex/LoveSounds",
+        "artist": "Justin Timberlake",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3m2lgwtolz22f",
+        "source": "https://i.scdn.co/image/ab67616d0000b273c6ba98fd3f3b396a6c6f7091",
+        "sha256": "e3c1f3965cf9e0c1142a9fb31f2c2cce6e50b4651df3510eac8aab798d7bfd57"
+      },
+      {
+        "title": "NORMAL",
+        "artist": "BTS",
+        "uri": "at://did:plc:rub6swfh2iifoxj3cyqacgpk/app.rocksky.album/3mqy7qjwm4s2q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f9cb83c28ce6ce9d5c97cc1f",
+        "sha256": "12a40dd056783a5d3fafef74ebe6bc06a1728792f71fc7b848d4e3f5b129f0db"
+      },
+      {
+        "title": "Playa Potna",
+        "artist": "Le$",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhownb6g5k2k",
+        "source": "https://cdn.rocksky.app/covers/9ace70d4c820cdb25a88d5830385eb10.jpg",
+        "sha256": "657a7c03c5a388ac1d1b0bcd98f15690f3494fa692bdac2dd458af54c4e9bf00"
+      },
+      {
+        "title": "So Jealous",
+        "artist": "Tegan and Sara",
+        "uri": "at://did:plc:wfyk6ochxegynulld7gflsx5/app.rocksky.album/3mcqzejxptk2d",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d424a2675b400a7d2dac48b9",
+        "sha256": "fd118aa8a4cd7e7ec8cdba0acd00540225ad782f837574518b391becc92cadf3"
+      },
+      {
+        "title": "The Life of a Showgirl",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:w7s4dmiq62rvd5eriiazzfq7/app.rocksky.album/3m2ccblg7qc24",
+        "source": "https://i.scdn.co/image/ab67616d0000b273d7812467811a7da6e6a44902",
+        "sha256": "3d8b668a156d5dfb3093e72831a10949cb596ead78a610976de505661f0e1089"
+      },
+      {
+        "title": "evermore",
+        "artist": "Taylor Swift",
+        "uri": "at://did:plc:qyryj3y5di6zhglsez4w3w7k/app.rocksky.album/3lmsm4nfzms2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b27325751b4b32829d6bbfe6be7f",
+        "sha256": "0261fcb9e4629103dd71fe1f86d0174b749b4e9c3c95079a37f17082cc795c56"
+      },
+      {
+        "title": "1000 Forms Of Fear",
+        "artist": "Sia",
+        "uri": "at://did:plc:d5jvs7uo4z6lw63zzreukgt4/app.rocksky.album/3llegwlhp522u",
+        "source": "https://i.scdn.co/image/ab67616d0000b2735d199c9f6e6562aafa5aa357",
+        "sha256": "e74ca750235856e56bee79206c68cf3ceae9319cbf67605b99008fa7f8c4b1a3"
+      },
+      {
+        "title": "Monkey Business",
+        "artist": "Black Eyed Peas",
+        "uri": "at://did:plc:cgzf5qmjexvwwmln4gxl5d4p/app.rocksky.album/3meb4k34e6s25",
+        "source": "https://i.scdn.co/image/ab67616d0000b273c6710b4a52539506c30e5354",
+        "sha256": "fda49bc1da8d239bd72a7b25a2866cb99e49f0debef13df6c6e60e57729095f8"
+      },
+      {
+        "title": "Body Is Dead",
+        "artist": "Funeral Advantage",
+        "uri": "at://did:plc:rlwgbwqdknilpxxep5gvzc3y/app.rocksky.album/3mqhnsktwhk2p",
+        "source": "https://i.scdn.co/image/ab67616d0000b273866743cda40a73c95de2567c",
+        "sha256": "14f0acc9a27cd5e6d75f534df2855e127ca956e94c08a7aaca3e8204ece8d832"
+      },
+      {
+        "title": "Music Sounds Better With You",
+        "artist": "Stardust",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lpt5atvp322c",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b98afa12c212cbbda4f1799b",
+        "sha256": "38c5a1603326c2d93f264f87690acb410057b8808e148eb320c4f9d03e1dc0b5"
+      },
+      {
+        "title": "Hurry up, We're Dreaming",
+        "artist": "M83",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lkybp2oahk2r",
+        "source": "https://i.scdn.co/image/ab67616d0000b27362100064780b1d919a95fcf4",
+        "sha256": "b088040394af769348680f00132c17698f6e62ab260ae7561a9e9a31aa812532"
+      },
+      {
+        "title": "Wicked: The Soundtrack",
+        "artist": "Wicked Movie Cast",
+        "uri": "at://did:plc:oin4mkn64lxd446uu2yzwrmt/app.rocksky.album/3lnmowpj5ms2z",
+        "source": "https://i.scdn.co/image/ab67616d0000b27341ded89391c5350f6b8f991c",
+        "sha256": "09c934426f46a332990489b9d5a061077fbefa8d5f1e1837a4f017e0c74c6cb6"
+      },
+      {
+        "title": "Rosa Dei Venti",
+        "artist": "Gaia",
+        "uri": "at://did:plc:stzlgu7o4bka2nnkyxo4tloy/app.rocksky.album/3mvnvwx5ev32i",
+        "source": "https://i.scdn.co/image/ab67616d0000b273a2252a1b8991906509038f5b",
+        "sha256": "737ce3ccb09920e39b4f468f0d883469927878133210cea37bb1e099f0825c97"
+      },
+      {
+        "title": "Motion",
+        "artist": "Calvin Harris",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lmug3wlhvk2a",
+        "source": "https://i.scdn.co/image/ab67616d0000b2738fba5806a323efd272677c4d",
+        "sha256": "26b882780897428b340852e45d227bc6c79ad58b7c39170ad835d83ddbba6727"
+      },
+      {
+        "title": "MAYHEM",
+        "artist": "Lady Gaga",
+        "uri": "at://did:plc:aqvjmfhn3g2mwsj5srg2pod7/app.rocksky.album/3lmfurupbmc2m",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b0860cf0a98e09663c82290c",
+        "sha256": "d7f617788466b2abac6d27d8bb7bee5e99bcd813c4c4c18cbba3891512334f0e"
+      },
+      {
+        "title": "Good Grief",
+        "artist": "Sara Bareilles",
+        "uri": "at://did:plc:pzufyniakjyvqmjyhdo4n5mi/app.rocksky.album/3ms2jk6ctic2n",
+        "source": "https://lastfm.freetls.fastly.net/i/u/300x300/e0b6cca68cd43c7a10f28e153075f5fe.jpg",
+        "sha256": "3d66b02035ee8635757c781a07a2ac3cbf8bdbf2842383c22f0a057fee99f087"
+      },
+      {
+        "title": "Good Riddance",
+        "artist": "Gracie Abrams",
+        "uri": "at://did:plc:s63rvnxw37nv4dwnnxrpe7jb/app.rocksky.album/3mtgskfedov2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b2730500294bb235c45c0a964d69",
+        "sha256": "cdb8cfeffee1499987cb7b88cdfb827062fcbb2b26210a1707027e29fb64f97a"
+      },
+      {
+        "title": "Currents",
+        "artist": "Tame Impala",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lmp6pup6yc2f",
+        "source": "https://i.scdn.co/image/ab67616d0000b2739e1cfc756886ac782e363d79",
+        "sha256": "f8b0e794f5cd96e266d924b0d9217c8f0942b641f4ec22091995fa334ae6acaa"
+      },
+      {
+        "title": "COCOON",
+        "artist": "Yeat",
+        "uri": "at://did:plc:5jt66dknfoyz2jsq5yazkfe4/app.rocksky.album/3mvs4oviipl2c",
+        "source": "https://cdn-images.dzcdn.net/images/cover/b05fcd3fcf8417bd32c0673c264aada9/1000x1000-000000-80-0-0.jpg",
+        "sha256": "bb2e80683b4f275c3d67c74f96b5bb343a95f8446311483810c6ce7409701a23"
+      },
+      {
+        "title": "F*CK U SKRILLEX YOU THINK UR ANDY WARHOL BUT UR NOT!! <3",
+        "artist": "Skrillex",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3llvsr2uj422q",
+        "source": "https://i.scdn.co/image/ab67616d0000b273c70106709569b8eaa71223a1",
+        "sha256": "33ae3406afae674cf977edd4f577e2d28811a865a78e1be2a68b16e10ad4e451"
+      },
+      {
+        "title": "For Emma, Forever Ago",
+        "artist": "Bon Iver",
+        "uri": "at://did:plc:pyzvvyrh6eudle55nhqe62tv/app.rocksky.album/3meju3pkdos2c",
+        "source": "https://i.scdn.co/image/ab67616d0000b273bf7c317a63c4f128b8823406",
+        "sha256": "83a39a1973bdbf30af9948de422111321e66fcdb4355156f3dfd7a35c52aee54"
+      },
+      {
+        "title": "Ode to Love - The 1st Album",
+        "artist": "NCT WISH",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mk2evex7x226",
+        "source": "https://i.scdn.co/image/ab67616d0000b273253a8ddc03c042c5fbc1d0a7",
+        "sha256": "964af4d8437a5c400d39ded5be4f3fbf26805ce00a8e4519b5d4c89aab2a88c1"
+      },
+      {
+        "title": "Let Go",
+        "artist": "Avril Lavigne",
+        "uri": "at://did:plc:foxemuxgrwgjfj4v75tjeynd/app.rocksky.album/3lzntwe5rvc25",
+        "source": "https://i.scdn.co/image/ab67616d0000b273f7ec724fbf97a30869d06240",
+        "sha256": "57b9905690d42c14699bc900c6a289e3aa3b56ccf44e5e30259a6e2027fb52a6"
+      },
+      {
+        "title": "The Money Store",
+        "artist": "Death Grips",
+        "uri": "at://did:plc:4hwwn4wptmbyzeyuwqjs5amv/app.rocksky.album/3lwaenw4vks2l",
+        "source": "https://i.scdn.co/image/ab67616d0000b273b4f8459b0f719f8a97ee1c8c",
+        "sha256": "112733b8a54153cc5084075c185f22715c72d16bb67bf2951ce62706f6b2b34f"
+      },
+      {
+        "title": "Come Over",
+        "artist": "BTS",
+        "uri": "at://did:plc:w7s4dmiq62rvd5eriiazzfq7/app.rocksky.album/3mo462pelou23",
+        "source": "https://i.scdn.co/image/ab67616d0000b273df7118c4f396e50961cc0e74",
+        "sha256": "bcd6a5963273c9020006cdfead4f5887b222a059c34f3711de0889cda1745613"
+      },
+      {
+        "title": "Stadium Arcadium",
+        "artist": "Red Hot Chili Peppers",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3ltodymthas22",
+        "source": "https://i.scdn.co/image/ab67616d0000b27309fd83d32aee93dceba78517",
+        "sha256": "627f9a667aa1f34f607d02bca66f246f40f0d559e5e87141c8e8b7b60059282a"
+      },
+      {
+        "title": "Lemon Tang - The 2nd Mini Album",
+        "artist": "Hearts2Hearts",
+        "uri": "at://did:plc:q67sl2eyluz4pihms7bqeygm/app.rocksky.album/3mow47uhqcw2n",
+        "source": "https://i.scdn.co/image/ab67616d0000b273391fce8d3ef22f778a8c5c54",
+        "sha256": "1e5efdf2275211b8610c572bc74f5afedac5b647fe1ddcb78d820d3561622e4a"
+      },
+      {
+        "title": "Hyperdrama",
+        "artist": "Justice",
+        "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lmpbb2ldis2f",
+        "source": "https://i.scdn.co/image/ab67616d0000b273730e327760fe592ad69bf18e",
+        "sha256": "9601b0ba719e1e533e2a5b3636c12aec7411f493de311ed4c042bb004214d18e"
+      }
+    ]
+  }
+]
