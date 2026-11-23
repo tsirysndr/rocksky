@@ -3333,18 +3333,20 @@ a.weekly-entry:focus-visible {
   list-style: none;
   margin: 0;
   padding: 0;
-  min-height: 390px;
+  align-content: start;
   overflow: hidden;
 }
 .hero-scrobble {
   position: relative;
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr) 22px;
+  --scrobble-art-size: 80px;
+  grid-template-columns: var(--scrobble-art-size) minmax(0, 1fr) 62px;
   align-items: center;
   gap: 14px;
-  padding: 16px;
+  height: var(--scrobble-art-size);
+  padding: 0 10px 0 0;
   width: 100%;
-  background: #12092599;
+  background: #12092580;
   border-radius: 14px;
 }
 .hero-scrobble-art-link {
@@ -3353,12 +3355,11 @@ a.weekly-entry:focus-visible {
 .hero-scrobble-art {
   display: grid;
   place-items: center;
-  width: 80px;
-  height: 80px;
+  width: var(--scrobble-art-size);
+  height: var(--scrobble-art-size);
   background: #2b1a3d;
   color: #d7addf;
   overflow: hidden;
-  border-radius: 12px;
 }
 .hero-scrobble-art img {
   display: block;
@@ -3369,7 +3370,9 @@ a.weekly-entry:focus-visible {
 .hero-scrobble-info {
   min-width: 0;
   display: grid;
-  gap: 5px;
+  grid-column: 2;
+  grid-row: 1;
+  gap: 3px;
 }
 .hero-scrobble-title {
   overflow: hidden;
@@ -3394,7 +3397,6 @@ a.hero-scrobble-title:hover {
   align-items: center;
   gap: 7px;
   min-width: 0;
-  margin-top: 4px;
   font-size: 11px;
   color: #f5add5;
 }
@@ -3420,12 +3422,19 @@ a.hero-scrobble-title:hover {
   height: 100%;
   object-fit: cover;
 }
-.hero-scrobble-info time {
-  margin-top: 1px;
+.hero-scrobble > time {
+  position: absolute;
+  top: 7px;
+  right: 10px;
   color: #a68eb8;
   font-size: 10px;
 }
 .hero-scrobble-equalizer {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: end;
+  justify-self: end;
+  margin-bottom: 8px;
   display: flex;
   align-items: end;
   justify-content: center;
@@ -3475,7 +3484,7 @@ a.hero-scrobble-title:hover {
   cursor: pointer;
 }
 .hero-scrobbles-loading {
-  min-height: 390px;
+  min-height: 256px;
 }
 .hero-scrobble-placeholder {
   display: grid;
@@ -3494,7 +3503,7 @@ a.hero-scrobble-title:hover {
   grid-row: span 2;
 }
 .hero-scrobbles-empty {
-  min-height: 390px;
+  min-height: 256px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3517,12 +3526,12 @@ a.hero-scrobble-title:hover {
     padding: 20px;
   }
   .hero-scrobble {
-    grid-template-columns: 64px minmax(0, 1fr) 20px;
+    --scrobble-art-size: 64px;
     gap: 10px;
   }
   .hero-scrobble-art {
-    width: 64px;
-    height: 64px;
+    width: var(--scrobble-art-size);
+    height: var(--scrobble-art-size);
   }
 }
 @media (max-width: 800px) {
@@ -3535,12 +3544,12 @@ a.hero-scrobble-title:hover {
     justify-self: start;
   }
   .hero-scrobble {
-    grid-template-columns: 80px minmax(0, 1fr) 22px;
+    --scrobble-art-size: 80px;
     gap: 14px;
   }
   .hero-scrobble-art {
-    width: 80px;
-    height: 80px;
+    width: var(--scrobble-art-size);
+    height: var(--scrobble-art-size);
   }
 }
 @media (max-width: 400px) {
@@ -3548,12 +3557,12 @@ a.hero-scrobble-title:hover {
     padding: 16px;
   }
   .hero-scrobble {
-    grid-template-columns: 60px minmax(0, 1fr) 18px;
+    --scrobble-art-size: 64px;
     gap: 10px;
   }
   .hero-scrobble-art {
-    width: 60px;
-    height: 60px;
+    width: var(--scrobble-art-size);
+    height: var(--scrobble-art-size);
   }
 }
 @media (prefers-reduced-motion: reduce) {

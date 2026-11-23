@@ -33,6 +33,13 @@ an isolated temporary cluster with `sh feeds/test/postgres-smoke.sh`.
 
 ## Local environment
 
+The public `GET /events/scrobbles` SSE route is served by the shared Jetstream
+worker in [`apps/api/src/scrobbles`](../apps/api/src/scrobbles/README.md).
+Caddy routes it directly to `127.0.0.1:8115`, independently of the selected REST
+backend. Run that worker alongside Gleam; no Gleam restart or duplicate Jetstream
+subscription is needed for the public endpoint. Use the Caddy API origin when
+testing SSE, rather than the REST process's direct port.
+
 Run `bun run dev:env` from this package to generate `.env` using the published
 ports and database credentials in the root `compose.yaml`. Docker Compose must
 be installed; the Docker daemon does not need to be running.

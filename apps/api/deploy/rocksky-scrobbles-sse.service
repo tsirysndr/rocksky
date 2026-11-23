@@ -1,0 +1,22 @@
+[Unit]
+Description=Rocksky Jetstream scrobble SSE
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/apps/api
+Environment=HOME=/root
+Environment=PATH=/root/.bun/bin:/usr/local/bin:/usr/bin:/bin
+Environment=SCROBBLES_SSE_HOST=127.0.0.1
+Environment=SCROBBLES_SSE_PORT=8115
+ExecStart=/usr/bin/doppler run -- /usr/bin/env -u NODE_OPTIONS /root/.bun/bin/bun /opt/rocksky-sse/current/scrobbles-stream.mjs
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

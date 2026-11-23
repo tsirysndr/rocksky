@@ -61,7 +61,7 @@ function Chart({
           image: listener.avatar,
           scrobbles: listener.scrobbles,
           href: listener.did
-            ? `${appUrl}/${encodeURIComponent(listener.did)}`
+            ? `${appUrl}/profile/${encodeURIComponent(listener.did)}`
             : undefined,
         }));
       }

@@ -34,6 +34,14 @@ api.rocksky.app {
 	# Negotiate compression for JSON responses, including large song lists.
 	encode zstd gzip
 
+	# Shared by the TypeScript, Gleam and PureScript API deployments.
+	# Keep long-lived streams independent of application API restarts.
+	handle /events/scrobbles {
+		reverse_proxy 127.0.0.1:8115 {
+			flush_interval -1
+		}
+	}
+
 	handle /xrpc/* {
 		reverse_proxy http://localhost:3004
 	}

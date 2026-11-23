@@ -1,8 +1,13 @@
 import { RockskyClient } from "@rocksky/sdk";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { atom, useAtomValue } from "jotai";
 import { normalizeScrobble } from "./normalize";
 import { useLiveScrobbles } from "./useLiveScrobbles";
+import {
+  LIVE_FEED_SNAPSHOT,
+  reconcileScrobbles,
+  type LiveFeedSnapshot,
+} from "./live-scrobbles";
 
 export const appUrl = (
   import.meta.env.VITE_ROCKSKY_APP_URL || "https://rocksky.app"
@@ -18,6 +23,7 @@ export const menuAtom = atom(false);
 export function useCommunity() {
   const live = useAtomValue(liveAtom);
   const connected = useLiveScrobbles(live);
+  const cache = useQueryClient();
   const stats = useQuery({
     queryKey: ["landing", "stats"],
     queryFn: () => client.globalStats(),
@@ -25,11 +31,19 @@ export function useCommunity() {
   });
   const feed = useQuery({
     queryKey: ["landing", "scrobbles"],
-    queryFn: async () =>
-      (await client.scrobbleFeed(undefined, false, 12)).map(normalizeScrobble),
-    refetchInterval: live && !connected ? 15_000 : false,
-    refetchOnWindowFocus: !connected,
-    refetchOnReconnect: !connected,
+    queryFn: async () => {
+      const snapshot = (await client.scrobbleFeed(undefined, false, 12)).map(
+        normalizeScrobble,
+      );
+      return reconcileScrobbles(
+        snapshot,
+        cache.getQueryData<LiveFeedSnapshot>(LIVE_FEED_SNAPSHOT),
+      );
+    },
+    // Keep HTTP recovery active even while the SSE connection is open.
+    refetchInterval: live ? 15_000 : false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
   return { stats, feed, live, connected };
 }

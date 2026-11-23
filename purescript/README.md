@@ -27,6 +27,13 @@ Lexicon JSON is read at startup from `../apps/api/lexicons` and
 
 ## Local environment
 
+The public `GET /events/scrobbles` SSE route is served by the shared Jetstream
+worker in [`apps/api/src/scrobbles`](../apps/api/src/scrobbles/README.md).
+Caddy routes it directly to `127.0.0.1:8115`, independently of the selected REST
+backend. Run that worker alongside PureScript; no PureScript restart or duplicate
+Jetstream subscription is needed for the public endpoint. Use the Caddy API
+origin when testing SSE, rather than the REST process's direct port.
+
 `bun run env:generate` creates a private, git-ignored `.env` using the published
 PostgreSQL, NATS, Redis and Typesense ports in `../compose.yaml`. It generates
 fresh local secrets and leaves third-party credentials blank. No Docker daemon,

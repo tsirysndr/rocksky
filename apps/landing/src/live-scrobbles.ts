@@ -79,3 +79,26 @@ export function scrobbleKey(track: ScrobbleViewBasic) {
     `${track.did || track.handle}|${track.createdAt}|${track.trackUri || track.title}|${track.artist}`
   );
 }
+
+export const LIVE_FEED_SNAPSHOT = ["landing", "scrobbles-push"] as const;
+export type LiveFeedSnapshot = {
+  tracks: ScrobbleViewBasic[];
+  receivedAt: number;
+};
+
+// API caches may briefly trail a push. Keep the pushed snapshot through that
+// cache window, then let HTTP become authoritative again (including deletes).
+export function reconcileScrobbles(
+  http: ScrobbleViewBasic[],
+  push?: LiveFeedSnapshot,
+  now = Date.now(),
+) {
+  if (!push || now - push.receivedAt > 45_000) return http;
+  if (!push.tracks.length) return push.tracks;
+  const latest = (tracks: ScrobbleViewBasic[]) =>
+    Math.max(
+      0,
+      ...tracks.map((track) => Date.parse(track.createdAt || "") || 0),
+    );
+  return latest(push.tracks) >= latest(http) ? push.tracks : http;
+}

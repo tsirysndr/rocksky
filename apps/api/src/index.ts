@@ -37,6 +37,7 @@ import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
 import { requestCounter, requestDuration } from "./metrics";
 import notificationsSse from "./notifications/sse";
+import scrobbleEvents from "./scrobbles/app";
 import notificationPush from "./notifications/push";
 import storageApp from "./storage/app";
 import uploadsApp from "./uploads/app";
@@ -89,6 +90,7 @@ app.use("*", async (c, next) => {
 });
 
 app.use(cors());
+app.route("/", scrobbleEvents);
 
 app.route(
   "/session",

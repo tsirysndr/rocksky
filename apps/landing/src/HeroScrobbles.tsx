@@ -77,7 +77,7 @@ export default function HeroScrobbles({
       ? "Live"
       : pending
         ? "Connecting"
-        : "Reconnecting";
+        : "Refreshing";
   return (
     <aside
       className="hero-scrobbles"
@@ -104,7 +104,7 @@ export default function HeroScrobbles({
               const href = scrobbleUrl(track.uri) || trackUrl(track.trackUri);
               const actor = track.did || track.handle?.replace(/^@/, "");
               const profile = actor
-                ? `${appUrl}/${encodeURIComponent(actor)}`
+                ? `${appUrl}/profile/${encodeURIComponent(actor)}`
                 : undefined;
               const Listener = profile ? "a" : "span";
               return (
@@ -168,10 +168,10 @@ export default function HeroScrobbles({
                           : "A Rocksky listener"}
                       </span>
                     </Listener>
-                    <time dateTime={track.createdAt}>
-                      {relativeTime(track.createdAt)}
-                    </time>
                   </div>
+                  <time dateTime={track.createdAt}>
+                    {relativeTime(track.createdAt)}
+                  </time>
                   <Equalizer />
                 </motion.li>
               );

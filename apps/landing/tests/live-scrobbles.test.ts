@@ -92,3 +92,37 @@ describe("live scrobble updates", () => {
     expect(liveScrobbles({ scrobbles: [] })).toEqual([]);
   });
 });
+
+describe("HTTP fallback alongside live pushes", () => {
+  test("keeps a freshly pushed feed when an API cache still returns older records", async () => {
+    const { reconcileScrobbles } = await import("../src/live-scrobbles");
+    const http = [{ id: "old", createdAt: "2026-11-23T12:00:00Z" }];
+    const tracks = [{ id: "new", createdAt: "2026-11-23T12:01:00Z" }];
+    expect(
+      reconcileScrobbles(http, { tracks, receivedAt: 1000 }, 16_000),
+    ).toEqual(tracks);
+  });
+  test("accepts newer HTTP data even when a heartbeat-only socket remains connected", async () => {
+    const { reconcileScrobbles } = await import("../src/live-scrobbles");
+    const http = [{ id: "new", createdAt: "2026-11-23T12:02:00Z" }];
+    const tracks = [{ id: "old", createdAt: "2026-11-23T12:01:00Z" }];
+    expect(
+      reconcileScrobbles(http, { tracks, receivedAt: 1000 }, 16_000),
+    ).toEqual(http);
+    expect(reconcileScrobbles(http)).toEqual(http);
+  });
+  test("expires stale push snapshots so polling can recover changes and deletions", async () => {
+    const { reconcileScrobbles } = await import("../src/live-scrobbles");
+    const tracks = [{ id: "deleted", createdAt: "2026-11-23T12:01:00Z" }];
+    expect(
+      reconcileScrobbles([], { tracks, receivedAt: 1000 }, 47_000),
+    ).toEqual([]);
+    expect(
+      reconcileScrobbles(
+        [{ id: "cached" }],
+        { tracks: [], receivedAt: 1000 },
+        16_000,
+      ),
+    ).toEqual([]);
+  });
+});
