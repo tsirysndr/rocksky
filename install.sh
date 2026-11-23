@@ -1,5 +1,5 @@
 #!/bin/sh
-# curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/install.sh | sh
+# curl -fsSL https://cli.rocksky.app | sh
 set -eu
 
 fail() { printf 'rocksky: %s\n' "$*" >&2; exit 1; }

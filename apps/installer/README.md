@@ -16,7 +16,7 @@ bun run deploy
 The Worker is named `rocksky-installer`. Once deployed, install with:
 
 ```sh
-curl -fsSL https://<worker-url> | sh
+curl -fsSL https://cli.rocksky.app | sh
 ```
 
 No bindings or secrets are required. Configure a custom domain in Cloudflare or

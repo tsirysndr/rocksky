@@ -57,7 +57,7 @@ npx @rocksky/cli --help
 After a CLI binary release is published, install without Node.js or Bun:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/install.sh | sh
+curl -fsSL https://cli.rocksky.app | sh
 ```
 
 Supports Linux x86_64/aarch64 (glibc) and macOS Apple Silicon (aarch64).
@@ -66,7 +66,7 @@ Use `NO_COLOR=1` to disable the pink installer banner.
 
 ```sh
 # Pin a release, choose the PureScript variant, or change the destination:
-curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/install.sh | \
+curl -fsSL https://cli.rocksky.app | \
   sh -s -- --version 0.11.4 --variant purescript --bin-dir "$HOME/.local/bin"
 
 # Build locally from apps/cli:
