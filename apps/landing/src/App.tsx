@@ -486,7 +486,7 @@ function LandingPage() {
             </div>
 
             <HeroScrobbles
-              tracks={tracks.slice(0, 3)}
+              tracks={tracks.slice(0, 5)}
               pending={feed.isPending}
               failed={feed.isError}
               live={live}

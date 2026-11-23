@@ -184,7 +184,7 @@ export default function HeroScrobbles({
           role="status"
           aria-label="Loading latest scrobbles"
         >
-          {[0, 1, 2].map((index) => (
+          {[0, 1, 2, 3, 4].map((index) => (
             <div className="hero-scrobble-placeholder" key={index}>
               <span />
               <span />

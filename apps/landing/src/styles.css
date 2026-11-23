@@ -3328,7 +3328,7 @@ a.weekly-entry:focus-visible {
 }
 .hero-scrobbles-list {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   position: relative;
   list-style: none;
   margin: 0;
