@@ -1,5 +1,6 @@
 import { storeSessionToken } from "../../../shared/browser-session";
 import styled from "@emotion/styled";
+import ScrollToTop from "../../../shared/browser/ScrollToTop";
 import { IconSparkles } from "@tabler/icons-react";
 import { Link, useSearch } from "@tanstack/react-router";
 import { DURATION, useSnackbar } from "baseui/snackbar";
@@ -304,6 +305,7 @@ function Main(props: MainProps) {
           </div>
         </RightPane>
       )}
+      {!displayDrawer && <ScrollToTop />}
     </Container>
   );
 }

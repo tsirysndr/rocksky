@@ -340,7 +340,7 @@ function StickyPlayer(props: StickyPlayerProps) {
   }
 
   return (
-    <Container embedded={embedded}>
+    <Container embedded={embedded} data-floating-player={!embedded || undefined}>
       <MiniPlayerWrapper embedded={embedded}>
         <MiniPlayer embedded={embedded}>
           <LeftSection>

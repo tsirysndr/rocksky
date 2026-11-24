@@ -1,5 +1,6 @@
 import { storeSessionToken } from "../../../apps/shared/browser-session";
 import styled from "@emotion/styled";
+import ScrollToTop from "../../../apps/shared/browser/ScrollToTop";
 import { IconDisc, IconSparkles } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -381,6 +382,7 @@ function Main(props: MainProps) {
           </div>
         </RightPane>
       )}
+      {!displayDrawer && <ScrollToTop />}
     </Container>
   );
 }

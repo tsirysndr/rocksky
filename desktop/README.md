@@ -58,6 +58,11 @@ bun run tauri dev  # run the app with hot reload
 bun run tauri build  # produce installers/bundles
 ```
 
+Use release mode for desktop builds. `bun run tauri build` uses release mode
+by default. To verify the native app after building the frontend, run
+`cargo build --release --features tauri/custom-protocol --manifest-path src-tauri/Cargo.toml`.
+The custom protocol embeds the built frontend instead of using the development server.
+
 The Rust crate lives in `src-tauri/` as a **standalone cargo workspace** (the
 Tauri dependency tree conflicts with the repo root workspace's pgrx pins) and
 depends on `crates/rocksky-sdk` by path (same version as crates.io).

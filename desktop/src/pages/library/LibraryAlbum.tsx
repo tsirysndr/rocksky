@@ -23,6 +23,7 @@ import { useDeleteUploadByTrackIdMutation, useDeleteAlbumByIdMutation } from "..
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
+import DetailPage from "../../components/DetailPage";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import { WriteToNfcMenuItem } from "../../components/WriteToNfcMenuItem";
@@ -49,9 +50,9 @@ function formatTotalSecs(secs: number) {
 // Styled components
 // ---------------------------------------------------------------------------
 
-const Page = styled.div`
-  margin-top: 70px;
-  margin-bottom: 150px;
+const Page = styled(DetailPage)`
+  padding-top: 70px;
+  padding-bottom: 150px;
 `;
 
 const BackBtn = styled.button`
@@ -339,7 +340,7 @@ const SkeletonBox = styled.div<{ w?: string; h?: string; radius?: string }>`
 function AlbumPageSkeleton() {
   return (
     <Main>
-      <Page>
+      <Page artwork={[]}>
         <SkeletonBox w="80px" h="32px" radius="10px" style={{ marginBottom: 24 }} />
         <AlbumHeader>
           <SkeletonBox w="160px" h="160px" radius="16px" />
@@ -567,12 +568,12 @@ export default function LibraryAlbum() {
 
   return (
     <Main>
-      <Page>
-        <BackBtn onClick={() => navigate({ to: "/library" })}>
+      <Page artwork={[albumArtUrl]} title={album.name} subtitle={album.artist}>
+        <BackBtn className="detail-header-copy" onClick={() => navigate({ to: "/library" })}>
           <IconArrowLeft size={16} /> Library
         </BackBtn>
 
-        <AlbumHeader>
+        <AlbumHeader className="detail-header-copy" data-detail-header>
           <AlbumArt>
             {albumArtUrl
               ? <img src={albumArtUrl} alt={album.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />

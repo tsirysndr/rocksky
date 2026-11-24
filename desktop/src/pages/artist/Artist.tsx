@@ -24,6 +24,7 @@ import ArtistListeners from "./ArtistListeners";
 import PopularSongs from "./PopularSongs";
 import ContentLoader from "react-content-loader";
 import BackButton from "../../components/BackButton";
+import DetailPage from "../../components/DetailPage";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 
@@ -156,7 +157,12 @@ const Artist = () => {
 
   return (
     <Main>
-      <div className="pb-[100px] pt-[50px]">
+      <DetailPage
+        artwork={[artistResult.data?.picture]}
+        title={artistResult.data?.name}
+        subtitle="Artist"
+        headerReady={!loading}
+      >
         {!loading && <BackButton />}
         <div className="mb-[50px]">
           {loading && (
@@ -184,7 +190,7 @@ const Artist = () => {
             </ContentLoader>
           )}
           {!loading && (
-            <Group>
+            <Group className="detail-header-copy" data-detail-header>
               <div className="mr-[20px]">
                 {artist?.picture && (
                   <Avatar
@@ -293,7 +299,7 @@ const Artist = () => {
         <Albums topAlbums={topAlbums} />
         <ArtistListeners listeners={artistListenersResult.data} />
         <Shout type="artist" />
-      </div>
+      </DetailPage>
     </Main>
   );
 };
