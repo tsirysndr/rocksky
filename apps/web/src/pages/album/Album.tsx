@@ -398,7 +398,7 @@ const Album = () => {
           </div>
         )}
 
-        <div className="mt-[20px]">
+        <div className="mt-[85px]">
           {disc < 2 && (
             <TableBuilder
               data={album?.tracks}
