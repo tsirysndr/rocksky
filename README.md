@@ -155,7 +155,15 @@ Linux `.deb`, `.rpm` and `.AppImage` bundles are attached to each
 
 ### CLI
 
-Install the standalone CLI on Linux x86_64/aarch64 or macOS Apple Silicon:
+Install with Homebrew on macOS Apple Silicon or Linux x86_64/aarch64:
+
+```sh
+brew install tsirysndr/tap/rocksky
+```
+
+Update a Homebrew installation with `brew upgrade tsirysndr/tap/rocksky`.
+
+Or install the standalone CLI directly:
 
 ```sh
 curl -fsSL https://cli.rocksky.app | sh
