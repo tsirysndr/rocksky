@@ -244,6 +244,9 @@ const Song = () => {
   return (
     <Main>
       <DetailPage
+        title={detail?.title}
+        subtitle={detail?.artist}
+        headerReady={!loading && !!song}
         artwork={[
           detail?.cover,
           ...(detail?.artists.map((artist) => artist.picture) ?? []),
@@ -268,7 +271,7 @@ const Song = () => {
         )}
         {!loading && song && (
           <>
-            <Group className="detail-header-copy">
+            <Group className="detail-header-copy" data-detail-header>
               {song?.albumUri && (
                 <Link to={uriToPath(song.albumUri)}>
                   {song.cover && <SongCover cover={song?.cover} size={150} />}

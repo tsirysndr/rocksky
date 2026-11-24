@@ -554,12 +554,12 @@ export default function LibraryAlbum() {
 
   return (
     <Main>
-      <Page artwork={[albumArtUrl]}>
+      <Page artwork={[albumArtUrl]} title={album.name} subtitle={album.artist}>
         <BackBtn className="detail-header-copy" onClick={() => navigate({ to: "/library" })}>
           <IconArrowLeft size={16} /> Library
         </BackBtn>
 
-        <AlbumHeader className="detail-header-copy">
+        <AlbumHeader className="detail-header-copy" data-detail-header>
           <AlbumArt>
             {albumArtUrl
               ? <img src={albumArtUrl} alt={album.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />

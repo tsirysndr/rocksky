@@ -173,7 +173,12 @@ const Album = () => {
 
   return (
     <Main>
-      <DetailPage artwork={[data?.albumArt]}>
+      <DetailPage
+        artwork={[data?.albumArt]}
+        title={data?.title}
+        subtitle={data?.artist}
+        headerReady={!!album}
+      >
         {album && <BackButton />}
         {!album && (
           <div className="mt-[-50px]">
@@ -245,7 +250,7 @@ const Album = () => {
           </div>
         )}
         {album && (
-          <Group className="detail-header-copy">
+          <Group className="detail-header-copy" data-detail-header>
             <div style={{ width: 210, flexShrink: 0 }}>
               {album.albumArt && (
                 <SongCover cover={album.albumArt!} size={210} />

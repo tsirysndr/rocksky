@@ -157,7 +157,12 @@ const Artist = () => {
 
   return (
     <Main>
-      <DetailPage artwork={[artistResult.data?.picture]}>
+      <DetailPage
+        artwork={[artistResult.data?.picture]}
+        title={artistResult.data?.name}
+        subtitle="Artist"
+        headerReady={!loading}
+      >
         {!loading && <BackButton />}
         <div className="mb-[50px]">
           {loading && (
@@ -185,7 +190,7 @@ const Artist = () => {
             </ContentLoader>
           )}
           {!loading && (
-            <Group className="detail-header-copy">
+            <Group className="detail-header-copy" data-detail-header>
               <div className="mr-[20px]">
                 {artist?.picture && (
                   <Avatar
