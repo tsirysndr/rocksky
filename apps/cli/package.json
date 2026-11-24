@@ -102,6 +102,7 @@
     }
   },
   "trustedDependencies": [
-    "@rocksky/mcp"
+    "@rocksky/mcp",
+    "better-sqlite3"
   ]
 }

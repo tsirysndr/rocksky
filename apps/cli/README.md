@@ -94,6 +94,15 @@ To run the CLI in development mode, install the dependencies:
 bun install
 ```
 
+The Node/npm build uses `better-sqlite3`; its native installation script is
+allowed by `trustedDependencies`. If dependencies were previously installed
+with scripts blocked, or you changed Node versions, rebuild the addon using
+the Node version you use to run the CLI:
+
+```sh
+npm rebuild better-sqlite3
+```
+
 Then, run the CLI with:
 
 ```bash
