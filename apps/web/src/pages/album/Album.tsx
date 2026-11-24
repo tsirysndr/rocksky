@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { AddToPlaylistButton } from "../../components/AddToPlaylistPalette";
 import BackButton from "../../components/BackButton";
+import DetailPage from "../../components/DetailPage";
 import LikeButton from "../../components/LikeButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
@@ -172,7 +173,7 @@ const Album = () => {
 
   return (
     <Main>
-      <div className="pb-[100px] pt-[50px]">
+      <DetailPage artwork={[data?.albumArt]}>
         {album && <BackButton />}
         {!album && (
           <div className="mt-[-50px]">
@@ -244,7 +245,7 @@ const Album = () => {
           </div>
         )}
         {album && (
-          <Group>
+          <Group className="detail-header-copy">
             <div style={{ width: 210, flexShrink: 0 }}>
               {album.albumArt && (
                 <SongCover cover={album.albumArt!} size={210} />
@@ -656,7 +657,7 @@ const Album = () => {
         </div>
         {album && <DiscogsDetails key={uri} discogs={data?.discogs} />}
         <Shout type="album" />
-      </div>
+      </DetailPage>
     </Main>
   );
 };

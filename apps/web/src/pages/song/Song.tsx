@@ -20,6 +20,7 @@ import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import BackButton from "../../components/BackButton";
+import DetailPage from "../../components/DetailPage";
 import LikeButton from "../../components/LikeButton";
 import { PillLink } from "../../components/PillButton";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
@@ -236,10 +237,18 @@ const Song = () => {
     artistAlbumResult.isLoading;
 
   const artists = R.indexBy(R.prop("name"), song?.artists || []);
+  const detail = pathname.includes("/song/")
+    ? songResult.data
+    : scrobbleResult.data;
 
   return (
     <Main>
-      <div className="pb-[100px] pt-[50px]">
+      <DetailPage
+        artwork={[
+          detail?.cover,
+          ...(detail?.artists.map((artist) => artist.picture) ?? []),
+        ]}
+      >
         {!loading && <BackButton />}
         {loading && (
           <ContentLoader
@@ -259,7 +268,7 @@ const Song = () => {
         )}
         {!loading && song && (
           <>
-            <Group>
+            <Group className="detail-header-copy">
               {song?.albumUri && (
                 <Link to={uriToPath(song.albumUri)}>
                   {song.cover && <SongCover cover={song?.cover} size={150} />}
@@ -479,7 +488,7 @@ const Song = () => {
             <Shout type="song" />
           </>
         )}
-      </div>
+      </DetailPage>
     </Main>
   );
 };
