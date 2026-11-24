@@ -24,6 +24,12 @@ export async function publishScrobble(
   timestamp?: number,
   dryRun?: boolean,
 ) {
+  // A preview must not authenticate, create profile records, or trigger sync.
+  if (dryRun) {
+    logger.info`Dry run: Skipping publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+    return true;
+  }
+
   const [did, handle] = await getDidAndHandle();
   const agent: Agent = await createAgent(did, handle);
   const recentScrobble = await getRecentScrobble(did, track, timestamp);
@@ -56,11 +62,6 @@ export async function publishScrobble(
     await sync();
   } else {
     logger.info`${handle} Local scrobbles are up-to-date, skipping sync`;
-  }
-
-  if (dryRun) {
-    logger.info`${handle} Dry run: Skipping publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
-    return true;
   }
 
   const existingTrack = await ctx.db

@@ -29,7 +29,7 @@ test('CLI exposes every command and nested integration without initializing stat
  for(const args of [['upgrade'],['create','apikey'],['nfc','status'],['nfc','read'],['nfc','write'],['card','read'],['card','write'],['import'],['mcp'],['mpd'],['tui'],['upload']]) {
   const result=run(...args,'--help');assert.equal(result.status,0,result.stderr);assert.ok(result.stdout.includes('Usage: rocksky'));
  }
- assert.equal(run('--version').stdout.trim(),'0.11.4');
+ assert.equal(run('--version').stdout.trim(),'0.11.5');
  assert.notEqual(run('unknown-command').status,0);
  assert.notEqual(run('scrobble').status,0);
 });

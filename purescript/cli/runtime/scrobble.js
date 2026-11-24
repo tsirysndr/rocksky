@@ -17,6 +17,12 @@ import { TID } from "@atproto/common";
 import { createUser, subscribeToJetstream, sync } from "./cmd/sync.js";
 import _ from "lodash";
 async function publishScrobble(track, timestamp, dryRun) {
+  // A preview must not authenticate, create profile records, or trigger sync.
+  if (dryRun) {
+    logger.info`Dry run: Skipping publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+    return true;
+  }
+
   const [did, handle] = await getDidAndHandle();
   const agent = await createAgent(did, handle);
   const recentScrobble = await getRecentScrobble(did, track, timestamp);
@@ -45,10 +51,7 @@ Please wait for rocksky to finish syncing before publishing scrobbles or delete 
   } else {
     logger.info`${handle} Local scrobbles are up-to-date, skipping sync`;
   }
-  if (dryRun) {
-    logger.info`${handle} Dry run: Skipping publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
-    return true;
-  }
+
   const existingTrack = await ctx.db.select().from(schema.tracks).where(
     or(
       and(

@@ -67,7 +67,7 @@ Use `NO_COLOR=1` to disable the pink installer banner.
 ```sh
 # Pin a release, choose the PureScript variant, or change the destination:
 curl -fsSL https://cli.rocksky.app | \
-  sh -s -- --version 0.11.4 --variant purescript --bin-dir "$HOME/.local/bin"
+  sh -s -- --version 0.11.5 --variant purescript --bin-dir "$HOME/.local/bin"
 
 # Build locally from apps/cli:
 bun run build:binary
@@ -405,7 +405,7 @@ the server itself is described in the
 rocksky upgrade --check              # check stable CLI releases on GitHub
 rocksky upgrade                      # replace an installed standalone binary
 rocksky upgrade --force              # reinstall the current release
-rocksky upgrade --version 0.11.4      # select a specific release
+rocksky upgrade --version 0.11.5      # select a specific release
 # From an npm/source installation, choose a standalone binary destination:
 rocksky upgrade --output "$HOME/.local/bin/rocksky"
 ```

@@ -89,7 +89,7 @@ using the same indexed Navidrome album, artist and song reads as the web library
 rocksky upgrade --check              # check stable CLI releases on GitHub
 rocksky upgrade                      # replace an installed standalone binary
 rocksky upgrade --force              # reinstall the current release
-rocksky upgrade --version 0.11.4      # select a specific release
+rocksky upgrade --version 0.11.5      # select a specific release
 # From an npm/source installation, choose a standalone binary destination:
 rocksky upgrade --output "$HOME/.local/bin/rocksky"
 ```

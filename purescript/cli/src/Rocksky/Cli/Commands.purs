@@ -5,7 +5,7 @@ type Option = { flags :: String, description :: String, defaultValue :: String }
 type CommandSpec = { path :: String, description :: String, arguments :: Array Argument, options :: Array Option }
 
 version :: String
-version = "0.11.4"
+version = "0.11.5"
 
 specs :: Array CommandSpec
 specs =

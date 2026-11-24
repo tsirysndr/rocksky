@@ -90,7 +90,7 @@ if (!process.env.ROCKBOX_FFI_LIB) {
 process.env.ROCKSKY_CLI_MIGRATIONS = path.join(import.meta.dir,"drizzle");
 if (process.env.ROCKSKY_BINARY_SELF_TEST === "1") {
   const {abiVersion} = await import("rockbox-ffi/node");
-  const {Database} = await import("bun:sqlite");
+  const {default: Database} = await import("better-sqlite3");
   const {drizzle} = await import("drizzle-orm/better-sqlite3");
   const {migrate} = await import("drizzle-orm/better-sqlite3/migrator");
   const sqlite = new Database(":memory:");
@@ -99,8 +99,14 @@ if (process.env.ROCKSKY_BINARY_SELF_TEST === "1") {
   sqlite.close();
   const {ClassicLevel} = await import("classic-level");
   const temp = fs.mkdtempSync(path.join(os.tmpdir(),"rocksky-binary-"));
-  try { const db=new ClassicLevel(path.join(temp,"level")); await db.put("test","ok"); if(await db.get("test")!=="ok")throw new Error("LevelDB failed");await db.close(); } finally {fs.rmSync(temp,{recursive:true,force:true});}
-  console.log("Binary runtime verified: OpenTUI, Rockbox ABI " + abiVersion() + ", SQLite migrations and LevelDB");
+  try {
+    const {default: sqliteKv} = await import(${quote(path.join(directory, variant === "purescript" ? "runtime/sqliteKv.js" : "src/sqliteKv.ts"))});
+    const {createStorage} = await import("unstorage");
+    const cache = createStorage({driver:sqliteKv({location:path.join(temp,"kv.sqlite"),table:"kv"})});
+    try { await cache.setItem("test",{value:"ok"}); if((await cache.getItem("test"))?.value!=="ok")throw new Error("SQLite disk cache failed"); } finally {await cache.dispose();}
+    const db=new ClassicLevel(path.join(temp,"level")); await db.put("test","ok"); if(await db.get("test")!=="ok")throw new Error("LevelDB failed");await db.close();
+  } finally {fs.rmSync(temp,{recursive:true,force:true});}
+  console.log("Binary runtime verified: OpenTUI, Rockbox ABI " + abiVersion() + ", SQLite migrations, SQLite disk cache and LevelDB");
 } else {
   await import(${quote(path.join(directory, variant === "purescript" ? "index.js" : "src/index.ts"))});
 }
@@ -131,12 +137,7 @@ const result = await Bun.build({
           path: rockbox,
         }));
         build.onResolve({ filter: /^better-sqlite3$/ }, () => ({
-          path: "sqlite",
-          namespace: "rocksky-sqlite",
-        }));
-        build.onLoad({ filter: /.*/, namespace: "rocksky-sqlite" }, () => ({
-          contents: 'export {Database as default} from "bun:sqlite";',
-          loader: "js",
+          path: path.join(repository, "apps/cli/scripts/bun-sqlite-compat.ts"),
         }));
         build.onResolve(
           { filter: /^drizzle-orm\/better-sqlite3(?:\/migrator)?$/ },

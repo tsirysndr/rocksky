@@ -6,9 +6,9 @@ var stdin_default = defineDriver(
   ({
     location,
     table = "kv",
-    getDb = () => {
+    getDb = (() => {
       let _db = null;
-      return (() => {
+      return () => {
         if (_db) {
           return _db;
         }
@@ -24,8 +24,8 @@ var stdin_default = defineDriver(
         });
         _db.schema.createTable(table).ifNotExists().addColumn("id", "text", (col) => col.primaryKey()).addColumn("value", "text", (col) => col.notNull()).addColumn("created_at", "text", (col) => col.notNull()).addColumn("updated_at", "text", (col) => col.notNull()).execute();
         return _db;
-      })();
-    }
+      };
+    })()
   }) => {
     return {
       name: DRIVER_NAME,

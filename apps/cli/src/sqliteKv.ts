@@ -26,10 +26,10 @@ export default defineDriver<
   ({
     location,
     table = "kv",
-    getDb = (): KvDb => {
+    getDb = (() => {
       let _db: KvDb | null = null;
 
-      return (() => {
+      return (): KvDb => {
         if (_db) {
           return _db;
         }
@@ -60,8 +60,8 @@ export default defineDriver<
           .execute();
 
         return _db;
-      })();
-    },
+      };
+    })(),
   }) => {
     return {
       name: DRIVER_NAME,

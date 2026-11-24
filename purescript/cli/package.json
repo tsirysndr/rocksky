@@ -1,6 +1,6 @@
 {
   "name": "@rocksky/cli-purescript",
-  "version": "0.11.4",
+  "version": "0.11.5",
   "description": "Command-line interface for Rocksky \u2013 scrobble tracks, view stats, and manage your listening history",
   "main": "index.js",
   "type": "module",
