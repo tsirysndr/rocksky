@@ -52,7 +52,6 @@ import PlaylistSearch from "../../components/PlaylistSearch";
 import TrackArtMosaic from "../../components/TrackArtMosaic";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
 import { useSetAtom } from "jotai";
-import ScrollToTop from "../../components/ScrollToTop";
 import { useInfiniteScrollSentinel } from "../../hooks/useInfiniteScrollSentinel";
 import { librarySearchOpenAtom } from "../../atoms/searchModal";
 import {
@@ -1635,7 +1634,6 @@ export default function Library() {
             )}
           </Tab>
         </Tabs>
-        <ScrollToTop />
       </Page>
     </Main>
   );

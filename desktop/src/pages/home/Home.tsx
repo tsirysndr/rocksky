@@ -4,7 +4,6 @@ import { profileAtom } from "../../atoms/profile";
 import { OnboardingModal, WelcomeBanner } from "../../components/Onboarding";
 import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 import Main from "../../layouts/Main";
-import ScrollToTop from "../../components/ScrollToTop";
 import Feed from "./feed";
 import Stories from "./stories";
 
@@ -46,7 +45,6 @@ const Home = () => {
         )}
         {jwt && <Stories />}
         <Feed />
-        <ScrollToTop />
       </div>
       <OnboardingModal
         isOpen={isOnboardingOpen}

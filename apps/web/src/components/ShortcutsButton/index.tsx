@@ -32,9 +32,9 @@ const Button = styled.button<{ raised: boolean }>`
     color 0.12s ease,
     background 0.12s ease;
 
-  /* Leave a 12px gap above the 48px scroll-to-top button. */
+  /* Leave a 12px gap above the 44px scroll-to-top button. */
   body:has([data-scroll-to-top]) & {
-    bottom: calc(${({ raised }) => (raised ? PLAYER_HEIGHT + MARGIN : MARGIN) + 60}px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(${({ raised }) => (raised ? PLAYER_HEIGHT + MARGIN : MARGIN) + 56}px + env(safe-area-inset-bottom, 0px));
   }
 
   &:hover {

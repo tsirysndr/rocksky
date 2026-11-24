@@ -34,7 +34,6 @@ import { useArtistPictures } from "../../api/artistPictures";
 import { useInfiniteScrollSentinel } from "../../hooks/useInfiniteScrollSentinel";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import Main from "../../layouts/Main";
-import ScrollToTop from "../../components/ScrollToTop";
 import { shuffled } from "../../lib/shuffle";
 import {
   AlbumActionsOverlay,
@@ -759,7 +758,6 @@ export default function RemoteLibrary({
             </MenuItem>
           </DropdownPortal>
         )}
-        <ScrollToTop />
       </Page>
     </Main>
   );

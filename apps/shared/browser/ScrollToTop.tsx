@@ -14,17 +14,18 @@ const Button = styled.button`
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
   border-radius: 50%;
-  background: var(--color-text);
-  color: var(--color-background);
+  background: var(--color-background);
+  color: var(--color-text);
   box-shadow: 0 4px 18px #0003;
   cursor: pointer;
   transition: transform 150ms ease;
 
   body:has([data-floating-player="true"]) & {
-    bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(152px + env(safe-area-inset-bottom, 0px));
   }
 
   &:hover {
+    background: var(--color-menu-hover);
     transform: translateY(-2px);
   }
 
@@ -54,6 +55,7 @@ export default function ScrollToTop() {
   if (!visible) return null;
   return (
     <Button
+      data-scroll-to-top
       type="button"
       aria-label="Scroll to top"
       title="Scroll to top"
