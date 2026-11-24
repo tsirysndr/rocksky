@@ -5,6 +5,9 @@ export const timelinePeriods = [
   { months: 9, label: "Last 9 months" },
   { months: 12, label: "Last year" },
   { months: 24, label: "Last 2 years" },
+  { months: 36, label: "Last 3 years" },
+  { months: 48, label: "Last 4 years" },
+  { months: 60, label: "Last 5 years" },
 ] as const;
 export type TimelineMonths = (typeof timelinePeriods)[number]["months"];
 

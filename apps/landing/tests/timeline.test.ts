@@ -23,6 +23,9 @@ describe("global listening timeline", () => {
       [9, "2026-02-24"],
       [12, "2025-11-24"],
       [24, "2024-11-24"],
+      [36, "2023-11-24"],
+      [48, "2022-11-24"],
+      [60, "2021-11-24"],
     ] as const) {
       expect(timelineRange(months, new Date(2026, 10, 24))).toEqual({
         from,
@@ -31,13 +34,19 @@ describe("global listening timeline", () => {
     }
   });
   test("clamps leap days for year ranges and fills all daily points", () => {
-    for (const months of [12, 24] as const) {
+    for (const [months, from, days] of [
+      [12, "2023-02-28", 367],
+      [24, "2022-02-28", 732],
+      [36, "2021-02-28", 1097],
+      [48, "2020-02-29", 1462],
+      [60, "2019-02-28", 1828],
+    ] as const) {
       const range = timelineRange(months, new Date(2024, 1, 29));
-      expect(range.from).toBe(months === 12 ? "2023-02-28" : "2022-02-28");
+      expect(range.from).toBe(from);
       const points = timelinePoints([], range);
       expect(points[0].key).toBe(range.from);
       expect(points.at(-1)!.key).toBe(range.to);
-      expect(points).toHaveLength(months === 12 ? 367 : 732);
+      expect(points).toHaveLength(days);
     }
   });
   test("includes both endpoints and plots missing days as zero", () => {
