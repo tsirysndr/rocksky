@@ -108,7 +108,7 @@ One command — detects your OS and CPU architecture and installs the matching
 binary from the [latest playerd release](https://github.com/tsirysndr/rocksky/releases):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh | sh
+curl -fsSL https://cli.rocksky.app/playerd | sh
 ```
 
 Or via npm — same binaries, fetched and checksum-verified at install time:
@@ -127,11 +127,11 @@ The script verifies the release's SHA-256 checksum and installs to
 
 ```sh
 # Pin a version
-curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh \
+curl -fsSL https://cli.rocksky.app/playerd \
   | PLAYERD_VERSION=v0.2.0 sh
 
 # Choose the install directory
-curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh \
+curl -fsSL https://cli.rocksky.app/playerd \
   | PLAYERD_INSTALL_DIR="$HOME/bin" sh
 ```
 

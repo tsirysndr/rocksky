@@ -1,5 +1,7 @@
 const INSTALLER_URL =
   "https://raw.githubusercontent.com/tsirysndr/rocksky/main/install.sh";
+const PLAYERD_INSTALLER_URL =
+  "https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh";
 
 export default {
   async fetch(request: Request): Promise<Response> {
@@ -11,9 +13,14 @@ export default {
     }
 
     try {
-      // Always fetch the fixed script; incoming paths, queries and credentials
+      const path = new URL(request.url).pathname;
+      const installer =
+        path === "/playerd" || path === "/playerd/"
+          ? PLAYERD_INSTALLER_URL
+          : INSTALLER_URL;
+      // Only fixed upstream URLs are allowed. Queries, headers and credentials
       // are not forwarded to GitHub. Preserve the upstream body and status.
-      return await fetch(INSTALLER_URL, { method: request.method });
+      return await fetch(installer, { method: request.method });
     } catch {
       return new Response("Unable to fetch the Rocksky installer\n", {
         status: 502,

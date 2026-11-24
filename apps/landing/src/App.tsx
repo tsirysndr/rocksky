@@ -1221,8 +1221,8 @@ function LandingPage() {
                 volume.
               </p>
               <InstallCommand
-                label="Install with Bun"
-                command="bun install -g @rocksky/playerd"
+                label="Install with curl"
+                command="curl -fsSL https://cli.rocksky.app/playerd | sh"
               />
               <a
                 className="text-link playerd-source"

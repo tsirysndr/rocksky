@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install playerd — the Rocksky remote player daemon — from a GitHub release.
 #
-#   curl -fsSL https://raw.githubusercontent.com/tsirysndr/rocksky/main/playerd/install.sh | sh
+#   curl -fsSL https://cli.rocksky.app/playerd | sh
 #
 # Environment:
 #   PLAYERD_VERSION      Version to install: "0.2.0", "v0.2.0" or the full tag

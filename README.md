@@ -174,6 +174,18 @@ rocksky upgrade          # update to the latest CLI release
 See the [CLI README](apps/cli/README.md) for authentication, keyboard shortcuts,
 and installation options.
 
+### Headless player (playerd)
+
+Install the remote music player on your Raspberry Pi, Linux computer, or Mac:
+
+```sh
+curl -fsSL https://cli.rocksky.app/playerd | sh
+```
+
+Run `playerd --name "Living Room"`, then choose the device in Rocksky to control
+playback. See the [playerd README](playerd/README.md) for authentication, supported
+platforms, and configuration.
+
 ### Nix installation
 
 Rocksky's Linux and macOS packages use the public [FluentCI binary cache](https://docs.fluentci.io/guides/build-cache/).

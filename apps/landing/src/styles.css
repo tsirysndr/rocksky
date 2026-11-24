@@ -3347,6 +3347,8 @@ a.weekly-entry:focus-visible {
   padding: 0 10px 0 0;
   width: 100%;
   background: #12092580;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border-radius: 14px;
 }
 .hero-scrobble-art-link {
