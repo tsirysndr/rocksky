@@ -90,8 +90,8 @@ function Chart({
         listeners: item.uniqueListeners,
       }));
     },
-    staleTime: 300_000,
-    refetchInterval: live ? 300_000 : false,
+    staleTime: 30_000,
+    refetchInterval: live ? 30_000 : false,
   });
   const Icon =
     kind === "listeners"

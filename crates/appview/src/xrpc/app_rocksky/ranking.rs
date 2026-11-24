@@ -232,6 +232,21 @@ async fn aggregate(
         return Ok(HashMap::new());
     }
 
+    let query = aggregate_query(db, column, ids, scope, expression);
+    Ok(db
+        .fetch_all::<(String, i64)>(&query)
+        .await?
+        .into_iter()
+        .collect())
+}
+
+fn aggregate_query(
+    db: &Backend,
+    column: &str,
+    ids: &[String],
+    scope: &Scope,
+    expression: FunctionCall,
+) -> SelectStatement {
     let col = Alias::new(column);
     let mut query = Query::select();
     query
@@ -240,18 +255,14 @@ async fn aggregate(
         .from(Scrobbles::Table)
         .and_where(Expr::col(col.clone()).is_in(ids.iter().map(|id| id.as_str())));
     if let Some(start) = &scope.start_date {
-        query.and_where(Expr::col(Scrobbles::Timestamp).gte(start));
+        query.and_where(Expr::col(Scrobbles::Timestamp).gte(db.timestamp_value(start)));
     }
     if let Some(end) = &scope.end_date {
-        query.and_where(Expr::col(Scrobbles::Timestamp).lte(end));
+        query.and_where(Expr::col(Scrobbles::Timestamp).lte(db.timestamp_value(end)));
     }
     query.group_by_col(col);
 
-    Ok(db
-        .fetch_all::<(String, i64)>(&query)
-        .await?
-        .into_iter()
-        .collect())
+    query
 }
 
 /// One entity's totals, for the detail pages.
@@ -346,6 +357,38 @@ mod tests {
         let sql = rendered(&scope, "track_id").await;
         assert!(sql.contains(r#"AND "timestamp" >= '2026-01-01'"#), "{sql}");
         assert!(sql.contains(r#"AND "timestamp" <= '2026-02-01'"#), "{sql}");
+    }
+
+    #[tokio::test]
+    async fn album_counts_cast_date_bounds_on_postgres() {
+        use crate::sea_query::PostgresQueryBuilder;
+
+        // No database connection: inspect the bound SQL sent to PostgreSQL.
+        let db = Backend::Postgres {
+            primary: sqlx::postgres::PgPoolOptions::new()
+                .connect_lazy("postgres://localhost/unused")
+                .unwrap(),
+            replica: None,
+        };
+        let scope = Scope::global().between(
+            Some("2026-11-23T00:00:00.000Z".into()),
+            Some("2026-11-24T12:00:00.000Z".into()),
+        );
+        for metric in [
+            Func::count(Expr::col(Asterisk)),
+            Func::count_distinct(Expr::col(Scrobbles::UserId)),
+        ] {
+            let (sql, _) = aggregate_query(&db, "album_id", &["album".into()], &scope, metric)
+                .build(PostgresQueryBuilder);
+            assert!(
+                sql.contains(r#""timestamp" >= CAST($2 AS timestamptz)"#),
+                "{sql}"
+            );
+            assert!(
+                sql.contains(r#""timestamp" <= CAST($3 AS timestamptz)"#),
+                "{sql}"
+            );
+        }
     }
 
     /// An empty restriction means "nothing", not "everything" — the difference

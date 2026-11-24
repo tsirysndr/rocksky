@@ -1,10 +1,22 @@
 export type TimelineRange = { from: string; to: string };
+export const timelinePeriods = [
+  { months: 3, label: "Last 3 months" },
+  { months: 6, label: "Last 6 months" },
+  { months: 9, label: "Last 9 months" },
+  { months: 12, label: "Last year" },
+  { months: 24, label: "Last 2 years" },
+] as const;
+export type TimelineMonths = (typeof timelinePeriods)[number]["months"];
+
 function localDay(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function threeMonthsRange(now = new Date()): TimelineRange {
-  const from = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+export function timelineRange(
+  months: TimelineMonths,
+  now = new Date(),
+): TimelineRange {
+  const from = new Date(now.getFullYear(), now.getMonth() - months, 1);
   const lastDay = new Date(
     from.getFullYear(),
     from.getMonth() + 1,

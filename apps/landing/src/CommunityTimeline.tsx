@@ -1,17 +1,25 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { useReducedMotion } from "framer-motion";
 import ScrobblesTimeline from "../../shared/browser/ScrobblesTimeline";
 import { client, liveAtom } from "./data";
-import { threeMonthsRange, timelinePoints } from "./timeline";
+import {
+  timelinePeriods,
+  timelineRange,
+  timelinePoints,
+  type TimelineMonths,
+} from "./timeline";
 
 export default function CommunityTimeline() {
+  const [months, setMonths] = useState<TimelineMonths>(3);
+  const selection = timelinePeriods.find((period) => period.months === months)!;
   const live = useAtomValue(liveAtom);
   const reduce = useReducedMotion();
   const clock = useQuery({
-    queryKey: ["landing", "timeline-range"],
-    queryFn: () => threeMonthsRange(),
-    initialData: () => threeMonthsRange(),
+    queryKey: ["landing", "timeline-range", months],
+    queryFn: () => timelineRange(months),
+    initialData: () => timelineRange(months),
     refetchInterval: 60_000,
   });
   const range = clock.data;
@@ -36,7 +44,23 @@ export default function CommunityTimeline() {
           <h2 id="community-timeline-title">Scrobbles over time</h2>
           <p>Daily listening across all of Rocksky.</p>
         </div>
-        <span>LAST 3 MONTHS</span>
+        <select
+          className="community-timeline-period"
+          aria-label="Scrobbles date range"
+          value={months}
+          onChange={(event) => {
+            const period = timelinePeriods.find(
+              (period) => period.months === Number(event.currentTarget.value),
+            );
+            if (period) setMonths(period.months);
+          }}
+        >
+          {timelinePeriods.map((period) => (
+            <option key={period.months} value={period.months}>
+              {period.label}
+            </option>
+          ))}
+        </select>
       </div>
       {daily.isPending ? (
         <div className="community-timeline-state" role="status">
@@ -45,7 +69,7 @@ export default function CommunityTimeline() {
       ) : hasData ? (
         <div
           role="group"
-          aria-label="Daily global scrobbles over the last three months"
+          aria-label={`Daily global scrobbles over the ${selection.label.toLowerCase()}`}
         >
           <ScrobblesTimeline points={points} animate={!reduce} />
         </div>

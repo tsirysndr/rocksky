@@ -3232,14 +3232,24 @@ a.weekly-entry:focus-visible {
   color: var(--muted);
   font-size: 12px;
 }
-.community-timeline-heading > span {
-  margin-top: 3px;
+.community-timeline-period {
+  padding: 8px 10px;
+  border: 1px solid #f5add533;
+  border-radius: 8px;
+  background: #180d29;
+  color-scheme: dark;
   white-space: nowrap;
   color: #f5add5;
   font:
     10px ui-monospace,
     monospace;
   letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.community-timeline-period:focus-visible {
+  outline: 2px solid #f5add5;
+  outline-offset: 3px;
 }
 .community-timeline-state {
   display: flex;

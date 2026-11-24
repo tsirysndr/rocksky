@@ -56,3 +56,4 @@ time = { version = "0.3.44", features = ["formatting", "macros"] }
 redis = { version = "0.29.0", features = ["aio", "tokio-comp", "connection-manager"] }
 tracing = "0.1.41"
 lru = "0.12"
+toml = "0.8"

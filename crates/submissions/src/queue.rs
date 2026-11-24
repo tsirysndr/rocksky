@@ -144,6 +144,12 @@ impl Queue {
                         sqlx::query("SET synchronous_commit = on")
                             .execute(&mut *connection)
                             .await?;
+                        // Queue kind/actor selectivity changes dramatically during
+                        // imports. A cached generic plan can repeatedly scan the
+                        // entire pending backlog for each actor until it times out.
+                        sqlx::query("SET plan_cache_mode = force_custom_plan")
+                            .execute(&mut *connection)
+                            .await?;
                         sqlx::query("SET statement_timeout = '10s'")
                             .execute(&mut *connection)
                             .await?;
@@ -227,6 +233,11 @@ impl Queue {
         }
         crate::fairness::migrate(&mut tx, postgres).await?;
         if postgres {
+            // Collection and status distributions depend on the queue kind.
+            // Independent estimates can make actor probes choose a broad scan.
+            sqlx::query("CREATE STATISTICS IF NOT EXISTS rocksky_durable_jobs_kind_collection_status (mcv, dependencies) ON kind,collection,status FROM rocksky_durable_jobs")
+                .execute(&mut *tx)
+                .await?;
             // Claims probe partial indexes whose dead entries for completed jobs
             // only vacuum removes. The default 20% churn trigger lets them bloat
             // until a claim exceeds the statement timeout.
@@ -334,7 +345,7 @@ impl Queue {
 
     pub(crate) fn now_ms(&self) -> &'static str {
         if self.postgres {
-            "CAST(FLOOR(EXTRACT(EPOCH FROM clock_timestamp()) * 1000) AS BIGINT)"
+            "CAST(FLOOR(EXTRACT(EPOCH FROM statement_timestamp()) * 1000) AS BIGINT)"
         } else {
             "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)"
         }
@@ -366,7 +377,10 @@ impl Queue {
 
     pub(crate) fn now(&self) -> &'static str {
         if self.postgres {
-            "CAST(FLOOR(EXTRACT(EPOCH FROM clock_timestamp())) AS BIGINT)"
+            // STABLE within each SQL statement, so PostgreSQL can use due-time
+            // and lease indexes instead of rescanning the backlog per actor.
+            // Unlike transaction_timestamp(), this advances after lock waits.
+            "CAST(FLOOR(EXTRACT(EPOCH FROM statement_timestamp())) AS BIGINT)"
         } else {
             "CAST(strftime('%s', 'now') AS BIGINT)"
         }
