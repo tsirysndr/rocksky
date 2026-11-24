@@ -51,6 +51,7 @@ import {
 } from "./data";
 import HeroScrobbles from "./HeroScrobbles";
 import HeroBackground from "./HeroBackground";
+import HeroEyebrow from "./HeroEyebrow";
 import SdkIntegrations from "./SdkIntegrations";
 import WeeklyCharts from "./WeeklyCharts";
 import SearchModal, { searchOpenAtom } from "./SearchModal";
@@ -404,17 +405,7 @@ function LandingPage() {
           <HeroBackground />
           <div className="hero-content container">
             <div className="hero-copy">
-              <div className="eyebrow">
-                <span className="tiny-star">✳</span> MUSIC SCROBBLING ON
-                <a
-                  className="hero-protocol-link"
-                  href="https://atproto.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  AT PROTOCOL
-                </a>
-              </div>
+              <HeroEyebrow />
               <h1 id="hero-title">
                 A record of
                 <br />

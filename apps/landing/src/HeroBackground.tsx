@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { heroBackgrounds } from "./hero-backgrounds";
+import background from "./hero-fictional-albums.json";
 
 export default function HeroBackground() {
-  const [background] = useState(
-    () => heroBackgrounds[Math.floor(Math.random() * heroBackgrounds.length)],
-  );
   const [ready, setReady] = useState(false);
   const image = useRef<HTMLImageElement>(null);
-  const src = `${import.meta.env.BASE_URL}${background}`;
+  const src = `${import.meta.env.BASE_URL}${background.file}`;
 
   useEffect(() => {
     const element = image.current;
@@ -34,8 +31,8 @@ export default function HeroBackground() {
           ref={image}
           className="hero-album-image"
           src={src}
-          width={2560}
-          height={1440}
+          width={background.width}
+          height={background.height}
           alt=""
           decoding="async"
           fetchPriority="high"
