@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0
+
+- PDS write responses include the optional structured write-point quota.
+- URI-returning write methods now return response objects; use the `uri` field.
+- Native scrobble results retain their URI fields and add quota metadata.
+- See [response definitions and migration](../PDS_WRITE_RATE_LIMITS.md).
+
 ## 0.15.0
 
 - The Dropbox and Google Drive integrations were removed from the API, so

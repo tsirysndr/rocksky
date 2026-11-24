@@ -86,3 +86,31 @@ libraries are not compatible with the new UniFFI API.
 This applies to SDK agents that write directly to the PDS. AppView-only XRPC
 clients (including PureScript and the deprecated `sdk/rust` HTTP client) do not
 receive the PDS response headers and cannot infer this budget.
+
+## Package versions for this change
+
+| Package | Version |
+| --- | --- |
+| TypeScript | 0.20.0 |
+| Python | 0.17.0 |
+| Ruby | 0.16.0 |
+| Kotlin | 0.16.0 |
+| Elixir | 0.17.0 |
+| Erlang | 0.14.0 |
+| Gleam | 1.17.0 |
+| Clojure | 0.15.0-SNAPSHOT |
+| PureScript (AppView-only) | 0.2.0 |
+| Legacy Rust HTTP client (AppView-only) | 0.9.0 |
+| Rust SDK | 0.15.0 |
+| UniFFI core | 0.11.0 |
+| NIF core | 0.10.0 |
+
+Go has no package version field; release versions come from module Git tags.
+No Go release tag is created by this source version bump.
+
+Publish Erlang 0.14.0 before resolving/publishing its Elixir and Gleam consumers.
+Their stale native dependency lock entries were removed; regenerate those entries
+against the published package. Native download manifests must be regenerated
+from newly built release artifacts using the publish scripts, which supply the
+new release tag and actual checksums. Existing artifact checksums are not reused
+for the new native API.

@@ -104,6 +104,7 @@ body {
   --color-background: #ffffff;
   --detail-header-text-shadow: 0 1px 2px #ffffffb3;
   --detail-header-text-muted: #243245;
+  --detail-header-artwork-opacity: 0.9;
   --color-text: #000000;
   --color-primary: #ff2876;
   --color-text-muted: #42576ca6;
@@ -130,6 +131,7 @@ body {
   --color-background: #130825;
   --detail-header-text-shadow: 0 2px 3px #000c, 0 4px 14px #000a;
   --detail-header-text-muted: #f1e9f5;
+  --detail-header-artwork-opacity: 0.42;
   --color-text: oklch(95.07% 0.028 338.58);
   --color-primary: #ff2876;
   --color-text-muted: rgb(191 174 195 / 65%);

@@ -4,6 +4,13 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.20.0] - 2026-11-24
+
+- PDS write responses include the optional structured write-point quota.
+- URI-returning write methods now return response objects; use the `uri` field.
+- Native scrobble results retain their URI fields and add quota metadata.
+- See [response definitions and migration](../PDS_WRITE_RATE_LIMITS.md).
+
 ## [0.19.0] - 2026-10-18
 
 The Dropbox and Google Drive integrations were removed from the API, so their

@@ -3,6 +3,13 @@
 All notable changes to the Rocksky Clojure SDK are documented here. This
 project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.15.0-SNAPSHOT] - 2026-11-24
+
+- PDS write responses include the optional structured write-point quota.
+- URI-returning write methods now return response objects; use the `uri` field.
+- Native scrobble results retain their URI fields and add quota metadata.
+- See [response definitions and migration](../PDS_WRITE_RATE_LIMITS.md).
+
 ## [0.14.0-SNAPSHOT] - 2026-10-18
 
 ### Removed

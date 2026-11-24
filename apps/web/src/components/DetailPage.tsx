@@ -7,6 +7,7 @@ const Frame = styled.div`
   isolation: isolate;
   padding-top: 50px;
   padding-bottom: 100px;
+  padding-left: 24px;
 
   .detail-sticky-header {
     position: sticky;
@@ -101,7 +102,7 @@ const Frame = styled.div`
   }
 
   &[data-artwork="true"] .detail-header-backdrop {
-    opacity: 0.42;
+    opacity: var(--detail-header-artwork-opacity);
   }
 
   .detail-header-backdrop img {
@@ -109,20 +110,6 @@ const Frame = styled.div`
     height: 100%;
     object-fit: cover;
     object-position: center 35%;
-    mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      #000 12%,
-      #000 88%,
-      transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      #000 12%,
-      #000 88%,
-      transparent 100%
-    );
   }
 
   &[data-artwork="true"] .detail-header-copy {
@@ -131,6 +118,8 @@ const Frame = styled.div`
   }
 
   @media (max-width: 600px) {
+    padding-left: 16px;
+
     .detail-header-backdrop {
       height: 380px;
     }
