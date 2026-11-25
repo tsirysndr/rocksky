@@ -35,12 +35,10 @@ pub struct ManifestParams<'a> {
 
 /// Render an HLS live media playlist.
 pub fn render_hls(segments: &[SegmentRef], params: &ManifestParams) -> String {
-    let target = segments
-        .iter()
-        .map(|s| s.duration_secs.ceil() as u32)
-        .max()
-        .unwrap_or(params.target_duration)
-        .max(1);
+    // RFC 8216 requires this to remain constant across playlist updates.
+    // Codec packet boundaries produce small variations around the configured
+    // duration; EXTINF is compared after rounding to the nearest integer.
+    let target = params.target_duration.max(1);
     let first_seq = segments.first().map(|s| s.sequence).unwrap_or(0);
 
     let mut out = String::new();
@@ -197,5 +195,35 @@ mod tests {
         assert!(m.contains("#EXT-X-MEDIA-SEQUENCE:4"));
         assert!(m.contains("#EXT-X-MAP:URI=\"init.mp4\""));
         assert!(!m.contains("#EXT-X-ENDLIST")); // live: never ends
+    }
+
+    #[test]
+    fn target_duration_stays_constant_across_packet_rounding() {
+        let params = ManifestParams {
+            init_uri: "init.mp4",
+            timescale: 48_000,
+            sample_rate: 48_000,
+            channels: 2,
+            codec: "mp4a.40.2",
+            target_duration: 2,
+            bandwidth: 192_000,
+            start_unix: 0,
+            now_unix: 10,
+        };
+        for (i, duration) in [1.984_f64, 2.005333, 2.005333, 1.984]
+            .into_iter()
+            .enumerate()
+        {
+            let segments = [SegmentRef {
+                sequence: i as u32 + 1,
+                filename: format!("seg-{}.m4s", i + 1),
+                start_ts: i as u64 * 96_000,
+                duration_ts: (duration * 48_000.0).round() as u64,
+                duration_secs: duration,
+            }];
+            let playlist = render_hls(&segments, &params);
+            assert!(playlist.contains("#EXT-X-TARGETDURATION:2\n"));
+            assert!(duration.round() <= f64::from(params.target_duration));
+        }
     }
 }
