@@ -1,5 +1,5 @@
 use crate::{
-    queue::{digest, Conflict},
+    queue::{digest, ClaimLane, Conflict},
     worker::{self, Failure, Settings},
     Job, Queue,
 };
@@ -322,6 +322,23 @@ pub async fn run() -> Result<()> {
         (1..=256).contains(&concurrency),
         "SUBMISSIONS_CONCURRENCY must be 1..256"
     );
+    let per_did: i64 = env::var("SUBMISSIONS_MAX_INFLIGHT_PER_DID")
+        .unwrap_or_else(|_| "1".into())
+        .parse()?;
+    ensure!(
+        (1..=256).contains(&per_did),
+        "SUBMISSIONS_MAX_INFLIGHT_PER_DID must be 1..256"
+    );
+    // Backfill legacy actor metadata before enabling capped claims. Publication
+    // jobs use the background lane because they have no indexed collection.
+    queue.prepare_fairness(KIND).await?;
+    queue.prepare_fairness(TEAL_KIND).await?;
+    tracing::info!(
+        per_did,
+        concurrency,
+        teal_concurrency,
+        "publication account fairness enabled"
+    );
     let settings = Settings {
         max_attempts: env::var("SUBMISSIONS_MAX_ATTEMPTS")
             .unwrap_or_else(|_| "20".into())
@@ -362,10 +379,13 @@ pub async fn run() -> Result<()> {
     let teal_queue = queue.clone();
     let teal_http = http.clone();
     let teal_secret = secret.clone();
-    workers.spawn(worker::run(
+    workers.spawn(worker::run_fair_lane(
         queue.clone(),
         TEAL_KIND,
+        ClaimLane::Background,
         teal_concurrency,
+        per_did,
+        false,
         settings,
         shutdown.clone(),
         move |job| {
@@ -379,10 +399,13 @@ pub async fn run() -> Result<()> {
         },
     ));
     let process_queue = queue.clone();
-    workers.spawn(worker::run(
+    workers.spawn(worker::run_fair_lane(
         queue,
         KIND,
+        ClaimLane::Background,
         concurrency,
+        per_did,
+        false,
         settings,
         shutdown.clone(),
         move |job| {

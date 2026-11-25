@@ -94,6 +94,20 @@ impl Queue {
             2
         };
         let lane_filter = lane.predicate();
+        // Rocksky and Teal publication share the same OAuth session lock. Their
+        // dispatchers must share both scheduling exclusion and live capacity,
+        // otherwise each can independently claim a job for the same listener.
+        let publication = matches!(kind, crate::service::KIND | crate::service::TEAL_KIND);
+        let scheduling_key = if publication {
+            "rocksky.publication"
+        } else {
+            kind
+        };
+        let live_kind = if publication {
+            "kind IN ('scrobble.publish.v1','tealfm.publish.v1')"
+        } else {
+            "kind=a.kind"
+        };
         let now = self.now();
         let started = self.now_ms();
         let history = self.attempt_history("lease_expired", true);
@@ -108,7 +122,7 @@ impl Queue {
         if self.postgres {
             // hash collisions only serialize unrelated schedulers; never violate caps.
             sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1),$2)")
-                .bind(kind)
+                .bind(scheduling_key)
                 .bind(lane_id as i32)
                 .execute(&mut *tx)
                 .await?;
@@ -118,8 +132,8 @@ impl Queue {
         // Both correlated probes use actor indexes. No window sort of the job
         // backlog, and no fixed candidate window that a noisy DID can monopolize.
         let ready = format!("kind=a.kind AND actor=a.actor AND status IN ('pending','processing'){lane_filter} AND attempts<$3 AND ((status='pending' AND available_at<={now}) OR (status='processing' AND lease_until<={now}))");
-        let live = format!("(SELECT count(*) FROM rocksky_durable_jobs WHERE kind=a.kind AND actor=a.actor AND status='processing'{lane_filter} AND lease_until>{now})");
-        let rows = sqlx::query(&format!("SELECT a.actor,{live} AS inflight FROM rocksky_durable_actors a WHERE a.kind=$1 AND a.lane=$2 AND (SELECT count(*) FROM rocksky_durable_jobs WHERE kind=a.kind AND actor=a.actor AND status='processing'{lane_filter} AND lease_until>{now})<$4 AND EXISTS (SELECT 1 FROM rocksky_durable_jobs WHERE {ready}) ORDER BY a.last_served,a.actor LIMIT $5"))
+        let live = format!("(SELECT count(*) FROM rocksky_durable_jobs WHERE {live_kind} AND actor=a.actor AND status='processing'{lane_filter} AND lease_until>{now})");
+        let rows = sqlx::query(&format!("SELECT a.actor,{live} AS inflight FROM rocksky_durable_actors a WHERE a.kind=$1 AND a.lane=$2 AND {live}<$4 AND EXISTS (SELECT 1 FROM rocksky_durable_jobs WHERE {ready}) ORDER BY a.last_served,a.actor LIMIT $5"))
             .bind(kind).bind(lane_id).bind(max_attempts).bind(per_actor).bind(limit).fetch_all(&mut *tx).await?;
         if rows.is_empty() {
             tx.commit().await?;
@@ -366,6 +380,141 @@ mod tests {
             .execute(&queue.pool)
             .await
             .unwrap();
+    }
+
+    async fn publication_contract(queue: Queue) {
+        let suffix = Uuid::new_v4();
+        let noisy = format!("did:plc:noisy-{suffix}");
+        let quiet = format!("did:plc:quiet-{suffix}");
+        let late = format!("did:plc:late-{suffix}");
+        for kind in [crate::service::KIND, crate::service::TEAL_KIND] {
+            for (actor, count) in [(&noisy, 20), (&quiet, 2)] {
+                for n in 0..count {
+                    queue
+                        .enqueue(
+                            kind,
+                            &format!("{actor}-{n}"),
+                            "hash",
+                            &serde_json::json!({"did": actor}).to_string(),
+                        )
+                        .await
+                        .unwrap();
+                }
+            }
+            queue.prepare_fairness(kind).await.unwrap();
+        }
+        // Two independent publication dispatchers must share one account cap,
+        // including when they race for different kinds and many slots are free.
+        let (rocksky, teal) = tokio::join!(
+            queue.claim_fair_batch(crate::service::KIND, 60, 20, 32, ClaimLane::Background, 1),
+            queue.claim_fair_batch(
+                crate::service::TEAL_KIND,
+                60,
+                20,
+                12,
+                ClaimLane::Background,
+                1
+            )
+        );
+        let active = [rocksky.unwrap(), teal.unwrap()].concat();
+        assert_eq!(active.len(), 2);
+        assert_eq!(
+            active
+                .iter()
+                .map(|job| job_actor(&job.payload))
+                .collect::<HashSet<_>>()
+                .len(),
+            2
+        );
+        for kind in [crate::service::KIND, crate::service::TEAL_KIND] {
+            assert!(queue
+                .claim_fair_batch(kind, 60, 20, 32, ClaimLane::Background, 1)
+                .await
+                .unwrap()
+                .is_empty());
+        }
+        // A listener arriving behind the bulk backlog can start immediately.
+        queue
+            .enqueue(
+                crate::service::KIND,
+                &late,
+                "hash",
+                &serde_json::json!({"did": late}).to_string(),
+            )
+            .await
+            .unwrap();
+        let next = queue
+            .claim_fair_batch(crate::service::KIND, 60, 20, 32, ClaimLane::Background, 1)
+            .await
+            .unwrap();
+        assert_eq!(next.len(), 1);
+        assert_eq!(job_actor(&next[0].payload), late);
+        let bulk = active
+            .iter()
+            .find(|job| job_actor(&job.payload) == noisy)
+            .unwrap();
+        assert!(queue.finish(bulk).await.unwrap());
+        let other_kind = if bulk.kind == crate::service::KIND {
+            crate::service::TEAL_KIND
+        } else {
+            crate::service::KIND
+        };
+        let next_bulk = queue
+            .claim_fair_batch(other_kind, 60, 20, 32, ClaimLane::Background, 1)
+            .await
+            .unwrap();
+        assert_eq!(next_bulk.len(), 1);
+        assert_eq!(job_actor(&next_bulk[0].payload), noisy);
+        // An expired lease in one kind frees capacity in the other, while the
+        // old worker remains fenced from acknowledging completion.
+        sqlx::query("UPDATE rocksky_durable_jobs SET lease_until=0 WHERE id=$1")
+            .bind(&next_bulk[0].id)
+            .execute(&queue.pool)
+            .await
+            .unwrap();
+        let recovered = queue
+            .claim_fair_batch(&bulk.kind, 60, 20, 32, ClaimLane::Background, 1)
+            .await
+            .unwrap();
+        assert_eq!(recovered.len(), 1);
+        assert_eq!(job_actor(&recovered[0].payload), noisy);
+        assert!(!queue.finish(&next_bulk[0]).await.unwrap());
+        for table in ["rocksky_durable_jobs", "rocksky_durable_actors"] {
+            sqlx::query(&format!("DELETE FROM {table} WHERE actor IN ($1,$2,$3)"))
+                .bind(&noisy)
+                .bind(&quiet)
+                .bind(&late)
+                .execute(&queue.pool)
+                .await
+                .unwrap();
+        }
+    }
+
+    #[cfg(feature = "sqlite")]
+    #[tokio::test]
+    async fn sqlite_publication_accounts_share_capacity_across_kinds() {
+        let dir = tempfile::tempdir().unwrap();
+        publication_contract(
+            Queue::connect(&format!(
+                "sqlite://{}?mode=rwc",
+                dir.path().join("publication-fair.sqlite").display()
+            ))
+            .await
+            .unwrap(),
+        )
+        .await;
+    }
+
+    #[cfg(feature = "postgres")]
+    #[tokio::test]
+    #[ignore = "requires SUBMISSIONS_TEST_POSTGRES_URL"]
+    async fn postgres_publication_accounts_share_capacity_across_kinds() {
+        publication_contract(
+            Queue::connect(&std::env::var("SUBMISSIONS_TEST_POSTGRES_URL").unwrap())
+                .await
+                .unwrap(),
+        )
+        .await;
     }
 
     #[test]

@@ -119,10 +119,16 @@ is unavailable.
 | `SUBMISSIONS_URL` | API | `http://127.0.0.1:8098` |
 | `SUBMISSIONS_API_URL` | Worker | `http://127.0.0.1:8000/internal/submissions/process`; prod points at the loopback callbacks process on `:8099` |
 | `SUBMISSIONS_CONCURRENCY` | Worker | `8` |
-| `SUBMISSIONS_TEAL_CONCURRENCY` | Worker | `4` (independent Teal pool) |
+| `SUBMISSIONS_TEAL_CONCURRENCY` | Worker | `4` (Teal pool; shares the account limit with Rocksky publication) |
+| `SUBMISSIONS_MAX_INFLIGHT_PER_DID` | Worker | `1`, enforced across both publication kinds and worker replicas; no idle borrowing |
 | `SUBMISSIONS_TEAL_API_URL` | Worker | `/tealfm/process` alongside `SUBMISSIONS_API_URL` |
 | `SUBMISSIONS_MAX_ATTEMPTS` | Worker | `20` |
 | `MAX_INFLIGHT_SCROBBLES` | Jetstream | `64` |
+
+Publication workers share one live-lease cap per listener across Rocksky and Teal jobs.
+A large import stays queued instead of occupying every worker or racing the same
+OAuth session lock. Distinct listeners retain independent capacity. Legacy jobs
+receive actor metadata in bounded batches before workers start.
 
 Start the worker and configure the API secret before sending submissions to the
 new API. Deploy the REST callback and XRPC acceptance changes together. Queue
