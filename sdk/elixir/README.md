@@ -172,4 +172,3 @@ explicitly leave open, such as provider payloads, remain JSON values.
 Regenerate with `bun tools/lexgen/generate.ts --elixir` from the repository root.
 
 Direct PDS write responses include the typed write point quota when available.
-See [PDS write quota responses and migration](../PDS_WRITE_RATE_LIMITS.md).
