@@ -461,11 +461,8 @@ fn musicbrainz_candidates(v: &Value, request: &MatchRequest) -> Vec<Candidate> {
         .map(|release| {
             let mut candidate = base.clone();
             candidate.album = string(release, "title");
-            candidate.version = Some(format!(
-                "{} {}",
-                candidate.version.as_deref().unwrap_or(""),
-                string(release, "disambiguation").unwrap_or_default()
-            ));
+            // Release disambiguation describes the release, sometimes another song on it.
+            // Keep the recording-level version inherited from the base candidate.
             candidate.identifiers.musicbrainz_release_id = string(release, "id");
             candidate.id = format!(
                 "{}:{}",
