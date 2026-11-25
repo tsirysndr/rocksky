@@ -21,6 +21,7 @@ opt-in; MPRIS is enabled by default on Linux.
 - [How it works](#how-it-works)
 - [Audio settings from your atproto repo](#audio-settings-from-your-atproto-repo)
 - [Install](#install)
+  - [Nix](#nix)
 - [Building](#building)
 - [Authentication](#authentication)
 - [Quick start](#quick-start)
@@ -135,6 +136,20 @@ curl -fsSL https://cli.rocksky.app/playerd \
 curl -fsSL https://cli.rocksky.app/playerd \
   | PLAYERD_INSTALL_DIR="$HOME/bin" sh
 ```
+
+### Nix
+
+On Linux or macOS, with Nix's `nix-command` and `flakes` experimental features
+enabled, install `playerd` into your user profile:
+
+```sh
+nix profile install github:tsirysndr/rocksky#playerd
+playerd --version
+```
+
+See the [Nix installation guide](../README.md#nix-installation) for the public
+FluentCI binary cache configuration. Nix downloads an available cached build or
+builds the package from source when it is not cached.
 
 ## Building
 
