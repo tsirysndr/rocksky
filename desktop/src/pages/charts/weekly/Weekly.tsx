@@ -2,7 +2,7 @@ import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { uriToPath } from "../../../lib/uri";
 import { useTopArtistsInfiniteQuery } from "../../../hooks/useLibrary";
 import Artist from "../../../components/Icons/Artist";
-import { getLastDays } from "../../../lib/date";
+import { useWeeklyChartRange } from "../../../../../apps/shared/browser/useWeeklyChartRange";
 import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useRef } from "react";
@@ -20,12 +20,10 @@ type ArtistRow = {
 };
 
 function Weekly() {
-  const [startDate, endDate] = getLastDays(7);
+  const [startDate, endDate] = useWeeklyChartRange();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useTopArtistsInfiniteQuery(20, startDate, endDate);
-  const end = dayjs();
-  const start = end.subtract(7, "day");
-  const range = `${start.format("DD MMM YYYY")} — ${end.format("DD MMM YYYY")}`;
+  const range = `${dayjs(startDate).format("DD MMM YYYY")} — ${dayjs(endDate).format("DD MMM YYYY")}`;
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +51,9 @@ function Weekly() {
     <>
       <div className="mt-[15px] mb-[25px]">
         <strong style={{ fontFamily: "var(--font-mono)" }}>{range}</strong>
+        <div className="mt-2 text-sm text-[var(--color-text-muted)]">
+          Ranked by unique listeners over the last 7 days. Updates every 2 minutes.
+        </div>
       </div>
       {isLoading && (
         <ContentLoader

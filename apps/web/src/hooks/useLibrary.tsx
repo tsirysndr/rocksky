@@ -282,6 +282,7 @@ export const useTopArtistsInfiniteQuery = (
 ) =>
   useInfiniteQuery({
     queryKey: ["infiniteTopArtists", limit, startDate, endDate],
+    refetchInterval: 120_000,
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getTopArtists(
         pageParam * limit,
