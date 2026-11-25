@@ -1,3 +1,4 @@
+import { useCoverFlowAlbumEntry } from "../../../../apps/shared/browser/useCoverFlowAlbumEntry";
 import styled from "@emotion/styled";
 import { IconCarouselHorizontal } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -135,6 +136,7 @@ const SearchField = styled.input`
 
 export default function CoverFlow() {
   const dialog = useRef<HTMLDialogElement>(null);
+  const { enterAlbum, cancelEntry, entering } = useCoverFlowAlbumEntry();
   const previousFocus = useRef<HTMLElement | null>(null);
   const gesture = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
@@ -172,6 +174,7 @@ export default function CoverFlow() {
   }, []);
 
   const close = useCallback(() => {
+    cancelEntry();
     dialog.current?.close();
     setOpen(false);
     setSearchVisible(false);
@@ -179,7 +182,7 @@ export default function CoverFlow() {
     setSearchQuery("");
     setIndex(0);
     previousFocus.current?.focus({ preventScroll: true });
-  }, [setOpen]);
+  }, [setOpen, cancelEntry]);
 
   const launch = useCallback(() => setOpen(true), [setOpen]);
 
@@ -192,24 +195,28 @@ export default function CoverFlow() {
         : null;
     screen.showModal();
     return () => {
+      cancelEntry();
       screen.close();
       previousFocus.current?.focus({ preventScroll: true });
     };
-  }, [open]);
+  }, [open, cancelEntry]);
 
   const move = useCallback(
     (delta: number) => {
+      if (entering.current) return;
       setIndex(Math.max(0, Math.min(albums.length - 1, activeIndex + delta)));
     },
-    [activeIndex, albums.length],
+    [activeIndex, albums.length, entering],
   );
 
   const select = useCallback(
     (album: CoverFlowAlbum) => {
-      close();
-      onSelect(album.id);
+      void enterAlbum(dialog.current, album.id, () => {
+        close();
+        onSelect(album.id);
+      });
     },
-    [close, onSelect],
+    [close, onSelect, enterAlbum],
   );
 
   useEffect(() => {
@@ -264,7 +271,7 @@ export default function CoverFlow() {
         close();
         return;
       }
-      if (event.isComposing) return;
+      if (entering.current || event.isComposing) return;
       const typing = event.target === searchInput.current;
       if (
         event.key === "/" &&
@@ -309,7 +316,7 @@ export default function CoverFlow() {
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [open, launch, close, move, selected, select, showSearch]);
+  }, [open, launch, close, move, selected, select, showSearch, entering]);
 
   useEffect(() => {
     if (!open) return;
@@ -399,6 +406,7 @@ export default function CoverFlow() {
                       : Math.sign(offset) * (0.78 + (distance - 1) * 0.31);
                   return (
                     <Cover
+                      data-cover-album={album.id}
                       key={album.id}
                       type="button"
                       tabIndex={offset === 0 ? 0 : -1}
