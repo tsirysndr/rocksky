@@ -1,5 +1,4 @@
 import styled from "@emotion/styled";
-import { useQueryClient } from "@tanstack/react-query";
 import Avatar from "../../../components/UserAvatar";
 import type { BlockProps } from "baseui/block";
 import { FlexGridItem } from "baseui/flex-grid";
@@ -9,21 +8,18 @@ import { LabelSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useAtomValue } from "jotai";
-import { useEffect, useRef } from "react";
 import ContentLoader from "react-content-loader";
 import { feedGeneratorUriAtom } from "../../../atoms/feed";
 import { followingFeedAtom } from "../../../atoms/followingFeed";
 import { rightPaneHiddenAtom } from "../../../atoms/rightPane";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
-import { WS_URL } from "../../../consts";
 import {
   useFeedInfiniteQuery,
   useScrobbleInfiniteQuery,
 } from "../../../hooks/useFeed";
 import { useInfiniteScrollSentinel } from "../../../hooks/useInfiniteScrollSentinel";
 import FeedGenerators from "./FeedGenerators";
-import { consola } from "consola";
 import { Link } from "@tanstack/react-router";
 
 dayjs.extend(relativeTime);
@@ -62,9 +58,6 @@ const Container = styled.div`
 `;
 
 function Feed() {
-  const queryClient = useQueryClient();
-  const socketRef = useRef<WebSocket | null>(null);
-  const heartbeatInterval = useRef<number | null>(null);
   const did = localStorage.getItem("did");
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const followingFeed = useAtomValue(followingFeedAtom);
@@ -94,41 +87,6 @@ function Feed() {
     ? scrobbleData?.pages.flatMap((page) => page.scrobbles) || []
     : data?.pages.flatMap((page) => page.feed) || [];
 
-  useEffect(() => {
-    const ws = new WebSocket(`${WS_URL.replace("http", "ws")}`);
-    socketRef.current = ws;
-
-    ws.onopen = () => {
-      heartbeatInterval.current = window.setInterval(() => {
-        ws.send("ping");
-      }, 3000);
-    };
-
-    ws.onmessage = async (event) => {
-      if (event.data === "pong") {
-        return;
-      }
-
-      const message = JSON.parse(event.data);
-      queryClient.setQueryData(["scrobblesChart"], message.scrobblesChart);
-
-      await queryClient.invalidateQueries({
-        queryKey: ["infiniteFeed", feedUri],
-      });
-      await queryClient.invalidateQueries({ queryKey: ["stories"] });
-      // await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
-    };
-
-    return () => {
-      if (ws) {
-        if (heartbeatInterval.current) {
-          clearInterval(heartbeatInterval.current);
-        }
-        ws.close();
-      }
-      consola.info(">> WebSocket connection closed");
-    };
-  }, [queryClient, feedUri]);
 
   return (
     <Container>

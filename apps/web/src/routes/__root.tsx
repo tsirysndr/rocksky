@@ -13,12 +13,14 @@ import ShortcutsButton from "../components/ShortcutsButton";
 import StickyPlayer from "../components/StickyPlayer";
 import LibrarySearchModal from "../layouts/Search/LibrarySearchModal";
 import SearchModal from "../layouts/Search/SearchModal";
+import { useLiveScrobbleUpdates } from "../hooks/useLiveScrobbleUpdates";
 
 export const Route = createRootRoute({
   component: RootComponent,
 });
 
 function RootComponent() {
+  useLiveScrobbleUpdates();
   const { darkMode } = useAtomValue(themeAtom);
 
   React.useEffect(() => {
