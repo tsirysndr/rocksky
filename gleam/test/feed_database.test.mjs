@@ -13,7 +13,7 @@ import * as stories from '../build/dev/javascript/rocksky_api/rocksky_api/xrpc/a
 import {describe} from '../build/dev/javascript/rocksky_api/rocksky_api/error.mjs';
 test('Feed hydration respects timestamps, per-track likes, caller cache and generator routing',{skip:!process.env.GLEAM_TEST_PGHOST},async()=>{
  const pool=new pg.Pool({host:process.env.GLEAM_TEST_PGHOST,port:Number(process.env.GLEAM_TEST_PGPORT),database:'postgres',max:1});const original=axios.defaults.adapter;const calls=[],cache=new Map();
- axios.defaults.adapter=async config=>{calls.push(config);return {status:200,headers:{},config,data:{cursor:'next',feed:[{scrobble:'at://older'},{scrobble:'at://newer'}]}};};
+ axios.defaults.adapter=async config=>{calls.push(config);return {status:200,headers:{},config,data:{cursor:'next',feed:[{scrobble:'at://older'},{scrobble:null},{scrobble:'at://newer'}]}};};
  try{
  await createTables(pool,['users','artists','tracks','scrobbles','loved_tracks','feeds','albums','follows']);
  await pool.query("INSERT INTO users(xata_id,did,handle,display_name,avatar) VALUES ('u','did:u','u.test','U','')");

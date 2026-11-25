@@ -66,8 +66,12 @@ fn feed_uris(ctx: Context, uri: String) {
     response.data,
     decode.field(
       "feed",
-      decode.list(decode.field("scrobble", decode.string, decode.success)),
-      decode.success,
+      decode.list(decode.field(
+        "scrobble",
+        decode.optional(decode.string),
+        decode.success,
+      )),
+      fn(items) { decode.success(option.values(items)) },
     ),
   )
   |> error.decode("Stories feed skeleton", _)

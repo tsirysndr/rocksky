@@ -38,9 +38,13 @@ fn skeleton_decoder() {
   )
   use feed <- decode.field(
     "feed",
-    decode.list(decode.field("scrobble", decode.string, decode.success)),
+    decode.list(decode.field(
+      "scrobble",
+      decode.optional(decode.string),
+      decode.success,
+    )),
   )
-  decode.success(#(cursor, feed))
+  decode.success(#(cursor, option.values(feed)))
 }
 
 pub fn retrieve(
@@ -236,11 +240,7 @@ pub fn register(server: xrpc_server.Server, ctx: Context) {
       use params <- handler.query(
         req,
         handler.options("getFeed")
-          |> handler.on_error(
-            handler.Fallback(
-              models.encode_feed_view(models.FeedView(None, None, Some([]))),
-            ),
-          ),
+          |> handler.on_error(handler.Propagate),
         models.get_feed_params_decoder(),
       )
       let did = handler.caller(req)

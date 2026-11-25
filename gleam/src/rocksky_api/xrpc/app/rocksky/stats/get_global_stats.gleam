@@ -7,11 +7,13 @@ import rocksky_api/drizzle/schema/scrobbles
 import rocksky_api/drizzle/schema/tracks
 import rocksky_api/drizzle/schema/users
 import rocksky_api/lexicon/models
+import rocksky_api/lib/query_cache
 import rocksky_api/node/xrpc_server.{type Server}
 import rocksky_api/task
 import rocksky_api/xrpc/handler
 
 pub fn register(server: Server, ctx: Context) -> Nil {
+  let totals = query_cache.new(60_000, 1)
   let fallback =
     models.StatsGlobalStatsView(Some(0), Some(0), Some(0), Some(0), Some(0))
     |> models.encode_stats_global_stats_view
@@ -21,21 +23,25 @@ pub fn register(server: Server, ctx: Context) -> Nil {
       |> handler.timeout(120_000)
       |> handler.on_error(handler.Fallback(fallback)),
     )
-    use #(scrobbles, users, artists, #(albums, tracks)) <- task.map(task.all4(
-      count(ctx, scrobbles.table()),
-      count(ctx, users.table()),
-      count(ctx, artists.table()),
-      task.all2(count(ctx, albums.table()), count(ctx, tracks.table())),
-    ))
-    models.StatsGlobalStatsView(
-      Some(scrobbles),
-      Some(users),
-      Some(artists),
-      Some(albums),
-      Some(tracks),
-    )
-    |> models.encode_stats_global_stats_view
+    query_cache.get(totals, "global", fn() { retrieve(ctx) })
   })
+}
+
+fn retrieve(ctx: Context) {
+  use #(scrobbles, users, artists, #(albums, tracks)) <- task.map(task.all4(
+    count(ctx, scrobbles.table()),
+    count(ctx, users.table()),
+    count(ctx, artists.table()),
+    task.all2(count(ctx, albums.table()), count(ctx, tracks.table())),
+  ))
+  models.StatsGlobalStatsView(
+    Some(scrobbles),
+    Some(users),
+    Some(artists),
+    Some(albums),
+    Some(tracks),
+  )
+  |> models.encode_stats_global_stats_view
 }
 
 fn count(ctx: Context, table) {
