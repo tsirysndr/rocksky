@@ -233,11 +233,11 @@ const resolveFeedScrobbleUris = async (
     : `https://${feed.did.split("did:web:")[1]}`;
   const response = await axios.get<{
     cursor?: string;
-    feed: { scrobble: string }[];
+    feed: { scrobble: string | null }[];
   }>(`${feedUrl}/xrpc/app.rocksky.feed.getFeedSkeleton`, {
     params: { feed: feed.uri },
   });
-  return response.data.feed.map(({ scrobble }) => scrobble);
+  return response.data.feed.map(({ scrobble }) => scrobble).filter((uri): uri is string => uri != null);
 };
 
 const presentation = ({

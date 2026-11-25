@@ -50,8 +50,8 @@ retrieve ctx params did = do
   uris <- case toMaybe params.feed of
     Just feed | feed /= "" -> do
       skeleton <- Skeleton.fetch ctx true feed (F.toForeign {})
-      let data_ = F.unsafeFromForeign skeleton :: { feed :: Array { scrobble :: String } }
-      pure (Just (map _.scrobble data_.feed))
+      let data_ = F.unsafeFromForeign skeleton :: { feed :: Array { scrobble :: Nullable String } }
+      pure (Just (A.mapMaybe (toMaybe <<< _.scrobble) data_.feed))
     _ -> pure Nothing
   following <-
     if uris == Just [] then pure Nothing

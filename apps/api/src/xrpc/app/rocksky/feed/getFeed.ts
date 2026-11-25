@@ -60,10 +60,7 @@ export default function (server: Server, ctx: Context) {
 			}),
 			Effect.retry(transientDbRetry),
 			Effect.timeout("10 seconds"),
-			Effect.catchAll((err) => {
-				consola.error("Error retrieving scrobbles:", err);
-				return Effect.succeed({ scrobbles: [] });
-			}),
+			Effect.tapError((err) => Effect.sync(() => consola.error("Error retrieving feed:", err))),
 		);
 	};
 	// Only share in-flight work; Redis still controls expiry and versions.
@@ -125,7 +122,7 @@ const retrieve = ({
 				: `https://${feed.did.split("did:web:")[1]}`;
 			const response = await axios.get<{
 				cursor?: string;
-				feed: { scrobble: string }[];
+				feed: { scrobble: string | null }[];
 			}>(`${feedUrl}/xrpc/app.rocksky.feed.getFeedSkeleton`, {
 				params: {
 					feed: feed.uri,
@@ -134,7 +131,7 @@ const retrieve = ({
 				},
 			});
 			return {
-				uris: response.data.feed.map(({ scrobble }) => scrobble),
+				uris: response.data.feed.map(({ scrobble }) => scrobble).filter((uri): uri is string => uri != null),
 				cursor: response.data.cursor,
 				ctx,
 				did,

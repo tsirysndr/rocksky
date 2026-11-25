@@ -5,6 +5,7 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { env } from "lib/env";
 import { scrobbleLikes } from "lib/scrobbleLikes";
 import registerLoved from "../actor/getActorLovedSongs";
+import registerGlobalStats from "../stats/getGlobalStats";
 import registerFeed from "./getFeed";
 import registerStories from "./getStories";
 
@@ -62,6 +63,9 @@ function setup(responses: Record<string, any[][]>) {
 						handlers.loved = config.handler;
 					},
 				},
+				stats: {
+					getGlobalStats(config: any) { handlers.stats = config.handler; },
+				},
 				feed: {
 					getFeed(config: any) {
 						handlers.feed = config.handler;
@@ -84,6 +88,18 @@ function setup(responses: Record<string, any[][]>) {
 		},
 	};
 }
+
+it("shares one global count per table across concurrent and repeat requests", async () => {
+	const names = ["scrobbles", "users", "artists", "albums", "tracks"];
+	const m = setup(Object.fromEntries(names.map(name => [name, [[{ n: 42 }]]])));
+	registerGlobalStats(m.server as any, { readDb: m.db } as any);
+	const results = await Promise.all(Array.from({ length: 8 }, () => m.handlers.stats({})));
+	results.push(await m.handlers.stats({}));
+	for (const result of results) {
+		expect(result.body).toEqual(Object.fromEntries(names.map(name => [name, 42])));
+	}
+	m.done();
+});
 
 it("shares concurrent feeds, isolates viewers, and rechecks Redis versions", async () => {
 	const own = { uri, did: env.ROCKSKY_FEEDGEN_DID };

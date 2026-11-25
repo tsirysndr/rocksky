@@ -23,7 +23,7 @@ import Record as Record
 import Redis as Redis
 import Rocksky.Context (Context)
 import Rocksky.Lexicon (Server)
-import Rocksky.Lib.Aff (recoverWith, retryTransientDb, timeoutMs)
+import Rocksky.Lib.Aff (retryTransientDb, timeoutMs)
 import Rocksky.Lib.FeedCache (getFeedVersion)
 import Rocksky.Lib.Foreign as F
 import Rocksky.Lib.ScrobbleLikes as ScrobbleLikes
@@ -53,8 +53,8 @@ getFeed ctx params did = do
       Right view -> pure view
     _ -> do
       skeleton <- Skeleton.fetch ctx false params.feed (F.toForeign { limit: params.limit, cursor: params.cursor })
-      let data_ = F.unsafeFromForeign skeleton :: { feed :: Array { scrobble :: String }, cursor :: Foreign }
-      view <- hydrate ctx (map _.scrobble data_.feed) data_.cursor did
+      let data_ = F.unsafeFromForeign skeleton :: { feed :: Array { scrobble :: Nullable String }, cursor :: Foreign }
+      view <- hydrate ctx (A.mapMaybe (toMaybe <<< _.scrobble) data_.feed) data_.cursor did
       Redis.setEx ctx.redis key 30 (F.stringify view)
       pure view
 
@@ -89,5 +89,4 @@ register server ctx = do
   pending <- queryCache (\key -> timeoutMs 10000 (retryTransientDb (getFeed ctx key.params key.did))) 0 100
   Xrpc.method server "app.rocksky.feed.getFeed"
     { auth: Just ctx.authVerifier
-    , handler: \input -> Xrpc.Json <$> recoverWith (F.toForeign { scrobbles: [] :: Array Foreign })
-        (pending { params: Util.params input, did: Util.authDid input }) }
+    , handler: \input -> Xrpc.Json <$> pending { params: Util.params input, did: Util.authDid input } }

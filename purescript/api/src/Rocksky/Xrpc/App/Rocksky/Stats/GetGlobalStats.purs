@@ -19,6 +19,7 @@ import Effect.Aff (Aff, attempt)
 import Rocksky.Context (Context)
 import Rocksky.Lexicon (Server)
 import Rocksky.Lib.Aff (retryTransientDb, timeoutMs)
+import Rocksky.Lib.QueryCache (queryCache)
 import Rocksky.Lib.Foreign (toForeign)
 import Rocksky.Schema as T
 
@@ -28,12 +29,13 @@ defaultStats :: GlobalStats
 defaultStats = { scrobbles: 0.0, users: 0.0, artists: 0.0, albums: 0.0, tracks: 0.0 }
 
 register :: Server -> Context -> Effect Unit
-register server ctx =
+register server ctx = do
+  totals <- queryCache (\_ -> timeoutMs 120000 (retryTransientDb (retrieve ctx))) 60000 1
   Xrpc.method server "app.rocksky.stats.getGlobalStats"
     { auth: Nothing
     , handler: \_ -> do
         -- The TS fallback swallows the error without logging it.
-        result <- either (const defaultStats) identity <$> attempt (timeoutMs 120000 (retryTransientDb (retrieve ctx)))
+        result <- either (const defaultStats) identity <$> attempt (totals "global")
         pure (Json (toForeign result))
     }
 

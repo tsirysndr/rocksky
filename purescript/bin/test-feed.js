@@ -7,6 +7,7 @@ import {createServer} from '@atproto/xrpc-server';
 const env=await readFile(new URL('../api/src/Rocksky/Lib/Env.purs',import.meta.url),'utf8');process.env.NODE_ENV='test';
 for(const [,key] of env.matchAll(/"([A-Z0-9_]+)": str required/g))process.env[key]='feed-test';
 Object.assign(process.env,{PUBLIC_URL:'https://rocksky.test',ROCKSKY_FEEDGEN_DID:'did:web:rocksky.test',ROCKSKY_FEEDGEN_PORT:'8003'});
+const GlobalStats=await import('../output/Rocksky.Xrpc.App.Rocksky.Stats.GetGlobalStats/index.js');
 const Feed=await import('../output/Rocksky.Xrpc.App.Rocksky.Feed.GetFeed/index.js');
 const Stories=await import('../output/Rocksky.Xrpc.App.Rocksky.Feed.GetStories/index.js');
 const Skeleton=await import('../output/Rocksky.Xrpc.App.Rocksky.Feed.Skeleton/index.js');
@@ -69,6 +70,16 @@ try{
   assert.doesNotMatch(statements[0].sql.sql,/make_interval/);assert.ok(statements[0].sql.params.includes('old-scrobble'));m.done();
  }
  const server=createServer(await run(loadLexicons)),methods=new Map();server.method=(id,config)=>{methods.set(id,config);return server};
+ {
+  const tables=['scrobbles','users','artists','albums','tracks'];
+  const m=mock(Object.fromEntries(tables.map(name=>[name,[[{n:42}]]])));
+  GlobalStats.register(server)({readDb:m.db})();
+  const call=methods.get('app.rocksky.stats.getGlobalStats').handler;
+  const responses=await Promise.all(Array.from({length:8},()=>call({})));
+  responses.push(await call({}));
+  for(const response of responses)assert.deepEqual(response.body,Object.fromEntries(tables.map(name=>[name,42])));
+  m.done();
+ }
  {
   skeleton={feed:[],cursor:'next'};
   const m=mock({feeds:[[feed],[feed],[feed]],scrobbles:[[],[],[]]});const cache=new Map();let version=0;

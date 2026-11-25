@@ -4,21 +4,26 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { GlobalStatsView } from "lexicon/types/app/rocksky/stats/defs";
 import { transientDbRetry } from "lib/dbRetry";
+import { queryCache } from "lib/queryCache";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const getGlobalStats = () =>
-    pipe(
+  const getGlobalStats = queryCache(
+    () => pipe(
       { ctx },
       retrieve,
       Effect.flatMap(presentation),
       Effect.retry(transientDbRetry),
       Effect.timeout("120 seconds"),
-      Effect.catchAll(() => Effect.succeed(defaultStats)),
-    );
+    ),
+    "1 minute",
+    1,
+  );
   server.app.rocksky.stats.getGlobalStats({
     handler: async () => {
-      const result = await Effect.runPromise(getGlobalStats());
+      const result = await Effect.runPromise(
+        getGlobalStats({}).pipe(Effect.catchAll(() => Effect.succeed(defaultStats))),
+      );
       return {
         encoding: "application/json",
         body: result,
