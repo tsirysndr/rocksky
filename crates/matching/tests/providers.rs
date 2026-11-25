@@ -143,6 +143,32 @@ async fn musicbrainz_keeps_all_release_candidates() {
     h.stop(true).await;
 }
 #[actix_web::test]
+async fn release_notes_do_not_split_one_musicbrainz_recording() {
+    let recording = json!({
+        "id": "d98b8ca5-5b91-4f25-b08f-eea672db658d", "title": "Shout",
+        "length": 353333, "artist-credit": [{"name": "Tears for Fears"}],
+        "releases": [{"id":"a","title":"The Rock Collection"},
+                     {"id":"b","title":"The 80's Collection","disambiguation":"different Jacksons track"}]
+    });
+    let r: MatchRequest = serde_json::from_value(json!({
+        "title":"Shout","artists":["Tears For Fears"],"durationMs":360000
+    }))
+    .unwrap();
+    for (note, expected) in [
+        (Value::Null, Status::Matched),
+        (json!("live"), Status::Unmatched),
+    ] {
+        let mut entry = recording.clone();
+        entry["disambiguation"] = note;
+        let (p, h, _) = provider(ProviderKind::Musicbrainz, json!([entry]), 200).await;
+        assert_eq!(
+            resolve(&r, p.candidates(&r).await.unwrap()).unwrap().status,
+            expected
+        );
+        h.stop(true).await;
+    }
+}
+#[actix_web::test]
 async fn musicbrainz_verifies_any_observed_isrc() {
     let(p,h,_)=provider(ProviderKind::Musicbrainz,json!([{"id":"rec","title":"Beat It","isrcs":["FIRST","USABC1234567"],"artist-credit":[{"name":"Michael Jackson"}]}]),200).await;
     let mut r = request();

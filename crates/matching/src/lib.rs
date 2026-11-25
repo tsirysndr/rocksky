@@ -9,7 +9,7 @@ pub mod service;
 pub mod spotify_auth;
 pub mod startup;
 
-pub const POLICY_VERSION: &str = "3";
+pub const POLICY_VERSION: &str = "4";
 
 use rocksky_core::credits::fold;
 use serde::{Deserialize, Serialize};
