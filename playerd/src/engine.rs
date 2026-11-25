@@ -491,6 +491,7 @@ mod boundary_tests {
             queue_len: 2,
             shuffle: false,
             repeat: RepeatMode::Off,
+            levels: rockbox_playback::Levels::default(),
         }
     }
 

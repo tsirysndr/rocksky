@@ -89,6 +89,7 @@ pub struct Config {
     pub autodj: AutoDjConfig,
     pub mpd: MpdConfig,
     pub mpris: MprisConfig,
+    pub hls: crate::hls::HlsConfig,
 }
 
 #[derive(Deserialize, Clone)]
@@ -246,6 +247,7 @@ impl Default for Config {
             autodj: AutoDjConfig::default(),
             mpd: MpdConfig::default(),
             mpris: MprisConfig::default(),
+            hls: crate::hls::HlsConfig::default(),
         }
     }
 }

@@ -119,9 +119,15 @@
             cp ${rootWorkspace} Cargo.toml
           '';
 
-          nativeBuildInputs = [ pkgs.pkg-config ];
-          # rockbox-playback's ALSA output; everything else (rustls, bundled
-          # sqlite, symphonia) is vendored or pure Rust.
+          nativeBuildInputs = [
+            pkgs.pkg-config
+            pkgs.stdenv.cc
+            pkgs.autoconf
+            pkgs.automake
+            pkgs.libtool
+          ];
+          # ALSA output on Linux; the embedded HLS codecs compile vendored
+          # sources with the native C/C++ toolchain above.
           buildInputs = lib.optionals pkgs.stdenv.isLinux [ pkgs.alsa-lib ];
 
           doCheck = false;

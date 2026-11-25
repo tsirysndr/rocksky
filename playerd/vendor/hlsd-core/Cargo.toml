@@ -1,0 +1,20 @@
+[package]
+name = "hlsd-core"
+version = "0.2.0"
+edition = "2024"
+license = "MIT"
+description = "Embedded hlsd audio encoders, CMAF muxer, and live segmenter"
+
+[dependencies]
+anyhow = "1"
+log = "0.4"
+flacenc = "0.5.1"
+fdk-aac = { version = "0.8", optional = true }
+mp3lame-encoder = { version = "0.2", optional = true }
+audiopus = { version = "0.2", optional = true }
+
+[features]
+default = []
+aac = ["dep:fdk-aac"]
+mp3 = ["dep:mp3lame-encoder"]
+opus = ["dep:audiopus"]

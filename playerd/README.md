@@ -31,6 +31,7 @@ opt-in; MPRIS is enabled by default on Linux.
   - [MPD configuration and mpc](#mpd-configuration-and-mpc)
   - [Linux MPRIS and playerctl](#linux-mpris-and-playerctl)
 - [Audio output](#audio-output)
+- [Live HLS broadcast](#live-hls-broadcast)
 - [Local playback](#local-playback)
 - [What is (and isn't) remotely controllable](#what-is-and-isnt-remotely-controllable)
 - [Auto DJ](#auto-dj)
@@ -677,3 +678,63 @@ systemctl --user enable --now playerd
   `RUST_LOG=playerd=debug` logs each one it programs.
 - Verbose logs: `RUST_LOG=playerd=debug,rocksky_sdk=debug playerd` (all logs go
   to stderr, so `-o stdout` stays pure PCM).
+
+
+## Live HLS broadcast
+
+The embedded hlsd pipeline can serve the audio currently being played as a live
+HLS stream. It is **disabled by default**. Enable it in `~/.rocksky/playerd.toml`:
+
+```toml
+[hls]
+enabled = true
+bind = "127.0.0.1"
+port = 8180
+codec = "aac"
+bitrate = 192000
+sample_rate = 48000
+segment_duration = 2
+playlist_size = 6
+output_dir = "~/.cache/rocksky/playerd-hls"
+```
+
+Restart playerd after changing this section. Set `enabled = false` to disable
+both capture and HTTP serving; no listener or encoder is started, and the
+normal output sample rate is unchanged. Supported codecs are AAC-LC (default,
+for browser HLS playback) and FLAC. AAC is built in from vendored FDK sources;
+no `hlsd` process or `ffmpeg` executable is required.
+
+The audio tap runs at the actual output clock, **after DSP, ReplayGain and
+crossfades, before local volume and stereo balance**. Turning down or muting
+playerd never attenuates the stream. Pausing/stopping produces silence and
+preserves the buffered playback position. A preallocated, bounded capture
+buffer isolates the audio callback from encoding, filesystem and HTTP work.
+A slow consumer can drop capture frames, but cannot block local playback.
+
+URLs on the configured listener:
+
+- `/stream.m3u8`: live media playlist.
+- `/master.m3u8`: single-rendition HLS master playlist.
+- `/status`: JSON with `enabled` and `ready`.
+
+The rolling window bounds disk usage. Playlists are atomic and sent with
+`Cache-Control: no-store`; media URLs include a unique session directory to
+avoid stale init/segment caches after restarts. The HTTP server only serves
+current stream files, allows cross-origin playback, and does not require a
+Rocksky access token. Bind to localhost and expose it through the desired
+reverse proxy for HTTPS. For example, alongside an existing website in Caddy:
+
+```caddyfile
+handle_path /live/* {
+    reverse_proxy 127.0.0.1:8180
+}
+handle {
+    reverse_proxy 127.0.0.1:8000
+}
+```
+
+This exposes `/live/stream.m3u8` on the website origin. HLS has segment-buffer
+latency (normally several seconds), rather than sample-synchronized playback.
+Browsers without native HLS support need an HLS client such as hls.js. Browser
+listeners should start muted and only raise their own volume on user input;
+that volume is independent of playerd's local output.

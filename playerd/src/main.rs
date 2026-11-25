@@ -9,6 +9,7 @@ mod autodj;
 mod config;
 mod control;
 mod engine;
+mod hls;
 mod mcp;
 mod mpd;
 #[cfg(target_os = "linux")]
@@ -160,6 +161,7 @@ async fn main() -> Result<()> {
         }
     }
     let audio_baseline = settings::Baseline::from_player_config(&player_config);
+    let _hls = hls::start(&config.hls, &mut player_config).await?;
     let engine = Arc::new(Engine::start(player_config).map_err(|e| anyhow!(e))?);
 
     let cache = analysis::cache::AnalysisCache::open(&config.analysis_db_path()).await?;

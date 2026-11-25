@@ -42,6 +42,7 @@ pub mod output;
 mod prefetch;
 mod resume;
 pub mod source;
+pub mod tap;
 
 #[cfg(feature = "http")]
 pub use adaptive::AdaptiveStream;
@@ -605,6 +606,8 @@ pub struct PlayerConfig {
     /// raw **S16LE** stereo stream to stdout / a FIFO / a Unix or TCP
     /// socket. See [`OutputConfig`].
     pub output: OutputConfig,
+    /// Optional bounded capture of audible PCM before local volume/balance.
+    pub pcm_tap: Option<Arc<tap::PcmTap>>,
     /// Output sample rate. `None` uses the output device's default; every
     /// track is resampled to this rate by the DSP so mixed-rate queues
     /// work. For the non-`cpal` byte-stream backends there is no device to
@@ -640,6 +643,7 @@ impl Default for PlayerConfig {
     fn default() -> Self {
         PlayerConfig {
             output: OutputConfig::default(),
+            pcm_tap: None,
             sample_rate: None,
             buffer_seconds: 4.0,
             crossfade: CrossfadeSettings::default(),
@@ -842,6 +846,7 @@ struct Shared {
     /// The current [`RepeatMode`] as `u8` (mirrored from the engine).
     repeat: AtomicU8,
     ring: Mutex<VecDeque<i16>>,
+    pcm_tap: Option<Arc<tap::PcmTap>>,
     /// Output levels, for a meter. Four `f32`s bit-packed into atomics so the
     /// audio callback never takes a lock to publish them — a meter is not
     /// worth a priority inversion in the callback that feeds the speakers.
@@ -1492,6 +1497,7 @@ fn make_shared(config: &PlayerConfig, rate: u32) -> Arc<Shared> {
         shuffle: AtomicBool::new(config.shuffle),
         repeat: AtomicU8::new(config.repeat.to_u8()),
         ring: Mutex::new(VecDeque::new()),
+        pcm_tap: config.pcm_tap.clone(),
         level_l: AtomicU32::new(0),
         level_r: AtomicU32::new(0),
         level_bands: std::array::from_fn(|_| AtomicU32::new(0)),
@@ -1576,12 +1582,19 @@ fn spawn_stream_writer(
 
             while !stop_thread.load(Ordering::Relaxed) {
                 let target = f32::from_bits(shared.target_amp.load(Ordering::Relaxed));
+                let playing = shared.state.load(Ordering::Relaxed) == ST_PLAYING;
+                let mut tap = shared.pcm_tap.as_ref().and_then(|tap| tap.capture());
                 let gain_l = f32::from_bits(shared.balance_gain_l.load(Ordering::Relaxed));
                 let gain_r = f32::from_bits(shared.balance_gain_r.load(Ordering::Relaxed));
 
-                if target == 0.0 && cur_amp == 0.0 {
+                if target == 0.0 && cur_amp == 0.0 && !playing {
                     // Paused/stopped: emit silence, freeze the ring.
                     buf.iter_mut().for_each(|b| *b = 0);
+                    if let Some(tap) = tap.as_mut() {
+                        for _ in 0..chunk_frames {
+                            tap.push(0, 0);
+                        }
+                    }
                 } else {
                     let mut ring = shared.ring.lock().unwrap();
                     for frame in buf.chunks_mut(4) {
@@ -1591,12 +1604,22 @@ fn spawn_stream_writer(
                             cur_amp = (cur_amp - step).max(target);
                         }
                         // Fade-out just completed: stop draining, freeze.
-                        if cur_amp == 0.0 && target == 0.0 {
+                        if cur_amp == 0.0 && target == 0.0 && !playing {
                             frame.fill(0);
+                            if let Some(tap) = tap.as_mut() {
+                                tap.push(0, 0);
+                            }
                             continue;
                         }
                         let l = ring.pop_front().unwrap_or(0);
                         let r = ring.pop_front().unwrap_or(0);
+                        if let Some(tap) = tap.as_mut() {
+                            if playing {
+                                tap.push(l, r);
+                            } else {
+                                tap.push(0, 0);
+                            }
+                        }
                         let lv = ((l as f32) * cur_amp * gain_l).clamp(-32768.0, 32767.0) as i16;
                         let rv = ((r as f32) * cur_amp * gain_r).clamp(-32768.0, 32767.0) as i16;
                         frame[0..2].copy_from_slice(&lv.to_le_bytes());
@@ -1614,6 +1637,8 @@ fn spawn_stream_writer(
                     drop(ring);
                     shared.set_levels(meter.take());
                 }
+
+                drop(tap);
 
                 // A write/flush error means the consumer went away (pipe
                 // closed, socket reset): stop cleanly rather than spin.
@@ -1771,13 +1796,20 @@ fn build_stream(
             &config,
             move |data: &mut [f32], _| {
                 let target = f32::from_bits(shared.target_amp.load(Ordering::Relaxed));
+                let playing = shared.state.load(Ordering::Relaxed) == ST_PLAYING;
+                let mut tap = shared.pcm_tap.as_ref().and_then(|tap| tap.capture());
                 let gain_l = f32::from_bits(shared.balance_gain_l.load(Ordering::Relaxed));
                 let gain_r = f32::from_bits(shared.balance_gain_r.load(Ordering::Relaxed));
                 // Fully muted for pause/stop: output silence WITHOUT
                 // consuming the ring, so the buffered audio is frozen and
                 // resume is click-free from where it left off.
-                if target == 0.0 && cur_amp == 0.0 {
+                if target == 0.0 && cur_amp == 0.0 && !playing {
                     data.fill(0.0);
+                    if let Some(tap) = tap.as_mut() {
+                        for _ in data.chunks(2) {
+                            tap.push(0, 0);
+                        }
+                    }
                     // Silence is a level too: a meter left holding its last
                     // reading looks stuck rather than stopped.
                     shared.set_levels(Levels::default());
@@ -1792,12 +1824,22 @@ fn build_stream(
                     }
                     // Reached full mute mid-callback (fade-out complete):
                     // stop draining and freeze the rest.
-                    if cur_amp == 0.0 && target == 0.0 {
+                    if cur_amp == 0.0 && target == 0.0 && !playing {
                         frame.fill(0.0);
+                        if let Some(tap) = tap.as_mut() {
+                            tap.push(0, 0);
+                        }
                         continue;
                     }
                     let l = ring.pop_front().unwrap_or(0);
                     let r = ring.pop_front().unwrap_or(0);
+                    if let Some(tap) = tap.as_mut() {
+                        if playing {
+                            tap.push(l, r);
+                        } else {
+                            tap.push(0, 0);
+                        }
+                    }
                     frame[0] = (l as f32 / 32768.0) * cur_amp * gain_l;
                     if frame.len() > 1 {
                         frame[1] = (r as f32 / 32768.0) * cur_amp * gain_r;
@@ -3992,5 +4034,63 @@ mod level_meter_tests {
         drive(&mut meter, LevelMeter::alpha(44_100), 1.0, 4_096);
         let levels = meter.take();
         assert!(levels.left <= 1.0 && levels.low_left <= 1.0, "{levels:?}");
+    }
+}
+
+#[cfg(test)]
+mod pcm_tap_tests {
+    use super::*;
+    use std::io::Read;
+
+    #[test]
+    fn captured_audio_is_unaffected_by_local_volume_including_mute() {
+        for volume in [1.0f32, 0.02, 0.0] {
+            let (tap, mut reader) = tap::PcmTap::new(128);
+            let mut config = PlayerConfig::default();
+            config.volume = volume;
+            config.pcm_tap = Some(tap.clone());
+            let shared = make_shared(&config, 1000);
+            shared.state.store(ST_PLAYING, Ordering::Relaxed);
+            shared.target_amp.store(volume.to_bits(), Ordering::Relaxed);
+            shared
+                .ring
+                .lock()
+                .unwrap()
+                .extend((0..100).flat_map(|_| [12000, -6000]));
+            let sink = spawn_stream_writer(Box::new(std::io::sink()), 1000, shared.clone());
+            let mut bytes = [0u8; 80];
+            reader.read_exact(&mut bytes).unwrap();
+            drop(sink);
+            tap.close();
+            let samples: Vec<_> = bytes
+                .chunks_exact(2)
+                .map(|v| i16::from_le_bytes([v[0], v[1]]))
+                .collect();
+            assert!(
+                samples.chunks_exact(2).all(|v| v == [12000, -6000]),
+                "volume {volume} attenuated the live capture"
+            );
+            assert!(
+                shared.ring.lock().unwrap().len() < 200,
+                "muted playback must keep advancing"
+            );
+        }
+    }
+
+    #[test]
+    fn paused_capture_is_silent_and_does_not_consume_queued_audio() {
+        let (tap, mut reader) = tap::PcmTap::new(128);
+        let mut config = PlayerConfig::default();
+        config.pcm_tap = Some(tap.clone());
+        let shared = make_shared(&config, 1000);
+        shared.state.store(ST_PAUSED, Ordering::Relaxed);
+        shared.ring.lock().unwrap().extend([12000, -6000]);
+        let sink = spawn_stream_writer(Box::new(std::io::sink()), 1000, shared.clone());
+        let mut bytes = [1u8; 80];
+        reader.read_exact(&mut bytes).unwrap();
+        drop(sink);
+        tap.close();
+        assert!(bytes.iter().all(|v| *v == 0));
+        assert_eq!(shared.ring.lock().unwrap().len(), 2);
     }
 }
