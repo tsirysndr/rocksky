@@ -43,6 +43,18 @@ api.rocksky.app {
 	}
 
 	handle /xrpc/* {
+		@preflight {
+			method OPTIONS
+			header Origin *
+			header Access-Control-Request-Method *
+		}
+		handle @preflight {
+			header Access-Control-Allow-Origin *
+			header Access-Control-Allow-Methods "GET,HEAD,PUT,PATCH,POST,DELETE"
+			header Access-Control-Allow-Headers "{http.request.header.Access-Control-Request-Headers}"
+			header Vary Access-Control-Request-Headers
+			respond 204
+		}
 		reverse_proxy http://localhost:3004
 	}
 
