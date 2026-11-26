@@ -8,6 +8,7 @@ import rocksky_api/node/crypto
 import rocksky_api/task
 import rocksky_api/tealfm/publication.{type MusicbrainzTrack}
 import rocksky_api/tealfm/push_enabled
+import rocksky_api/tealfm/recording
 
 pub fn publish_playing_now(
   ctx: Context,
@@ -15,6 +16,7 @@ pub fn publish_playing_now(
   track: MusicbrainzTrack,
   duration: Int,
   identity: Option(String),
+  isrc: Option(String),
 ) {
   use did <- task.then(
     task.require(agent.did(agent), "Missing agent DID") |> task.from_result,
@@ -46,7 +48,10 @@ pub fn publish_playing_now(
           ctx.env.submissions_secret,
         ),
         did,
-        publication.encode(record, publication.play_collection),
+        recording.for_queue(
+          publication.encode(record, publication.play_collection),
+          option.unwrap(isrc, ""),
+        ),
         key,
       )
       |> task.map(fn(_) { Nil })

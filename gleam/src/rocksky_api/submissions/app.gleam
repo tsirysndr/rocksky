@@ -20,6 +20,7 @@ import rocksky_api/nowplaying/service
 import rocksky_api/task
 import rocksky_api/tealfm/publication
 import rocksky_api/tealfm/push_enabled
+import rocksky_api/tealfm/recording
 
 fn fail(c: hono.Context, status: Int, message: String) {
   hono.json(c, json.object([#("error", json.string(message))]), status)
@@ -122,13 +123,27 @@ fn process(
           },
         )
         use _ <- task.then(case decoded {
-          Teal(play) -> {
+          Teal(_) -> {
             use enabled <- task.then(push_enabled.is_enabled(ctx, identity.0))
             case enabled {
               False -> task.ok(Nil)
               True -> {
-                use agent <- task.then(factory(identity.0))
-                publication.publish_teal_record(agent, play, rkey, None)
+                use resolved <- task.then(
+                  recording.resolve_pending(ctx.env.musicbrainz_url, raw_track)
+                  |> task.attempt_result,
+                )
+                case resolved {
+                  None -> task.ok(Nil)
+                  Some(record) -> {
+                    use play <- task.then(
+                      decode.run(record, publication.decoder())
+                      |> error.decode("Resolved Teal play", _)
+                      |> task.from_result,
+                    )
+                    use agent <- task.then(factory(identity.0))
+                    publication.publish_teal_record(agent, play, rkey, None)
+                  }
+                }
               }
             }
           }

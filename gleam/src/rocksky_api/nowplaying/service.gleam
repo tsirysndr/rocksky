@@ -33,6 +33,7 @@ import rocksky_api/schema/tracks as track_rows
 import rocksky_api/task.{type Task}
 import rocksky_api/tealfm/index as tealfm
 import rocksky_api/tealfm/publication
+import rocksky_api/tealfm/recording
 import rocksky_api/tracks/service as tracks
 
 pub type Submission {
@@ -297,33 +298,6 @@ fn prepare(
   })
   use existing <- task.then(tracks.lookup(ctx, track))
   use existing <- task.then(wait_uris(ctx, track, existing, 0))
-  use _ <- task.then(
-    case
-      candidate,
-      option.unwrap(option.map(submission, fn(s) { s.skip_teal }), False)
-    {
-      Some(c), False ->
-        case c.identifiers.recording {
-          Some(mbid) if mbid != "" ->
-            tealfm.publish_playing_now(
-              ctx,
-              agent,
-              publication.MusicbrainzTrack(
-                mbid,
-                option.unwrap(c.identifiers.release, ""),
-                c.title,
-                option.unwrap(c.musicbrainz_artists, []),
-                option.unwrap(c.album, track.album),
-                row.iso8601(row.from_unix_ms(at * 1000)),
-              ),
-              track.duration / 1000,
-              option.map(submission, fn(s) { s.id }),
-            )
-          _ -> task.ok(Nil)
-        }
-      _, _ -> task.ok(Nil)
-    },
-  )
   let selected_id =
     option.then(candidate, fn(c) {
       case c.source {
@@ -332,6 +306,50 @@ fn prepare(
       }
     })
   let track = enrichment.catalog(track, existing, selected_id, album)
+  let known = option.then(candidate, fn(c) { c.identifiers.recording })
+  use resolved <- task.then(case known {
+    Some(_) -> task.ok(known)
+    None ->
+      recording.lookup(
+        ctx.env.musicbrainz_url,
+        track.title,
+        track.artist,
+        track.album,
+        track.duration,
+        option.unwrap(track.isrc, ""),
+      )
+      |> task.attempt_result
+      |> task.rescue(fn(_) { task.ok(None) })
+  })
+  let track = Track(..track, mb_id: option.or(resolved, track.mb_id))
+  let artists = case track.artists {
+    Some([_, ..] as credits) -> credits
+    _ -> [track.TrackArtist(None, track.artist)]
+  }
+  use _ <- task.then(
+    case option.unwrap(option.map(submission, fn(s) { s.skip_teal }), False) {
+      True -> task.ok(Nil)
+      False ->
+        tealfm.publish_playing_now(
+          ctx,
+          agent,
+          publication.MusicbrainzTrack(
+            option.unwrap(resolved, ""),
+            option.unwrap(
+              option.then(candidate, fn(c) { c.identifiers.release }),
+              "",
+            ),
+            track.title,
+            artists,
+            track.album,
+            row.iso8601(row.from_unix_ms(at * 1000)),
+          ),
+          track.duration / 1000,
+          option.map(submission, fn(s) { s.id }),
+          track.isrc,
+        )
+    },
+  )
   use duplicate <- task.then(find_existing_scrobble(ctx, track, did, at, window))
   case duplicate {
     Some(_) -> task.ok(Nil)
