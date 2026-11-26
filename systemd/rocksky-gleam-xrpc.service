@@ -10,7 +10,9 @@ User=root
 WorkingDirectory=/root/github/rocksky/gleam
 # Build with gleam/deploy/build-production.sh before restarting this unit.
 # Health-check restarts must not wait for a compiler or a shared Cargo lock.
-ExecStart=/bin/bash -ic 'exec doppler run -c prd -- env NODE_ENV=production node entry/server.mjs'
+Environment=PATH=/root/.local/share/mise/installs/node/24/bin:/root/.bun/bin:/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/doppler run -c prd -- env NODE_ENV=production node entry/server.mjs
+ExecStartPost=/usr/bin/curl --silent --fail --output /dev/null --max-time 5 --retry 120 --retry-delay 1 --retry-all-errors http://127.0.0.1:3004/xrpc/_health
 TimeoutStartSec=15min
 Restart=on-failure
 RestartSec=5
