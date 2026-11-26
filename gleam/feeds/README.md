@@ -91,8 +91,8 @@ application database. Both suites need permission to open local sockets.
 
 [`systemd/feeds-gleam.service`](../../systemd/feeds-gleam.service) runs this
 service from `/root/github/rocksky/gleam`, following the existing Gleam units.
-Startup uses the shared, locked `deploy/build-production.sh` to install frozen
-workspace dependencies and compile Gleam (including the shared native build).
+Run the shared build on the deployment host before switching or restarting the service.
+Systemd checks that the compiled feed module exists and starts it directly.
 The service then runs `feeds/main.mjs` through Doppler's `prd` configuration,
 with production mode and OpenTelemetry enabled. Optional local environment
 settings can be placed in `/etc/default/feeds-gleam`.
@@ -100,6 +100,7 @@ settings can be placed in `/etc/default/feeds-gleam`.
 Install and switch to it on the deployment host:
 
 ```sh
+bash gleam/deploy/build-production.sh
 sudo install -m 644 systemd/feeds-gleam.service /etc/systemd/system/feeds-gleam.service
 sudo systemctl daemon-reload
 sudo systemctl disable --now rocksky-feeds.service
