@@ -57,7 +57,12 @@ export async function resolvePending(base, record) {
   const {_rockskyResolveRecording, ...play} = record;
   const result = await lookup(base, play.trackName, play.artists.map(a => a.artistName).join(", "),
     play.releaseName ?? "", (play.duration ?? 0)*1000, play.isrc ?? "");
-  if (result instanceof GError) return result;
+  if (result instanceof GError) {
+    // Give a recent play a short retry window before publishing without an MBID.
+    const ageMs = Date.now() - Date.parse(play.playedTime);
+    if (ageMs >= 0 && ageMs < 3 * 60_000) return result;
+    return new Ok(new Some(play));
+  }
   const id = result[0];
-  return new Ok(id instanceof Some ? new Some({...play,recordingMbId:"mbid:"+id[0]}) : new None());
+  return new Ok(new Some(id instanceof Some ? {...play, recordingMbId:"mbid:"+id[0]} : play));
 }

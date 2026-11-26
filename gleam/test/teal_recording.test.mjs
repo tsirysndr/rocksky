@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 import { Ok } from "../build/dev/javascript/rocksky_api/gleam.mjs";
-import { None, Some } from "../build/dev/javascript/gleam_stdlib/gleam/option.mjs";
+import { Some } from "../build/dev/javascript/gleam_stdlib/gleam/option.mjs";
 import { selectRecording, forQueue, resolvePending } from "../build/dev/javascript/rocksky_api/rocksky_api/tealfm/recording_ffi.mjs";
 
 const id = "99731ec6-0fe9-45bb-9b18-16d2e552ac0a";
@@ -30,13 +30,18 @@ test("a temporary failure remains retryable and the retry publishes only public 
   await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
   try {
     const url="http://127.0.0.1:"+server.address().port;
-    const pending=forQueue(play,"");
+    const recent={...play,playedTime:new Date().toISOString()};
+    const pending=forQueue(recent,"");
     assert.equal((await resolvePending(url,pending)) instanceof Ok,false);
+    const overdue=await resolvePending(url,forQueue({...play,playedTime:new Date(Date.now()-240_000).toISOString()},""));
+    assert.equal(overdue[0][0].trackName,play.trackName);
+    assert.equal(overdue[0][0].recordingMbId,undefined);
+    assert.equal(overdue[0][0]._rockskyResolveRecording,undefined);
     busy=false;
     const reply=await resolvePending(url,pending);
     assert.ok(reply[0] instanceof Some);
-    assert.deepEqual(reply[0][0],{...play,recordingMbId:"mbid:"+id});
+    assert.deepEqual(reply[0][0],{...recent,recordingMbId:"mbid:"+id});
     const unknown=await resolvePending(url,{...pending,trackName:"Different song"});
-    assert.ok(unknown[0] instanceof None);
+    assert.deepEqual(unknown[0][0],{...recent,trackName:"Different song"});
   } finally { await new Promise(resolve=>server.close(resolve)); }
 });
