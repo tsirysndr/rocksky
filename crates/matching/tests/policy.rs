@@ -729,3 +729,34 @@ fn a_conflicting_identifier_is_still_rejected() {
     c.identifiers.musicbrainz_recording_id = Some("cd267b47-6491-41a7-b721-5bc73f0a1d5d".into());
     assert_eq!(status(&r, c), Status::Unmatched);
 }
+
+#[test]
+fn spotify_match_inherits_only_an_unambiguous_recording_id() {
+    let mut req = request();
+    req.identifiers.isrc = Some("USABC1200001".into());
+    req.identifiers.spotify_track_id = Some("spotify123".into());
+    let mut spotify = track("spotify123", Some("Thriller"));
+    spotify.source = "spotify".into();
+    spotify.identifiers = req.identifiers.clone();
+    let mut mb = track("recording-a", Some("Thriller"));
+    mb.source = "musicbrainz".into();
+    mb.identifiers.isrc = req.identifiers.isrc.clone();
+    mb.identifiers.musicbrainz_recording_id = Some(mb.id.clone());
+    let matched = resolve(&req, vec![spotify.clone(), mb.clone()])
+        .unwrap()
+        .track
+        .unwrap();
+    assert_eq!(matched.source, "spotify");
+    assert_eq!(
+        matched.identifiers.musicbrainz_recording_id,
+        mb.identifiers.musicbrainz_recording_id
+    );
+    let mut different = mb.clone();
+    different.id = "recording-b".into();
+    different.identifiers.musicbrainz_recording_id = Some(different.id.clone());
+    let ambiguous = resolve(&req, vec![spotify, mb, different])
+        .unwrap()
+        .track
+        .unwrap();
+    assert!(ambiguous.identifiers.musicbrainz_recording_id.is_none());
+}

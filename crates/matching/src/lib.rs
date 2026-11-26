@@ -9,7 +9,7 @@ pub mod service;
 pub mod spotify_auth;
 pub mod startup;
 
-pub const POLICY_VERSION: &str = "4";
+pub const POLICY_VERSION: &str = "5";
 
 use rocksky_core::credits::fold;
 use serde::{Deserialize, Serialize};
@@ -580,7 +580,25 @@ pub fn resolve(
                         )
                     })
                     .unwrap();
-            result.track = Some(representative.track.clone());
+            let mut track = representative.track.clone();
+            if track.identifiers.musicbrainz_recording_id.is_none() {
+                let mut verified = result.candidates.iter().map(|c| &c.track).filter(|c| {
+                    c.source == "musicbrainz"
+                        && c.identifiers.musicbrainz_recording_id.is_some()
+                        && same_recording(&track, c)
+                });
+                if let Some(recording) = verified.next() {
+                    if verified.all(|other| {
+                        other.identifiers.musicbrainz_recording_id
+                            == recording.identifiers.musicbrainz_recording_id
+                    }) {
+                        track.identifiers.musicbrainz_recording_id =
+                            recording.identifiers.musicbrainz_recording_id.clone();
+                        track.musicbrainz_artists = recording.musicbrainz_artists.clone();
+                    }
+                }
+            }
+            result.track = Some(track);
         }
     }
     Ok(result)

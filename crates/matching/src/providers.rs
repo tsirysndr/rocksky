@@ -225,7 +225,7 @@ impl HttpProvider {
                 // /hydrate copies the requested title over the provider title.
                 // Use raw /search recordings so title validation is independent.
                 let values: Vec<Value> = self.client.post(format!("{}/search",self.base_url))
-                    .json(&json!({"Track":request.title,"Artist":request.artists.join(", "),"Release":request.album}))
+                    .json(&json!({"Track":request.title,"Artist":request.artists.join(", "),"Release":request.album,"ISRC":request.identifiers.isrc}))
                     .send().await?.error_for_status()?.json().await?;
                 let candidates: Vec<Candidate> = values
                     .iter()
@@ -415,7 +415,20 @@ fn musicbrainz_candidates(v: &Value, request: &MatchRequest) -> Vec<Candidate> {
             .as_array()
             .map(|a| {
                 a.iter()
-                    .filter_map(|v| string(v, "name").or_else(|| string(&v["artist"], "name")))
+                    .filter_map(|credit| {
+                        let artist = &credit["artist"];
+                        let credited = string(credit, "name").or_else(|| string(artist, "name"))?;
+                        let sort_name = string(artist, "sort-name");
+                        Some(
+                            sort_name
+                                .filter(|name| {
+                                    request.artists.iter().any(|wanted| {
+                                        crate::normalize(name) == crate::normalize(wanted)
+                                    })
+                                })
+                                .unwrap_or(credited),
+                        )
+                    })
                     .collect()
             })
             .unwrap_or_default(),
