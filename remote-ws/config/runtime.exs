@@ -36,6 +36,12 @@ end
 # The endpoint is set twice on purpose: traces read it from
 # :opentelemetry_exporter, while the metric and log exporters (still the
 # "experimental" SDK in Erlang) read it from :opentelemetry_experimental.
+# The SDK reads OTEL_SDK_DISABLED itself for traces and metrics, but the log
+# handler is installed by hand in RemoteWs.Telemetry, so it is switched off here.
+if System.get_env("OTEL_SDK_DISABLED") == "true" do
+  config :remote_ws, otlp_logs: false
+end
+
 if config_env() != :test do
   otlp_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT") || "http://127.0.0.1:4318"
 

@@ -62,6 +62,12 @@ import (
 // the service down: any exporter that cannot be built is reported on stderr
 // and skipped, and the returned shutdown is safe to call regardless.
 func Setup(ctx context.Context, serviceName string) func(context.Context) error {
+	// The standard kill switch. The Node and Erlang SDKs read it themselves;
+	// the Go SDK does not, so it is honored here: nothing is installed and the
+	// no-op globals stay in place.
+	if os.Getenv("OTEL_SDK_DISABLED") == "true" {
+		return func(context.Context) error { return nil }
+	}
 	// The default endpoint is the local collector. Set through the standard
 	// variable rather than exporter options, so anything actually configured
 	// in the environment wins untouched.
