@@ -7,10 +7,25 @@ Named `heartbeat` events every 15 seconds contain `{ "healthy": true }` when
 both Jetstream and PostgreSQL are available. Clients should reconnect and keep
 their HTTP fallback enabled when health is false.
 
+Filter by listener with repeated `did` and `handle` query parameters. A play
+matches any supplied DID or handle. Handles are case-insensitive and may start
+with `@`. The endpoint also accepts plural keys, bracketed keys and comma-separated
+values. Empty filter values return HTTP 400.
+
+```sh
+curl -N -G https://sse.rocksky.app/events/scrobbles \
+  --data-urlencode 'did=did:plc:7vdlgi2bflelz7mmuxoqjfcr' \
+  --data-urlencode 'handle=cookie.ebil.club'
+```
+
+Filtered snapshots contain the latest 15 matching plays across the requested
+listeners, including plays older than the global feed. An unknown listener
+receives an empty snapshot and stays subscribed for future plays.
+
 One shared Jetstream subscription listens only to `app.rocksky.scrobble`
 creates, updates and deletes. Events are coalesced, checked against the primary
 index, and retried for up to 60 seconds while indexing catches up. Snapshots are
-deduplicated and broadcast to all clients. There is no periodic feed polling:
+deduplicated and shared by clients with equivalent filters. There is no periodic feed polling:
 only startup, reconnect and indexed Jetstream commits refresh the feed. Upstream
 reconnection uses an in-memory Jetstream cursor and unlimited capped backoff;
 restarting the process obtains a fresh snapshot. Slow clients are disconnected

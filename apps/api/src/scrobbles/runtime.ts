@@ -21,16 +21,36 @@ export function createScrobbleRuntime() {
     console.error("Scrobble SSE pool", error.message),
   );
   const events = new ScrobbleEvents({
-    async feed() {
-      const { rows } = await pool.query(`WITH recent AS (
+    async handlesForDids(dids) {
+      const { rows } = await pool.query(
+        "SELECT lower(handle) AS handle FROM users WHERE did = ANY($1::text[])",
+        [dids],
+      );
+      return rows.map((row) => row.handle);
+    },
+    async feed({ dids, handles }) {
+      const filtered = dids.length > 0 || handles.length > 0;
+      const recent = filtered
+        ? `
+        SELECT plays.* FROM users listener
+        CROSS JOIN LATERAL (
+          SELECT xata_id, uri, timestamp, track_id, user_id FROM scrobbles
+          WHERE user_id = listener.xata_id ORDER BY timestamp DESC, xata_id DESC LIMIT 15
+        ) plays
+        WHERE listener.did = ANY($1::text[]) OR lower(listener.handle) = ANY($2::text[])
+        ORDER BY plays.timestamp DESC, plays.xata_id DESC LIMIT 15`
+        : `
         SELECT xata_id, uri, timestamp, track_id, user_id FROM scrobbles
-        ORDER BY timestamp DESC, xata_id DESC LIMIT 15
-      ) SELECT s.xata_id AS id, s.uri, t.uri AS "trackUri", t.title, t.artist,
+        ORDER BY timestamp DESC, xata_id DESC LIMIT 15`;
+      const { rows } = await pool.query(
+        `WITH recent AS (${recent}) SELECT s.xata_id AS id, s.uri, t.uri AS "trackUri", t.title, t.artist,
         t.album, t.album_art AS "albumArt", u.did, u.handle, u.avatar,
         s.timestamp AS "createdAt"
       FROM recent s LEFT JOIN tracks t ON t.xata_id = s.track_id
       LEFT JOIN users u ON u.xata_id = s.user_id
-      ORDER BY s.timestamp DESC, s.xata_id DESC`);
+      ORDER BY s.timestamp DESC, s.xata_id DESC`,
+        filtered ? [dids, handles] : [],
+      );
       return rows;
     },
     async existing(uris) {
