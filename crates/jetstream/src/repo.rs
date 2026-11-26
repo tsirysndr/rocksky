@@ -91,7 +91,7 @@ pub async fn save_scrobble(
     pool: Arc<Backend>,
     nc: Arc<async_nats::Client>,
     did: &str,
-    commit: Commit,
+    mut commit: Commit,
 ) -> Result<(), Error> {
     // skip unknown collection
     if !vec![
@@ -113,6 +113,19 @@ pub async fn save_scrobble(
         return Ok(());
     }
 
+    let mut artwork = None;
+    if matches!(commit.operation.as_str(), "create" | "update") {
+        if let Some(record) = commit.record.as_mut() {
+            if let Some(release) = crate::artwork::Release::from_record(&commit.collection, record)
+            {
+                if let Some(cover) = release.cover(&pool, record["albumArtUrl"].as_str()).await? {
+                    record["albumArtUrl"] = json!(cover);
+                    artwork = Some((release, cover));
+                }
+            }
+        }
+    }
+
     match commit.operation.as_str() {
         "create" => {
             let record = commit.record.unwrap();
@@ -120,6 +133,11 @@ pub async fn save_scrobble(
                 let scrobble_record: ScrobbleRecord = serde_json::from_value(record.clone())?;
                 let uri = format!("at://{}/app.rocksky.scrobble/{}", did, commit.rkey);
                 if indexed_scrobble(&pool, &uri, &scrobble_record).await? {
+                    if artwork.is_some() {
+                        let mut tx = pool.begin().await?;
+                        crate::artwork::promote(&mut tx, artwork.as_ref()).await?;
+                        tx.commit().await?;
+                    }
                     tracing::debug!(%uri, "Exact scrobble replay already indexed");
                     return Ok(());
                 }
@@ -129,6 +147,7 @@ pub async fn save_scrobble(
 
                 let (album_id, artist_id, track_id) =
                     resolve_scrobble_catalog(&mut tx, &scrobble_record).await?;
+                crate::artwork::promote(&mut tx, artwork.as_ref()).await?;
 
                 let timestamp = DateTime::parse_from_rfc3339(&scrobble_record.created_at)?
                     .with_timezone(&chrono::Utc);
@@ -228,6 +247,7 @@ pub async fn save_scrobble(
 
                 save_user_album(&mut tx, &user_id, album_record.clone(), &uri).await?;
                 update_album_uri(&mut tx, &user_id, album_record, &uri).await?;
+                crate::artwork::promote(&mut tx, artwork.as_ref()).await?;
 
                 tx.commit().await?;
                 publish_user(&nc, &pool, &user_id).await?;
@@ -241,6 +261,7 @@ pub async fn save_scrobble(
 
                 save_user_track(&mut tx, &user_id, song_record.clone(), &uri).await?;
                 update_track_uri(&mut tx, &user_id, song_record, &uri).await?;
+                crate::artwork::promote(&mut tx, artwork.as_ref()).await?;
 
                 tx.commit().await?;
                 publish_user(&nc, &pool, &user_id).await?;
@@ -307,6 +328,17 @@ pub async fn save_scrobble(
         // AT-URI. The rest are append-only, so an update event on them is
         // nothing to act on.
         "update" => {
+            if matches!(
+                commit.collection.as_str(),
+                ALBUM_NSID | SONG_NSID | SCROBBLE_NSID
+            ) {
+                if artwork.is_some() {
+                    let mut tx = pool.begin().await?;
+                    crate::artwork::promote(&mut tx, artwork.as_ref()).await?;
+                    tx.commit().await?;
+                }
+                return Ok(());
+            }
             if event::is_event_collection(&commit.collection) {
                 let Some(record) = commit.record.clone() else {
                     tracing::warn!(collection = %commit.collection, "Update commit carried no record");
