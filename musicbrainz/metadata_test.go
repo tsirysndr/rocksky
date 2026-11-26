@@ -461,3 +461,17 @@ func TestTransportUsesIPv4WithoutForwardProxy(t *testing.T) {
 		t.Fatal("did not dial IPv4")
 	}
 }
+
+func TestSearchHandlerUsesISRCBeforeReleaseText(t *testing.T) {
+	var query string
+	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		query = r.URL.Query().Get("query")
+		fmt.Fprint(w, `{"recordings":[`+recordingJSON+`]}`)
+	})
+	req := httptest.NewRequest("POST", "/search", strings.NewReader(`{"Track":"Song","Artist":"Artist","Release":"Other title","ISRC":"us-abc-12-00001"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	if err := (&Server{metadata: client}).searchHandler(echo.New().NewContext(req, rec)); err != nil || rec.Code != 200 || query != "isrc:USABC1200001" {
+		t.Fatalf("query=%q status=%d err=%v", query, rec.Code, err)
+	}
+}

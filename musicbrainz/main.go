@@ -138,8 +138,13 @@ func main() {
 	_ = e.Shutdown(shutdownCtx)
 }
 
+var validISRC = regexp.MustCompile(`^[A-Z]{2}[A-Z0-9]{3}[0-9]{7}$`)
+
 func (s *Server) searchHandler(c echo.Context) error {
-	var req musicbrainz.SearchParams
+	var req struct {
+		musicbrainz.SearchParams
+		ISRC string
+	}
 
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
@@ -148,10 +153,23 @@ func (s *Server) searchHandler(c echo.Context) error {
 	req.Track = cleanTitle(req.Track)
 	ctx := c.Request().Context()
 
-	if strings.TrimSpace(req.Track) == "" && strings.TrimSpace(req.Artist) == "" && strings.TrimSpace(req.Release) == "" {
+	if strings.TrimSpace(req.Track) == "" && strings.TrimSpace(req.Artist) == "" && strings.TrimSpace(req.Release) == "" && req.ISRC == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "empty query"})
 	}
-	result, err := s.metadata.search(ctx, req)
+	var result metadataResult
+	var err error
+	if req.ISRC != "" {
+		code := strings.ToUpper(strings.ReplaceAll(req.ISRC, "-", ""))
+		if !validISRC.MatchString(code) {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid ISRC"})
+		}
+		result, err = s.metadata.searchQuery(ctx, "isrc:"+code)
+		if err == nil && string(result.body) == "[]" && (req.Track != "" || req.Artist != "" || req.Release != "") {
+			result, err = s.metadata.search(ctx, req.SearchParams)
+		}
+	} else {
+		result, err = s.metadata.search(ctx, req.SearchParams)
+	}
 	if err != nil {
 		return metadataError(c, err)
 	}

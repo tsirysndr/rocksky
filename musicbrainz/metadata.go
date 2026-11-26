@@ -363,21 +363,40 @@ func (m *metadataClient) recording(ctx context.Context, id string) (metadataResu
 	})
 }
 func (m *metadataClient) search(ctx context.Context, p musicbrainz.SearchParams) (metadataResult, error) {
-	encoded, _ := json.Marshal(p)
-	// Separate from earlier local-first searches, whose cached data may be partial.
-	key := fmt.Sprintf("search:upstream:%x", sha256.Sum256(encoded))
+	parts := []string{}
+	escape := func(s string) string { return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) }
+	for _, part := range []struct{ k, v string }{{"recording", p.Track}, {"artist", p.Artist}, {"release", p.Release}} {
+		if part.v != "" {
+			parts = append(parts, fmt.Sprintf(`%s:"%s"`, part.k, escape(part.v)))
+		}
+	}
+	if len(parts) == 0 {
+		return metadataResult{}, errors.New("empty MusicBrainz query")
+	}
+	return m.searchQuery(ctx, strings.Join(parts, " AND "))
+}
+
+func (m *metadataClient) searchQuery(ctx context.Context, query string) (metadataResult, error) {
+	key := fmt.Sprintf("search:query:%x", sha256.Sum256([]byte(query)))
 	return m.lookup(ctx, key, func(work context.Context) (metadataResult, error) {
-		parts := []string{}
-		escape := func(s string) string { return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) }
-		for _, part := range []struct{ k, v string }{{"recording", p.Track}, {"artist", p.Artist}, {"release", p.Release}} {
-			if part.v != "" {
-				parts = append(parts, fmt.Sprintf(`%s:"%s"`, part.k, escape(part.v)))
+		path := "/recording?query=" + url.QueryEscape(query) + "&fmt=json"
+		body, status, _, err := m.upstream(work, path)
+		// A busy response is common on a cold ISRC lookup. Retry once inside
+		// the original deadline and through the same shared rate limiter.
+		var busy *upstreamError
+		if strings.HasPrefix(query, "isrc:") && errors.As(err, &busy) && busy.reason == "upstream_http" && busy.upstreamStatus == 503 {
+			deadline, ok := work.Deadline()
+			if ok && busy.retryAt.Add(time.Second).Before(deadline) {
+				timer := time.NewTimer(time.Until(busy.retryAt))
+				defer timer.Stop()
+				select {
+				case <-work.Done():
+					return metadataResult{}, work.Err()
+				case <-timer.C:
+					body, status, _, err = m.upstream(work, path)
+				}
 			}
 		}
-		if len(parts) == 0 {
-			return metadataResult{}, errors.New("empty MusicBrainz query")
-		}
-		body, status, _, err := m.upstream(work, "/recording?query="+url.QueryEscape(strings.Join(parts, " AND "))+"&fmt=json&inc=artists+releases+isrcs")
 		if err != nil {
 			return metadataResult{}, err
 		}
