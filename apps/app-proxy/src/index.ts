@@ -1,3 +1,4 @@
+import { iosAppNavigation } from '../../shared/ios-app-navigation.mjs';
 import { appLinkResponse, type AppLinkEnvironment } from "./app-links";
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
@@ -85,7 +86,7 @@ function withCors(response: Response, origin: string | null): Response {
 	return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-export default {
+const proxy = {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 		const origin = request.headers.get('Origin');
@@ -234,5 +235,11 @@ export default {
 			.transform(htmlRes);
 
 		return new Response(rewritten.body, { status: htmlRes.status, headers });
+	},
+} satisfies ExportedHandler<Env>;
+
+export default {
+	async fetch(request, env, ctx) {
+		return iosAppNavigation(request, await proxy.fetch(request, env, ctx));
 	},
 } satisfies ExportedHandler<Env>;

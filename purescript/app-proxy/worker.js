@@ -1,7 +1,8 @@
+import { iosAppNavigation } from "../../apps/shared/ios-app-navigation.mjs";
 import { fetch } from '../output/Rocksky.AppProxy.Index/index.js';
 
 export default {
-  fetch(request, env) {
-    return fetch(request)(env)();
+  async fetch(request, env) {
+    return iosAppNavigation(request, await fetch(request)(env)());
   },
 };
